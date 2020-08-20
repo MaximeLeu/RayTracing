@@ -2,7 +2,7 @@ import geopandas as gpd
 import pyny3d.geoms as pyny
 import numpy as np
 import matplotlib.pyplot as plt
-import copy
+from utils import modify_class
 
 
 def enclosed_area(points):
@@ -60,23 +60,43 @@ def project_polygon(space, point, plane):
     pass
 
 
-def modify_class(obj, new_class, inplace=False):
-    if inplace:
-        obj.__class__ = new_class
-    else:
-        obj_copy = copy.deepcopy(obj)
-        obj_copy.__class__ = new_class
-        return obj_copy
-
-
 class OrientedGeometry:
+    """
+    An oriented geometry object should subclass pyny.root or one of its subclasses.
+    It should not add any attribute to the class, only new methods.
 
+    Oriented geometry constructors assume that their input are already oriented.
+
+    This way, casting object between parent and child classes becomes straightforward.
+    """
     def superclass(self, inplace=False):
+        """
+        Parses the object into its parent class.
+        If not in place, will return a new object.
+
+        :param inplace: if False, will return a copy
+        :type inplace: bool
+        :return: the object with type as parent class or nothing
+        :rtype: pyny.root or None
+        """
         base = self.__class__.__base__
         return modify_class(self, base, inplace=inplace)
 
     @classmethod
     def cast(cls, obj, inplace=False):
+        """
+        Parses the object into given subclass.
+        If not in place, will return a new object.
+
+        :param obj: the object to be parsed
+        :type obj: pyny.root
+        :param inplace: if False, will return a copy
+        :type inplace: bool
+        :return: the object with type as subclass or nothing
+        :rtype: cls or None
+        """
+        if not issubclass(cls, type(obj)):
+            raise ValueError(f'Cannot cast type {type(obj)} into {cls}.')
         return modify_class(obj, cls, inplace=inplace)
 
 
