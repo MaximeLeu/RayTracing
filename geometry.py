@@ -269,18 +269,6 @@ class Building(OrientedPolyhedron):
 
             polygon = OrientedPolygon(face_points, make_ccw=False)
             polygons.append(polygon)
-            """
-            vertex_1 = B - A
-            vertex_2 = C - A
-            vertex_3 = np.cross(vertex_2, vertex_1)
-
-            normal = polygon.get_parametric(check=False)[:-1]
-
-            dot = np.dot(vertex_3, normal)
-
-            if dot < 0:
-                polygon.parametric = - polygon.parametric
-            """
 
         return Building(polygons, make_ccw=False)
 
