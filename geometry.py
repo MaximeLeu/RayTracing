@@ -2,7 +2,8 @@ import geopandas as gpd
 import pyny3d.geoms as pyny
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import modify_class
+from utils import modify_class, share_parent_class
+from shapely.geometry import Polygon as shPolygon
 
 
 def enclosed_area(points):
@@ -85,7 +86,7 @@ class OrientedGeometry:
     @classmethod
     def cast(cls, obj, inplace=False):
         """
-        Parses the object into given subclass.
+        Parses the object into given subclass or class sharing parent class.
         If not in place, will return a new object.
 
         :param obj: the object to be parsed
@@ -95,12 +96,40 @@ class OrientedGeometry:
         :return: the object with type as subclass or nothing
         :rtype: cls or None
         """
-        if not issubclass(cls, type(obj)):
+        if not share_parent_class(cls, obj.__class__):
             raise ValueError(f'Cannot cast type {type(obj)} into {cls}.')
         return modify_class(obj, cls, inplace=inplace)
 
+    def project(self, matrix):
+        """
+        Project a geometry different axes given by matrix columns.
+
+        :param matrix: the matrix to project all the geometry
+        :type matrix: ndarray *shape=(3, 3)*
+        :return: the new geometry
+        :rtype OrientedGeometry
+        """
+        raise NotImplementedError
+
 
 class OrientedPolygon(pyny.Polygon, OrientedGeometry):
+
+    def __init__(self, points):
+        super().__init__(points, make_ccw=False)
+
+    def get_matrix(self):
+        points = self.points
+        A = points[0, :]
+        B = points[1, :]
+        normal = self.get_parametric()[:-1]
+        matrix = np.empty((3, 3), dtype=float)
+        matrix[0, :] = B - A
+        matrix[1, :] = np.cross(normal, matrix[0, :])
+        matrix[2, :] = normal
+        return matrix.T
+
+    def project(self, matrix):
+        return OrientedPolygon(self.points @ matrix.T)
 
     def get_parametric(self, check=True, tolerance=0.001):
         if self.parametric is None:
@@ -125,7 +154,8 @@ class OrientedPolygon(pyny.Polygon, OrientedGeometry):
 
 class OrientedSurface(pyny.Surface, OrientedGeometry):
 
-    def __init__(self, polygons, *args, **kwargs):
+    def __init__(self, polygons, holes=[],
+                 melt=False, check_contiguity=False, **kwargs):
 
         if type(polygons) != list:
             polygons = [polygons]
@@ -134,10 +164,16 @@ class OrientedSurface(pyny.Surface, OrientedGeometry):
             if isinstance(polygon, OrientedPolygon):
                 polygon.superclass(inplace=True)
 
-        super().__init__(polygons, *args, **kwargs)
+        super().__init__(polygons, holes=holes, make_ccw=False, melt=melt,
+                         check_contiguity=check_contiguity, **kwargs)
 
         for polygon in self.polygons:
             OrientedPolygon.cast(polygon, inplace=True)
+
+    def project(self, matrix):
+        projected_polygons = [polygon.project(matrix) for polygon in self.polygons]
+        projected_holes = [hole.points @ matrix.T for hole in self.holes]
+        return OrientedSurface(projected_polygons, projected_holes)
 
 
 class OrientedPolyhedron(pyny.Polyhedron, OrientedGeometry):
@@ -149,6 +185,10 @@ class OrientedPolyhedron(pyny.Polyhedron, OrientedGeometry):
         self.aux_surface = OrientedSurface(polygons, **kwargs)
         self.polygons = self.aux_surface.polygons
 
+    def project(self, matrix):
+        surface = self.aux_surface.project(matrix)
+        return OrientedPolyhedron(surface.polygons)
+
     def move(self, d_xyz, inplace=False):
         polygon = np.array([[0, 0], [0, 1], [1, 1], [0, 1]])
         space = OrientedSpace(OrientedPlace(polygon, polyhedra=self))
@@ -157,56 +197,6 @@ class OrientedPolyhedron(pyny.Polyhedron, OrientedGeometry):
             self = space.places[0].polyhedra[0]
         else:
             return space.move(d_xyz, inplace=inplace)[0].polyhedra[0]
-
-
-class Cube(OrientedPolyhedron):
-    """
-    A cube is an oriented polyhedron that can be fully described by its center and one of its 6 faces.
-    """
-    @staticmethod
-    def by_point_and_side_length(point, side_length):
-        """
-        Creates a cube from an origin point and a side length.
-
-        :param point: the center of the cube
-        :type point: ndarray *size=3*
-        :param side_length: the length of one side of the cube
-        :type side_length: float
-        :return: a cube
-        :rtype: Cube
-        """
-        r = side_length / 2
-        top_points = np.array([
-            [r, r, r],
-            [-r, r, r],
-            [-r, -r, r],
-            [r, -r, r]
-        ])
-
-        bottom_points = np.array(top_points[::-1, :])  # Copy
-        bottom_points[:, -1].fill(-r)
-
-        top_polygon = OrientedPolygon(top_points)
-        bottom_polygon = OrientedPolygon(bottom_points)
-
-        polygons = [top_polygon, bottom_polygon]
-
-        # Create 4 remaining faces
-        for i in range(4):
-            A = top_points[i - 1, :]
-            B = bottom_points[i - 1, :]
-            C = bottom_points[i, :]
-            D = top_points[i, :]
-            polygon = OrientedPolygon(np.row_stack([A, B, C, D]))
-            polygons.append(polygon)
-
-        state = pyny.Polygon.verify
-        pyny.Polygon.verify = False  # Required because Polyhedron.move function will throw error otherwise
-
-        polyhedron = OrientedPolyhedron(polygons).move(point)
-        pyny.Polygon.verify = state  # Reset to previous state
-
-        return Cube(polyhedron.polygons)  # Cast to Cube object
 
 
 class Pyramid(OrientedPolyhedron):
@@ -223,7 +213,7 @@ class Pyramid(OrientedPolyhedron):
         for i in range(n):
             B = base_points[i - 1, :]
             C = base_points[i, :]
-            polygon = pyny.Polygon(np.row_stack([C, B, A]))  # ccw
+            polygon = OrientedPolygon(np.row_stack([C, B, A]))  # ccw
             polygons.append(polygon)
 
 
@@ -233,12 +223,14 @@ class Building(OrientedPolyhedron):
     It consists in 2 flat faces, one for ground and one for rooftop, and as many other vertical faces are there
     are vertices in the original polygon.
     """
+
     @staticmethod
-    def by_polygon2d_and_height(polygon, height, make_ccw=True):
+    def by_polygon_and_height(polygon, height, make_ccw=True):
         """
-        Constructs a building from a 2D polygon
-        :param polygon: 2D polygon
-        :type polygon: Polygon (shapely or pyny3d)
+        Constructs a building from a 3D polygon on the ground.
+
+        :param polygon: 3D polygon
+        :type polygon: pyny.Polygon or ndarray *shape=(N, 3)*
         :param height: the height of the building
         :type height: float or int
         :param make_ccw: if True, ensure that polygon is oriented correctly
@@ -248,15 +240,14 @@ class Building(OrientedPolyhedron):
         """
 
         if isinstance(polygon, pyny.Polygon):
-            polygon = polygon.shapely()
+            bottom_points = polygon.points
+        elif isinstance(polygon, np.ndarray):
+            bottom_points = polygon
+        else:
+            raise ValueError(f'Type {type(polygon)} is not supported for polygon !')
 
-        x, y = polygon.exterior.coords.xy
-        x = x[:-1]
-        y = y[:-1]
-        z = np.full_like(x, height)
-        z0 = np.zeros_like(x)
-        top_points = np.column_stack([x, y, z])
-        bottom_points = np.column_stack([x, y, z0])
+        top_points = np.array(bottom_points)
+        top_points[:, -1] += float(height)
 
         if make_ccw:
             if not is_ccw(top_points):
@@ -264,8 +255,8 @@ class Building(OrientedPolyhedron):
             else:
                 bottom_points = bottom_points[::-1, :]
 
-        top = OrientedPolygon(top_points, make_ccw=False)
-        bottom = OrientedPolygon(bottom_points, make_ccw=False)
+        top = OrientedPolygon(top_points)
+        bottom = OrientedPolygon(bottom_points)
 
         if top.get_parametric(check=False)[2] < 0:  # z component should be positive
             top.parametric = - top.parametric
@@ -287,10 +278,77 @@ class Building(OrientedPolyhedron):
 
             face_points = np.row_stack([A, C, D, B])
 
-            polygon = OrientedPolygon(face_points, make_ccw=False)
+            polygon = OrientedPolygon(face_points)
             polygons.append(polygon)
 
-        return Building(polygons, make_ccw=False)
+        return Building(polygons)
+
+    @staticmethod
+    def by_polygon2d_and_height(polygon, height, make_ccw=True):
+        """
+        Constructs a building from a 2D polygon.
+
+        :param polygon: 2D polygon
+        :type polygon: Polygon (shapely or pyny3d) or ndarray *shape=(N, 3)*
+        :param height: the height of the building
+        :type height: float or int
+        :param make_ccw: if True, ensure that polygon is oriented correctly
+        :type make_ccw: bool
+        :return: a building
+        :rtype: Building
+        """
+
+        if isinstance(polygon, pyny.Polygon):
+            x, y = polygon.points[:, :-1]
+        elif isinstance(polygon, shPolygon):
+            x, y = polygon.exterior.coords.xy
+            x = x[:-1]
+            y = y[:-1]
+        elif isinstance(polygon, np.ndarray):
+            x, y = polygon[:, :-1]
+        else:
+            raise ValueError(f'Type {type(polygon)} is not supported for polygon !')
+
+        z0 = np.zeros_like(x, dtype=float)
+        bottom_points = np.column_stack([x, y, z0])
+
+        polygon = pyny.Polygon(bottom_points, make_ccw=False)
+
+        return Building.by_polygon_and_height(polygon, height, make_ccw=make_ccw)
+
+
+class Cube(OrientedPolyhedron):
+    """
+    A cube is an oriented polyhedron that can be fully described by its center and one of its 6 faces.
+    """
+
+    @staticmethod
+    def by_point_and_side_length(point, side_length):
+        """
+        Creates a cube from an origin point and a side length.
+
+        :param point: the center of the cube
+        :type point: ndarray *size=3*
+        :param side_length: the length of one side of the cube
+        :type side_length: float
+        :return: a cube
+        :rtype: Cube
+        """
+        r = side_length / 2
+        polygon = np.array([
+            [r, r, -r],
+            [-r, r, -r],
+            [-r, -r, -r],
+            [r, -r, -r]
+        ])
+
+        polygon += point.reshape(1, 3)
+
+        building = Building.by_polygon_and_height(polygon, side_length)
+
+        Cube.cast(building, inplace=True)  # Cast to Cube object
+
+        return building
 
 
 class OrientedPlace(pyny.Place, OrientedGeometry):
@@ -301,16 +359,51 @@ class OrientedPlace(pyny.Place, OrientedGeometry):
         if type(polyhedra) != list:
             polyhedra = [polyhedra]
 
-        if isinstance(polyhedra[0], OrientedPolyhedron):
+        if len(polyhedra) > 0 and isinstance(polyhedra[0], OrientedPolyhedron):
             for polyhedron in polyhedra:
                 polyhedron.superclass(inplace=True)
 
-        super().__init__(surface, polyhedra=polyhedra, **kwargs)
+        super().__init__(surface, polyhedra=polyhedra, make_ccw=False, **kwargs)
 
-        OrientedSurface.cast(self.surface, inplace=True)
+        self.surface = OrientedSurface(surface.polygons)
 
-        for polyhedron in self.polyhedra:
-            OrientedPolyhedron.cast(polyhedron, inplace=True)
+        self.polyhedra = [
+            OrientedPolyhedron(polyhedron.polygons) for polyhedron in self.polyhedra
+        ]
+
+    def project(self, matrix):
+        surface = self.surface.project(matrix)
+        polyhedra = [polyhedron.project(matrix) for polyhedron in self.polyhedra]
+        return OrientedPlace(surface, polyhedra=polyhedra)
+
+    def plot(self, color='default', ret=False, ax=None, normals=False, orientation=False, tight_box=False):
+        ax = super().plot(color=color, ret=True, ax=ax)
+
+        if normals or orientation:
+            for polyhedron in self.polyhedra:
+                for polygon in polyhedron.polygons:
+                    x, y, z = polygon.get_centroid()
+                    u, v, w, _ = polygon.get_parametric()
+                    if normals:
+                        ax.quiver(x, y, z, u, v, w, length=4, normalize=True, linewidth=2, color='k')
+
+                    points = polygon.points
+
+                    if orientation:
+                        n = points.shape[0]
+                        for i in range(n):
+                            x, y, z = points[i, :]
+                            u, v, w = points[(i + 1) % n, :] - points[i, :]
+                            ax.quiver(x, y, z, u, v, w, length=4, normalize=True, linewidth=2, color='r')
+
+        if tight_box:
+            domain = self.get_domain()
+            ax.set_xlim([domain[0][0], domain[1][0]])
+            ax.set_ylim([domain[0][1], domain[1][1]])
+            ax.set_zlim([domain[0][2], domain[1][2]])
+
+        if ret:
+            return ax
 
 
 class OrientedSpace(pyny.Space, OrientedGeometry):
@@ -347,7 +440,7 @@ def generate_place_from_rooftops_file(roof_top_file):
 
     ground_surface = pyny.Surface(points)
 
-    place = pyny.Place(ground_surface)
+    place = OrientedPlace(ground_surface)
     place.polyhedra = polyhedra
 
     return place
@@ -363,42 +456,31 @@ if __name__ == '__main__':
     #ground = buildings.surface
     ground_center = place.get_centroid()
 
-    S = place
-    ax = S.iplot(ret=True)
-
-
-    tx = ground_center + [5, 5, 2]
+    tx = ground_center + [5, 5, 1]
     rx = ground_center + [-2, 0, 5]
+    cube = Cube.by_point_and_side_length(tx, 5)
+    place.polyhedra.append(
+        cube
+    )
+
+
+    S = place
+    ax = S.plot(ret=True)
+    print(place.polyhedra)
+
     ax.scatter(tx[0], tx[1], tx[2])
     ax.scatter(rx[0], rx[1], rx[2])
 
+    plt.show()
 
-
-    place.polyhedra.append(
-        Cube.by_point_and_side_length(tx, 5)
-    )
+    face = cube.polygons[2]
+    matrix = face.get_matrix()
+    S = S.project(matrix)
 
     for polyhedron in place.polyhedra:
-        for polygon in polyhedron.polygons:
-            x, y, z = polygon.get_centroid()
-            u, v, w, _ = polygon.get_parametric()
-            ax.quiver(x, y, z, u, v, w, length=4, normalize=True, linewidth=2, color='b')
+        polyhedron.aux_surface.plot2d()
+        plt.show()
 
-            points = polygon.points
-
-            #print('Is ccw:', polygon.is_ccw())
-
-            n = points.shape[0]
-
-            for i in range(n):
-                x, y, z = points[i, :]
-                u, v, w = points[(i + 1) % n, :] - points[i, :]
-                #ax.quiver(x, y, z, u, v, w, length=4, normalize=True, linewidth=2, color='r')
-
-    plt.xlim([domain[0][0], domain[1][0]])
-    plt.ylim([domain[0][1], domain[1][1]])
-    ax.set_zlim([domain[0][2], domain[1][2]])
-    plt.show()
 
 
 
