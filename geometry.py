@@ -59,6 +59,18 @@ def reflexion_on_plane(incidents, normal):
 
 
 def project_points(points, matrix, around_point=None):
+    """
+    Project points on different axes given by matrix columns.
+
+    :param points: the points to be projected
+    :type points: ndarray *shape=(N, 3)*
+    :param matrix: the matrix to project all the geometry
+    :type matrix: ndarray *shape=(3, 3)*
+    :param around_point: if present, will apply the project around this point
+    :type around_point: ndarray *size=3*
+    :return: the new geometry
+    :rtype OrientedGeometry
+    """
     if around_point is not None:
         around_point = around_point.reshape(1, 3)
         return ((points - around_point) @ matrix.T) + around_point
@@ -139,6 +151,21 @@ class OrientedPolygon(pyny.Polygon, OrientedGeometry):
         super().__init__(points, make_ccw=False)
 
     def get_matrix(self, normalized=False):
+        """
+        Returns a 3-by-3 matrix where is column correspond to an axis of the polygon.
+        matrix = [x, y, z] where
+            x belongs to the polygon
+            y belongs to the polygon
+            z is normal to the polygon
+
+        The axes follow the right hand side rule.
+        Optionally, they can be normalized.
+
+        :param normalized: if True, will normalize each axis
+        :type normalized: bool
+        :return: the matrix of axes
+        :rtype: ndarray *shape=(3, 3)*
+        """
         points = self.points
         A = points[0, :]
         B = points[1, :]
@@ -641,18 +668,17 @@ if __name__ == '__main__':
     rx = ground_center + [-2, 0, 5]
     tx = tx.reshape(1, 3)
     rx = rx.reshape(1, 3)
-    cube = Cube.by_point_and_side_length(tx, 5)
+    cube = Cube.by_point_and_side_length(tx, 2)
 
     from scipy.spatial.transform import Rotation as R
 
-    rot2 = R.from_euler('xyz', [14, 45, 20], degrees=True).as_matrix()
+    rot2 = R.from_euler('xyz', [0, 20, 0], degrees=True).as_matrix()
 
     cube = cube.project(rot2, around_point=tx)
 
     place.polyhedra.append(
         cube
     )
-
 
     place.add_set_of_points(tx)
     place.add_set_of_points(rx)
@@ -663,7 +689,7 @@ if __name__ == '__main__':
     #ax.scatter(rx[0], rx[1], rx[2])
 
 
-    face = cube.polygons[0]
+    face = cube.polygons[2]
 
     face.plot(color='b', ax=ax)
 
@@ -677,7 +703,10 @@ if __name__ == '__main__':
     print(matrix)
     S = place.project(matrix)
 
-    S.plot2d(alpha=0.5)
+    S.plot2d(alpha=1)
+
+    #face_bis.project(matrix).plot2d(alpha=0.2, color='r')
+
     plt.show()
 
     """
