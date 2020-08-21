@@ -2,6 +2,7 @@ import geopandas as gpd
 import pyny3d.geoms as pyny
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from utils import modify_class, share_parent_class
 from shapely.geometry import Polygon as shPolygon
 
@@ -57,8 +58,12 @@ def reflexion_on_plane(incidents, normal):
     return incidents - (incidents @ normal.T) @ ((2 / den) * normal)  # Order of operation minimizes the # of op.
 
 
-def project_polygon(space, point, plane):
-    pass
+def project_points(points, matrix, around_point=None):
+    if around_point is not None:
+        around_point = around_point.reshape(1, 3)
+        return ((points - around_point) @ matrix.T) + around_point
+    else:
+        return points @ matrix.T
 
 
 class OrientedGeometry:
@@ -100,14 +105,30 @@ class OrientedGeometry:
             raise ValueError(f'Cannot cast type {type(obj)} into {cls}.')
         return modify_class(obj, cls, inplace=inplace)
 
-    def project(self, matrix):
+    def project(self, matrix, around_point=None):
         """
-        Project a geometry different axes given by matrix columns.
+        Project a geometry on different axes given by matrix columns.
 
         :param matrix: the matrix to project all the geometry
         :type matrix: ndarray *shape=(3, 3)*
+        :param around_point: if present, will apply the project around this point
+        :type around_point: ndarray *size=3*
         :return: the new geometry
         :rtype OrientedGeometry
+        """
+        raise NotImplementedError
+
+    def plot2d(self, ret=False, ax=None):
+        """
+        Generates a 2D plot for the z=0 Polygon projection.
+
+        :param ret: if True, returns the figure. It can be used to add
+            more elements to the plot or to modify it.
+        :type ret: bool
+        :param ax: if present, will add content to this ax, otherwise will create a new one
+        :type ax: matplotlib axes
+        :returns: None, axes
+        :rtype: None, matplotlib axes
         """
         raise NotImplementedError
 
@@ -117,26 +138,52 @@ class OrientedPolygon(pyny.Polygon, OrientedGeometry):
     def __init__(self, points):
         super().__init__(points, make_ccw=False)
 
-    def get_matrix(self):
+    def get_matrix(self, normalized=False):
         points = self.points
         A = points[0, :]
         B = points[1, :]
-        normal = self.get_parametric()[:-1]
+        normal = self.get_normal()
         matrix = np.empty((3, 3), dtype=float)
         matrix[0, :] = B - A
         matrix[1, :] = np.cross(normal, matrix[0, :])
         matrix[2, :] = normal
+
+        if normalized:
+            for i in range(3):
+                matrix[i, :] /= np.linalg.norm([matrix[i, :]])
+
         return matrix.T
 
-    def project(self, matrix):
-        return OrientedPolygon(self.points @ matrix.T)
+    def project(self, matrix, around_point=None):
+        return OrientedPolygon(project_points(self.points, matrix, around_point=around_point))
+
+    def magnify(self, point, factor=None, distance=None):
+        if factor is not None:
+            pass
+        elif distance is not None:
+            # https://mathinsight.org/distance_point_plane
+            normal = self.get_normal()
+            v = point - self.points[0, :]
+            d = np.dot(normal, v.reshape(3))
+            factor = - distance / d
+
+        else:
+            raise ValueError('factor and distance parameters can\'t de None at the same time.')
+
+        point = point.reshape(1, 3)
+        vectors = self.points - point
+        vectors *= factor
+        points = vectors + point
+        return OrientedPolygon(points)
 
     def get_parametric(self, check=True, tolerance=0.001):
         if self.parametric is None:
 
             # Plane calculation
-            a, b, c = np.cross(self.points[1, :] - self.points[0, :],
+            normal = np.cross(self.points[1, :] - self.points[0, :],
                                self.points[2, :] - self.points[1, :])
+            normal /= np.linalg.norm(normal)  # Normalize
+            a, b ,c = normal
             d = -np.dot(np.array([a, b, c]), self.points[2, :])
             self.parametric = np.array([a, b, c, d])
 
@@ -151,29 +198,87 @@ class OrientedPolygon(pyny.Polygon, OrientedGeometry):
                                          str(self.points))
         return self.parametric
 
+    def get_normal(self):
+        return self.get_parametric(check=False)[:-1]
+
+    def plot2d(self, color='default', alpha=1, ret=False, ax=None, auto_lim=False):
+        path = self.get_path()
+
+        if color is 'default':
+            color = 'b'
+
+        # Plot
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+
+        ax.add_patch(patches.PathPatch(path, facecolor=color, lw=1,
+                                       edgecolor='k', alpha=alpha))
+
+        if auto_lim:
+            domain = self.get_domain()[:, :2]
+            ax.set_xlim(domain[0, 0], domain[1, 0])
+            ax.set_ylim(domain[0, 1], domain[1, 1])
+
+        if ret:
+            return ax
+
 
 class OrientedSurface(pyny.Surface, OrientedGeometry):
 
     def __init__(self, polygons, holes=[],
-                 melt=False, check_contiguity=False, **kwargs):
+                 melt=False, check_contiguity=False):
 
         if type(polygons) != list:
             polygons = [polygons]
+        if type(holes) != list: holes = [holes]
 
-        for polygon in polygons:
-            if isinstance(polygon, OrientedPolygon):
-                polygon.superclass(inplace=True)
+        if type(polygons[0]) == np.ndarray:
+            self.polygons = [OrientedPolygon(polygon)
+                             for polygon in polygons]
+        elif isinstance(polygons[0], OrientedPolygon):
+            self.polygons = polygons
+        elif isinstance(polygons[0], pyny.Polygon):
+            self.polygons = [
+                OrientedPolygon.cast(polygon, inplace=False) for polygon in polygons
+            ]
+        else:
+            raise ValueError('OrientedSurface needs a ndarray, '+\
+            'pyny3d.Polygons or OrientedPolygon as input')
 
-        super().__init__(polygons, holes=holes, make_ccw=False, melt=melt,
-                         check_contiguity=check_contiguity, **kwargs)
+        if check_contiguity:
+            if not OrientedSurface.contiguous(self.polygons):
+                raise ValueError('Non-contiguous polygons in the Surface')
 
-        for polygon in self.polygons:
-            OrientedPolygon.cast(polygon, inplace=True)
+        if len(holes) > 0:
+            if type(holes[0]) == np.ndarray:
+                self.holes = [OrientedPolygon(hole)
+                              for hole in holes]
+            elif isinstance(holes[0], OrientedPolygon):
+                self.holes = holes
+            elif isinstance(holes[0], pyny.Polygon):
+                self.holes = [
+                    OrientedPolygon.cast(hole, inplace=False) for hole in holes
+                ]
+        else:
+            self.holes = []
 
-    def project(self, matrix):
-        projected_polygons = [polygon.project(matrix) for polygon in self.polygons]
-        projected_holes = [hole.points @ matrix.T for hole in self.holes]
+        if melt:
+            self.melt()
+
+    def project(self, matrix, around_point=None):
+        projected_polygons = [polygon.project(matrix, around_point=around_point) for polygon in self.polygons]
+        projected_holes = [hole.project(matrix, around_point=around_point) for hole in self.holes]
         return OrientedSurface(projected_polygons, projected_holes)
+
+    def plot2d(self, p_color='default', h_color='w', alpha=1, ret=False, ax=None):
+        for polygon in self.polygons:
+            ax = polygon.plot2d(color=p_color, alpha=alpha, ret=True, ax=ax)
+        for hole in self.holes:
+            ax = hole.plot2d(color=h_color, alpha=alpha, ret=True, ax=ax)
+
+        if ret:
+            return ax
 
 
 class OrientedPolyhedron(pyny.Polyhedron, OrientedGeometry):
@@ -185,9 +290,16 @@ class OrientedPolyhedron(pyny.Polyhedron, OrientedGeometry):
         self.aux_surface = OrientedSurface(polygons, **kwargs)
         self.polygons = self.aux_surface.polygons
 
-    def project(self, matrix):
-        surface = self.aux_surface.project(matrix)
+    def project(self, matrix, around_point=None):
+        surface = self.aux_surface.project(matrix, around_point=around_point)
         return OrientedPolyhedron(surface.polygons)
+
+    def plot2d(self, color='default', alpha=1, ret=False, ax=None):
+        for polygon in self.polygons:
+            ax = polygon.plot2d(color=color, alpha=alpha, ret=True, ax=ax)
+
+        if ret:
+            return ax
 
     def move(self, d_xyz, inplace=False):
         polygon = np.array([[0, 0], [0, 1], [1, 1], [0, 1]])
@@ -353,28 +465,47 @@ class Cube(OrientedPolyhedron):
 
 class OrientedPlace(pyny.Place, OrientedGeometry):
 
-    def __init__(self, surface, polyhedra=[], **kwargs):
+    def __init__(self, surface, polyhedra=[], set_of_points=np.empty((0, 3)),
+                 melt=False):
+
         if isinstance(surface, OrientedSurface):
-            surface.superclass(inplace=True)
-        if type(polyhedra) != list:
-            polyhedra = [polyhedra]
+            self.surface = surface
+        elif isinstance(surface, pyny.Surface):
+            self.surface = OrientedSurface(surface.polygons, holes=surface.holes)
+        elif type(surface) == dict:  # Seed
+            self.surface = OrientedSurface(**surface)
+        elif type(surface) == list or type(surface) == np.ndarray:
+            self.surface = OrientedSurface(**{'polygons': surface, 'melt': melt})
+        else:
+            raise ValueError('OrientedPlace needs a dict, OrientedSurface or pyny3d.Surface as input')
 
-        if len(polyhedra) > 0 and isinstance(polyhedra[0], OrientedPolyhedron):
-            for polyhedron in polyhedra:
-                polyhedron.superclass(inplace=True)
+        if polyhedra != []:
+            if type(polyhedra) != list:
+                polyhedra = [polyhedra]
+            if isinstance(polyhedra[0], OrientedPolyhedron):
+                self.polyhedra = polyhedra
+            elif isinstance(polyhedra[0], pyny.Polyhedron):
+                self.polyhedra = [
+                    OrientedPolyhedron(polyhedron.polygons) for polyhedron in polyhedra
+                ]
+            else:
+                self.polyhedra = [
+                    OrientedPolyhedron(polyhedron) for polyhedron in polyhedra
+                ]
+        else:
+            self.polyhedra = []
 
-        super().__init__(surface, polyhedra=polyhedra, make_ccw=False, **kwargs)
+        if type(set_of_points) == np.ndarray:
+            if set_of_points.shape[1] == 3:
+                self.set_of_points = set_of_points
+        else:
+            raise ValueError('OrientedPlace has an invalid set_of_points as input')
 
-        self.surface = OrientedSurface(surface.polygons)
-
-        self.polyhedra = [
-            OrientedPolyhedron(polyhedron.polygons) for polyhedron in self.polyhedra
-        ]
-
-    def project(self, matrix):
-        surface = self.surface.project(matrix)
-        polyhedra = [polyhedron.project(matrix) for polyhedron in self.polyhedra]
-        return OrientedPlace(surface, polyhedra=polyhedra)
+    def project(self, matrix, around_point=None):
+        surface = self.surface.project(matrix, around_point=around_point)
+        polyhedra = [polyhedron.project(matrix, around_point=around_point) for polyhedron in self.polyhedra]
+        set_of_points = project_points(self.set_of_points, matrix, around_point=around_point)
+        return OrientedPlace(surface, polyhedra=polyhedra, set_of_points=set_of_points)
 
     def plot(self, color='default', ret=False, ax=None, normals=False, orientation=False, tight_box=False):
         ax = super().plot(color=color, ret=True, ax=ax)
@@ -405,25 +536,75 @@ class OrientedPlace(pyny.Place, OrientedGeometry):
         if ret:
             return ax
 
+    def plot2d(self, poly_color='default', h_color='w', point_color='r', alpha=1, ret=False, ax=None):
+        ax = self.surface.plot2d(p_color=poly_color, h_color=h_color, alpha=alpha, ax=ax, ret=True)
+
+        for polyhedron in self.polyhedra:
+            ax = polyhedron.plot2d(color=poly_color, alpha=alpha, ax=ax, ret=True)
+
+        if self.set_of_points.size > 0:
+            points = self.set_of_points
+            ax.scatter(points[:, 0], points[:, 1], points[:, 2], color=point_color)
+
+        domain = self.get_domain()[:, :2]
+        ax.set_xlim(domain[0, 0], domain[1, 0])
+        ax.set_ylim(domain[0, 1], domain[1, 1])
+
+        if ret:
+            return ax
+
 
 class OrientedSpace(pyny.Space, OrientedGeometry):
 
-    def __init__(self, places=[], **kwargs):
-        if type(places) != list:
-            places = [places]
-        if isinstance(places[0], OrientedPlace):
-            for place in places:
-                place.superclass(inplace=True)
-        super().__init__(places=places, **kwargs)
+    def __init__(self, places=[]):
+        # Empty initializations
+        self.places = []
+
+        # Lock attributes
+        self.locked = False
+        self.map = None
+        self.seed = None
+        self.map2seed_schedule = None
+        self.explode_map_schedule = None
+
+        # Creating the object
+        if places != []:
+            if type(places) != list:
+                places = [places]
+            if isinstance(places[0], OrientedPlace):
+                self.add_places(places)
+            elif type(places[0]) == dict:
+                # Initialize the places
+                self.add_places([
+                    OrientedPlace(**place) for place in places
+                ])
+            else:
+                raise ValueError('OrientedSpace needs a list, dict, '+\
+                                 'pyny3d.Place or OrientedPlace as input')
+
+    def project(self, matrix, around_point=None):
+        return OrientedSpace(places=[place.project(matrix, around_point=around_point) for place in self.places])
+
+    def plot2d(self, p_color='default', h_color='w', alpha=1, ret=False, ax=None):
 
         for place in self.places:
-            OrientedPlace.cast(place, inplace=True)
+            ax = place.plot2d(p_color=p_color, h_color=h_color, alpha=alpha, ax=ax, ret=True)
+
+        if ret:
+            return ax
 
 
-def generate_place_from_rooftops_file(roof_top_file):
+def generate_place_from_rooftops_file(roof_top_file, center=True):
     gdf = gpd.read_file(roof_top_file)
     gdf.dropna(subset=['height'], inplace=True)
     gdf.to_crs(epsg=3035, inplace=True)
+
+    if center:
+        bounds = gdf.total_bounds
+        x = (bounds[0] + bounds[2]) / 2
+        y = (bounds[1] + bounds[3]) / 2
+
+        gdf['geometry'] = gdf['geometry'].translate(-x, -y)
 
     def func(series: gpd.GeoSeries):
         return Building.by_polygon2d_and_height(series['geometry'], series['height'])
@@ -458,28 +639,52 @@ if __name__ == '__main__':
 
     tx = ground_center + [5, 5, 1]
     rx = ground_center + [-2, 0, 5]
+    tx = tx.reshape(1, 3)
+    rx = rx.reshape(1, 3)
     cube = Cube.by_point_and_side_length(tx, 5)
+
+    from scipy.spatial.transform import Rotation as R
+
+    rot2 = R.from_euler('xyz', [14, 45, 20], degrees=True).as_matrix()
+
+    cube = cube.project(rot2, around_point=tx)
+
     place.polyhedra.append(
         cube
     )
 
 
-    S = place
-    ax = S.plot(ret=True)
+    place.add_set_of_points(tx)
+    place.add_set_of_points(rx)
+    ax = place.iplot(ret=True)
     print(place.polyhedra)
 
-    ax.scatter(tx[0], tx[1], tx[2])
-    ax.scatter(rx[0], rx[1], rx[2])
+    #ax.scatter(tx[0], tx[1], tx[2])
+    #ax.scatter(rx[0], rx[1], rx[2])
 
+
+    face = cube.polygons[0]
+
+    face.plot(color='b', ax=ax)
+
+    face_bis = face.magnify(tx, distance=10)
+
+    face_bis.plot(color='g', ax=ax)
+
+
+    matrix = face.get_matrix(normalized=True)
+
+    print(matrix)
+    S = place.project(matrix)
+
+    S.plot2d(alpha=0.5)
     plt.show()
 
-    face = cube.polygons[2]
-    matrix = face.get_matrix()
-    S = S.project(matrix)
-
-    for polyhedron in place.polyhedra:
+    """
+    for polyhedron in S.polyhedra:
         polyhedron.aux_surface.plot2d()
         plt.show()
+    """
 
 
 
