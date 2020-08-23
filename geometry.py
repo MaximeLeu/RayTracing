@@ -1,11 +1,18 @@
-import geopandas as gpd
-import pyny3d.geoms as pyny
-import numpy as np
+# Plotting libraries
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from utils import modify_class, share_parent_class
+import mpl_toolkits.mplot3d as mplot3d
+import plot_utils
+
+# Numerical libraries
+import numpy as np
+
+# Geometry libraries
 from shapely.geometry import Polygon as shPolygon
+import geopandas as gpd
+
+# Utils
 import itertools
+from utils import modify_class, share_parent_class
 
 
 def enclosed_area(points):
@@ -15,7 +22,7 @@ def enclosed_area(points):
     If results is negative, it means that the curve orientation is ccw.
 
     :param points: the points of the polygon
-    :type points: ndarray *shape=(N, 2 or 3)*
+    :type points: numpy.ndarray *shape=(N, 2 or 3)*
     :return: the enclosed area
     :rtype: float
     """
@@ -34,7 +41,7 @@ def is_ccw(points):
     The curve is projected on the z=0 plane.
 
     :param points: the points of the polygon
-    :type points: ndarray *shape=(N, 2 or 3)*
+    :type points: numpy.ndarray *shape=(N, 2 or 3)*
     :return: True if the curve is oriented ccw
     :rtype: bool
     """
@@ -72,11 +79,11 @@ def reflexion_on_plane(incidents, normal):
     See details: https://en.wikipedia.org/wiki/Reflection_(mathematics)
 
     :param incidents: incident vectors
-    :type incidents: ndarray *shape=(N, 3)*
+    :type incidents: numpy.ndarray *shape=(N, 3)*
     :param normal: normal vector to the plane
-    :type normal: ndarray *size=3*
+    :type normal: numpy.ndarray *size=3*
     :return: the reflected vector(s)
-    :rtype: ndarray *shape(N, 3)*
+    :rtype: numpy.ndarray *shape(N, 3)*
     """
     normal = normal.reshape((1, 3))
     incidents = incidents.reshape((-1, 3))
@@ -89,11 +96,11 @@ def translate_points(points, vector):
     Translates points using a vector as displacement.
 
     :param points: the points to translate
-    :type points: ndarray *shape=(N, 3)*
+    :type points: numpy.ndarray *shape=(N, 3)*
     :param vector: the displacement vector
-    :type vector: ndarray *size=3*
+    :type vector: numpy.ndarray *size=3*
     :return: the new points
-    :rtype: ndarray *shape=(N, 3)*
+    :rtype: numpy.ndarray *shape=(N, 3)*
     """
     return points.reshape(-1, 3) + vector.reshape(1, 3)
 
@@ -103,13 +110,13 @@ def project_points(points, matrix, around_point=None):
     Projects points on different axes given by matrix columns.
 
     :param points: the points to be projected
-    :type points: ndarray *shape=(N, 3)*
+    :type points: numpy.ndarray *shape=(N, 3)*
     :param matrix: the matrix to project all the geometry
-    :type matrix: ndarray *shape=(3, 3)*
-    :param around_point: if present, will apply the project around this point
-    :type around_point: ndarray *size=3*
+    :type matrix: numpy.ndarray *shape=(3, 3)*
+    :param around_point: if present, will apply the projection around this point
+    :type around_point: numpy.ndarray *size=3*
     :return: the projected points
-    :rtype: ndarray *shape=(N, 3)*
+    :rtype: numpy.ndarray *shape=(N, 3)*
     """
     if around_point is not None:
         around_point = around_point.reshape(1, 3)
@@ -124,13 +131,13 @@ def project_points_with_perspective_mapping(points, focal_distance=1, axis=2):
     The screen on which the points are projected is at a given distance from the origin.
 
     :param points: the points to be projected
-    :type points: ndarray *shape=(N, 3)*
+    :type points: numpy.ndarray *shape=(N, 3)*
     :param focal_distance: the distance to the screen
     :type focal_distance: float or int
     :param axis: the axis which will be used for perspective
     :type axis: any type accepted by :func:`parse_3d_axis`
     :return: the projected points
-    :rtype: ndarray *shape=(N, 3)*
+    :rtype: numpy.ndarray *shape=(N, 3)*
     """
     p = np.array(points)  # Copy
     axis = parse_3d_axis(axis)
@@ -149,7 +156,7 @@ def any_point_above(points, a, axis=2):
     Returns true if a point in the array of points has a coordinate along given axis higher or equal to given threshold.
 
     :param points: the points
-    :type points: ndarray *shape=(N, 3)*
+    :type points: numpy.ndarray *shape=(N, 3)*
     :param a: lower bound condition
     :type a: float
     :param axis: the axis which will be used for perspective
@@ -167,7 +174,7 @@ def any_point_below(points, b, axis=2):
     Returns true if a point in the array of points has a coordinate along given axis lower or equal to given threshold.
 
     :param points: the points
-    :type points: ndarray *shape=(N, 3)*
+    :type points: numpy.ndarray *shape=(N, 3)*
     :param b: upper bound condition
     :type b: float
     :param axis: the axis which will be used for perspective
@@ -185,7 +192,7 @@ def any_point_between(points, a, b, axis=2):
     Returns true if a point in the array of points has a coordinate along given axis between the given thresholds.
 
     :param points: the points
-    :type points: ndarray *shape=(N, 3)*
+    :type points: numpy.ndarray *shape=(N, 3)*
     :param a: lower bound condition
     :type a: float
     :param b: upper bound condition
@@ -202,13 +209,23 @@ def any_point_between(points, a, b, axis=2):
 
 class OrientedGeometry:
     """
-    An oriented geometry object should subclass pyny.root or one of its subclasses.
-    It should not add any attribute to the class, only new methods.
+    Disclaimer: this class and its subclasses are clearly inspired from the pakcage `pyny3d`. The main problem with this
+    package is the lack of modularity and ability to subclass objects with ease; this is why no inheritance from this
+    package is done, but a complete re-writing of useful functions has been preferred.
 
-    Oriented geometry constructors assume that their input are already oriented.
+    An oriented geometry is any 3D geometry where each embedded is oriented.
+    The orientation of the geometry is defined as this:
 
-    This way, casting object between parent and child classes becomes straightforward.
+        "If your geometry has an inside and an outside, then the normal of each polygon contained in this geometry
+        should be pointing outward. Watching the polygon from the outside, the loop passing through its points should be
+        ccw (counter-clock-wise)."
+
+    Oriented geometry constructors assume that their inputs are already oriented.
     """
+    def __init__(self):
+        self.domain = None
+        self.centroid = None
+
     def superclass(self, inplace=False):
         """
         Parses the object into its parent class.
@@ -240,15 +257,46 @@ class OrientedGeometry:
         return modify_class(obj, cls, inplace=inplace)
 
     def get_polygons_iter(self):
+        """
+        Returns all the polygons contained in the geometry.
+
+        :return: a generator of polygons
+        :rtype: Generator[OrientedPolygon]
+        """
         raise NotImplementedError
 
     def get_polygons_list(self):
+        """
+        Return all the polygons contained in the geometry.
+
+        :return: a list of polygons
+        :rtype: List[OrientedPolygon]
+        """
         return list(self.get_polygons_iter())
 
     def get_polygons_count(self):
+        """
+        Returns the count of polygons in the geometry.
+
+        :return: the count of polygons
+        :rtype: int
+        """
         return sum(1 for _ in self.get_polygons_iter())
 
     def get_polygons_matching(self, func, *args, func_args=(), **kwargs):
+        """
+        Returns all the polygons that match a given function.
+        The function must take as first argument a polygon.
+
+        :param func: the match function
+        :type func: function
+        :param args: extra objects to be filtered along with polygons
+        :type args: Iterable[Any]
+        :param func_args: positional arguments passed to `func`
+        :param kwargs: keyword arguments passed to `func`
+        :return: a generator of polygons
+        :rtype: Generator[OrientedPolygon]
+        """
         if len(args) != 0:
             for iterable in zip(self.get_polygons_iter(), *args):
                 polygon = iterable[0]
@@ -262,11 +310,11 @@ class OrientedGeometry:
     def apply_on_points(self, func, *args, **kwargs):
         """
         Applies a function recursively on all the geometries contained in this one.
-        The function must take as first argument the points, as an ndarray with (N, 3) shape.
+        The function must take as first argument the points, as an numpy.ndarray with (N, 3) shape.
 
         :param func: the function
         :type func: function
-        :param args: argument passed to `func`
+        :param args: positional arguments passed to `func`
         :param kwargs: keyword argument passed to `func`
         :return: the new geometry
         :rtype OrientedGeometry
@@ -278,9 +326,9 @@ class OrientedGeometry:
         Translates geometry using a vector as displacement.
 
         :param points: the points to translate
-        :type points: ndarray *shape=(N, 3)*
+        :type points: numpy.ndarray *shape=(N, 3)*
         :param vector: the displacement vector
-        :type vector: ndarray *size=3*
+        :type vector: numpy.ndarray *size=3*
         :return: the new geometry
         :rtype OrientedGeometry
         """
@@ -291,9 +339,9 @@ class OrientedGeometry:
         Projects a geometry on different axes given by matrix columns.
 
         :param matrix: the matrix to project all the geometry
-        :type matrix: ndarray *shape=(3, 3)*
+        :type matrix: numpy.ndarray *shape=(3, 3)*
         :param around_point: if present, will apply the project around this point
-        :type around_point: ndarray *size=3*
+        :type around_point: numpy.ndarray *size=3*
         :return: the new geometry
         :rtype OrientedGeometry
         """
@@ -313,61 +361,98 @@ class OrientedGeometry:
         """
         return self.apply_on_points(project_points_with_perspective_mapping, focal_distance=focal_distance, axis=axis)
 
-    def plot2d(self, ret=False, ax=None):
+    def center_3d_plot(self, ax):
         """
-        Generates a 2D plot for the z=0 Polygon projection.
+        Centers and keep the aspect ratio in a 3D representation.
 
-        :param ret: if True, returns the figure. It can be used to add
-            more elements to the plot or to modify it.
-        :type ret: bool
-        :param ax: if present, will add content to this ax, otherwise will create a new one
-        :type ax: matplotlib axes
-        :returns: None, axes
-        :rtype: None, matplotlib axes
+        :param ax: axes to apply the method.
+        :type ax: mplot3d.Axes3D
         """
-        raise NotImplementedError
+
+        domain = self.get_domain()
+        bound = np.max(domain[1] - domain[0])
+        centroid = self.get_centroid()
+        pos = np.vstack((centroid - bound / 2, centroid + bound / 2))
+
+        ax.set_xlim3d(left=pos[0, 0], right=pos[1, 0])
+        ax.set_ylim3d(bottom=pos[0, 1], top=pos[1, 1])
+        ax.set_zlim3d(bottom=pos[0, 2], top=pos[1, 2])
+
+    def tight_3d_plot(self, ax):
+        """
+        Sets the axes limits to be tight on the geometry.
+
+        :param ax: axes to apply the method.
+        :type ax: mplot3d.Axes3D
+        """
+        domain = self.get_domain()
+        ax.set_xlim([domain[0, 0], domain[1, 0]])
+        ax.set_ylim([domain[0, 1], domain[1, 1]])
+        ax.set_zlim([domain[0, 2], domain[1, 2]])
+
+    def get_points(self):
+        """
+        Returns all the points in the geometry in a concatenated array.
+
+        :return: the points
+        :rtype: numpy.ndarray *shape=(N, 3)*
+        """
+        return np.concatenate([polygon.points for polygon in self.get_polygons_iter()])
+
+    def get_domain(self):
+        """
+        Returns coordinates of the smallest prism containing this geometry.
+
+        :return: opposite vertices of the bounding prism for this object.
+        :rtype: numpy.ndarray([min], [max])
+        """
+        if self.domain is None:
+            points = self.get_points()
+            self.domain = np.array([points.min(axis=0),
+                                    points.max(axis=0)])
+        return self.domain
+
+    def get_centroid(self):
+        """
+        The centroid is considered the center point of the circumscribed
+        parallelepiped, not the mass center.
+
+        :returns: (x, y, z) coordinates of the centroid of the object.
+        :rtype: numpy.ndarray
+        """
+        if self.centroid is None:
+            self.centroid = self.get_domain().mean(axis=0)
+
+        return self.centroid
 
 
-class OrientedPolygon(pyny.Polygon, OrientedGeometry):
+class OrientedPolygon(OrientedGeometry):
+    """
+    An oriented polygon is the simplest oriented geometry: it consists in an array of points, connected between their
+    direct neighbours.
 
+    :param points: the points
+    :type points: numpy.ndarray *shape=(N, 3)*
+    """
     def __init__(self, points):
-        super().__init__(points, make_ccw=False)
+        super().__init__()
+        self.points = points
+
+        self.parametric = None
+        self.matrix = None
 
     def get_polygons_iter(self):
         yield self
 
-    def get_matrix(self, normalized=False):
-        """
-        Returns a 3-by-3 matrix where is column correspond to an axis of the polygon.
-        matrix = [x, y, z] where
-            x belongs to the polygon
-            y belongs to the polygon
-            z is normal to the polygon
-
-        The axes follow the right hand side rule.
-        Optionally, they can be normalized.
-
-        :param normalized: if True, will normalize each axis
-        :type normalized: bool
-        :return: the matrix of axes
-        :rtype: ndarray *shape=(3, 3)*
-        """
-        points = self.points
-        A = points[0, :]
-        B = points[1, :]
-        normal = self.get_normal()
-        matrix = np.empty((3, 3), dtype=float)
-        matrix[0, :] = B - A
-        matrix[1, :] = np.cross(normal, matrix[0, :])
-        matrix[2, :] = normal
-
-        if normalized:
-            for i in range(3):
-                matrix[i, :] /= np.linalg.norm([matrix[i, :]])
-
-        return matrix.T
-
     def distance_to_point(self, point):
+        """
+        Returns the distance from this polygon the a given point.
+
+        :param point: the point
+        :type point: ndarray *size=3*
+        :return: the distance
+        :rtype: float
+        """
         # https://mathinsight.org/distance_point_plane
         normal = self.get_normal()
         v = point - self.points[0, :]
@@ -377,6 +462,20 @@ class OrientedPolygon(pyny.Polygon, OrientedGeometry):
         return OrientedPolygon(func(self.points, *args, **kwargs))
 
     def magnify(self, point, factor=None, distance=None):
+        """
+        Returns an new polygon which is obtained by magnifying its size:
+            *   if factor is present, will multiply the distance of all the points to the given point in the polygon by
+                this factor
+            *   else if distance is present, will set the distance between this polygon and the given point
+
+        :param point: the reference point
+        :type point: ndarray *size=3*
+        :param factor: the multiplication factor
+        :param distance: the required distance between the point and the polygon
+        :type distance: float or int
+        :return: the new polygon
+        :rtype: OrientedPolygon
+        """
         if factor is not None:
             pass
         elif distance is not None:
@@ -392,126 +491,170 @@ class OrientedPolygon(pyny.Polygon, OrientedGeometry):
         points = vectors + point
         return OrientedPolygon(points)
 
-    def get_parametric(self, check=True, tolerance=0.001):
-        # Overrides pyny.Polygon.get_parametric() to make sure normal is normalized and pointing outward
+    def get_parametric(self):
+        """
+        Returns the parametric equation of the plane described by the polygon.
+        It will return all four coefficients such that: a*x + b*y + c*z + d = 0.
+
+        :return: the coefficients of the parametric equation
+        :rtype: np.ndarray *shape=(4)*
+        """
         if self.parametric is None:
 
             # Plane calculation
             normal = np.cross(self.points[1, :] - self.points[0, :],
-                               self.points[2, :] - self.points[1, :])
+                              self.points[2, :] - self.points[1, :])
             normal /= np.linalg.norm(normal)  # Normalize
             a, b, c = normal
             d = -np.dot(np.array([a, b, c]), self.points[2, :])
             self.parametric = np.array([a, b, c, d])
-
-            # Point belonging verification
-            if check:
-                if self.points.shape[0] > 3:
-                    if np.min(np.abs(self.points[3:, 0] * a +
-                                     self.points[3:, 1] * b +
-                                     self.points[3:, 2] * c +
-                                     d)) > tolerance:
-                        raise ValueError('Polygon not plane: \n' + \
-                                         str(self.points))
         return self.parametric
 
     def get_normal(self):
-        return self.get_parametric(check=False)[:-1]
+        """
+        Returns the normal, as a unit vector, pointing outward of the polygon.
 
-    def plot2d(self, color='default', alpha=1, ret=False, ax=None, auto_lim=False):
-        path = self.get_path()
+        :return: the normal vector
+        :rtype: np.ndarray *shape=(3)
+        """
+        return self.get_parametric()[:-1]
 
-        if color is 'default':
-            color = 'b'
+    def get_matrix(self):
+        """
+        Returns a 3-by-3 matrix where is column correspond to an axis of the polygon.
+        matrix = [x, y, z] where
+            x belongs to the polygon
+            y belongs to the polygon
+            z is normal to the polygon
 
-        # Plot
-        if ax is None:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
+        The axes follow the right hand side rule and will be normalized.
 
-        ax.add_patch(patches.PathPatch(path, facecolor=color, lw=1,
-                                       edgecolor='k', alpha=alpha))
+        :return: the matrix of axes
+        :rtype: ndarray *shape=(3, 3)*
+        """
+        if self.matrix is not None:
+            return self.matrix
 
-        if auto_lim:
-            domain = self.get_domain()[:, :2]
-            ax.set_xlim(domain[0, 0], domain[1, 0])
-            ax.set_ylim(domain[0, 1], domain[1, 1])
+        points = self.points
+        A = points[0, :]
+        B = points[1, :]
+        normal = self.get_normal()
+        matrix = np.empty((3, 3), dtype=float)
+        matrix[0, :] = B - A
+        matrix[1, :] = np.cross(normal, matrix[0, :])
+        matrix[2, :] = normal  # Already normalized
+
+        for i in range(2):
+            matrix[i, :] /= np.linalg.norm([matrix[i, :]])
+
+        self.matrix = matrix.T
+
+        return self.matrix
+
+    def plot2d(self, *args, color='b', alpha=1, edgecolor='k', lw=1, ret=False, ax=None, **kwargs):
+
+        ax = plot_utils.get_2d_plot_ax(ax)
+
+        plot_utils.add_polygon_to_2d_ax(ax, self.points, *args, facecolor=color, alpha=alpha,
+                                        edgecolor=edgecolor, lw=lw, **kwargs)
+
+        if ret:
+            return ax
+
+    def plot3d(self, facecolor=(0, 0, 0, 0), edgecolor='k', alpha=0.1, ret=False, ax=None,
+             normal=False, normal_kwargs=None,
+             orientation=False, orientation_kwargs=None):
+
+        if normal and normal_kwargs is None:
+            normal_kwargs = {'color': 'b', 'length': 1}
+        if orientation and orientation_kwargs is None:
+            orientation_kwargs = {'color': 'r'}
+
+        ax = plot_utils.get_3d_plot_ax(ax=ax)
+
+        plot_utils.add_polygon_to_3d_ax(ax, self.points, facecolor=facecolor, edgecolor=edgecolor, alpha=alpha)
+
+        center = self.get_centroid()
+
+        if normal:
+            x, y, z = center
+            u, v, w = self.get_normal()
+            ax.quiver(x, y, z, u, v, w, **normal_kwargs)
+
+        if orientation:
+            factor = 0.8
+            n = self.points.shape[0]
+            for i in range(n):
+                A = self.points[i - 1, :]
+                B = self.points[i, :]
+                CA = factor * (A - center)
+                CB = factor * (B - center)
+                u, v, w = CB - CA
+                x, y, z = center + CA
+                ax.quiver(x, y, z, u, v, w, **orientation_kwargs)
 
         if ret:
             return ax
 
 
-class OrientedSurface(pyny.Surface, OrientedGeometry):
+class OrientedSurface(OrientedGeometry):
+    """
+    An oriented surface is a combination of oriented polygons.
 
-    def __init__(self, polygons, holes=[],
-                 melt=False, check_contiguity=False):
+    :param polygons: the polygons
+    :type polygons: a list of (or an instance of) numpy.ndarray (points) or OrientedPolygons
+    """
+    def __init__(self, polygons):
+        super().__init__()
 
         if type(polygons) != list:
             polygons = [polygons]
-        if type(holes) != list: holes = [holes]
 
         if type(polygons[0]) == np.ndarray:
             self.polygons = [OrientedPolygon(polygon)
                              for polygon in polygons]
         elif isinstance(polygons[0], OrientedPolygon):
             self.polygons = polygons
-        elif isinstance(polygons[0], pyny.Polygon):
-            self.polygons = [
-                OrientedPolygon.cast(polygon, inplace=False) for polygon in polygons
-            ]
         else:
-            raise ValueError('OrientedSurface needs a ndarray, '+\
-            'pyny3d.Polygons or OrientedPolygon as input')
-
-        if check_contiguity:
-            if not OrientedSurface.contiguous(self.polygons):
-                raise ValueError('Non-contiguous polygons in the Surface')
-
-        if len(holes) > 0:
-            if type(holes[0]) == np.ndarray:
-                self.holes = [OrientedPolygon(hole)
-                              for hole in holes]
-            elif isinstance(holes[0], OrientedPolygon):
-                self.holes = holes
-            elif isinstance(holes[0], pyny.Polygon):
-                self.holes = [
-                    OrientedPolygon.cast(hole, inplace=False) for hole in holes
-                ]
-        else:
-            self.holes = []
-
-        if melt:
-            self.melt()
+            raise ValueError('OrientedSurface needs a nump.ndarray or OrientedPolygon as input')
 
     def get_polygons_iter(self):
-        return itertools.chain(
-            self.polygons,
-            self.holes
-        )
+        return iter(self.polygons)
 
     def apply_on_points(self, func, *args, **kwargs):
         projected_polygons = [polygon.apply_on_points(func, *args, **kwargs)
                               for polygon in self.polygons]
-        projected_holes = [hole.apply_on_points(func, *args, **kwargs)
-                           for hole in self.holes]
-        return OrientedSurface(projected_polygons, projected_holes)
+        return OrientedSurface(projected_polygons)
 
-    def plot2d(self, p_color='default', h_color='w', alpha=1, ret=False, ax=None):
+    def plot2d(self, *args, ret=False, ax=None, **kwargs):
+
+        ax = plot_utils.get_2d_plot_ax(ax)
+
         for polygon in self.polygons:
-            ax = polygon.plot2d(color=p_color, alpha=alpha, ret=True, ax=ax)
-        for hole in self.holes:
-            ax = hole.plot2d(color=h_color, alpha=alpha, ret=True, ax=ax)
+            ax = polygon.plot2d(*args, ax=ax, ret=True, **kwargs)
+
+        if ret:
+            return ax
+
+    def plot3d(self, *args, ret=False, ax=None, **kwargs):
+
+        ax = plot_utils.get_3d_plot_ax(ax)
+
+        for polygon in self.polygons:
+            polygon.plot3d(*args, ax=ax, ret=False, **kwargs)
 
         if ret:
             return ax
 
 
-class OrientedPolyhedron(pyny.Polyhedron, OrientedGeometry):
+class OrientedPolyhedron(OrientedGeometry):
     """
-    A subclass of pyny.Polyhedron with an "inside" and an "outside".
+    An oriented polyhedron is a polyhedron with an "inside" and an "outside".
+    It is composed with oriented polygons.
     Surfaces are oriented ccw where watched from the outside. Normal vectors are pointing outward.
     """
     def __init__(self, polygons, **kwargs):
+        super().__init__()
         self.aux_surface = OrientedSurface(polygons, **kwargs)
         self.polygons = self.aux_surface.polygons
 
@@ -522,27 +665,36 @@ class OrientedPolyhedron(pyny.Polyhedron, OrientedGeometry):
         surface = self.aux_surface.apply_on_points(func, *args, **kwargs)
         return OrientedPolyhedron(surface.polygons)
 
-    def plot2d(self, color='default', alpha=1, ret=False, ax=None):
-        for polygon in self.polygons:
-            ax = polygon.plot2d(color=color, alpha=alpha, ret=True, ax=ax)
+    def plot2d(self, *args, ret=False, ax=None, **kwargs):
+        ax = self.aux_surface.plot2d(*args, ret=True, ax=ax, **kwargs)
 
         if ret:
             return ax
 
-    def move(self, d_xyz, inplace=False):
-        polygon = np.array([[0, 0], [0, 1], [1, 1], [0, 1]])
-        space = OrientedSpace(OrientedPlace(polygon, polyhedra=self))
-        if inplace:
-            space.move(d_xyz, inplace=inplace)
-            self = space.places[0].polyhedra[0]
-        else:
-            return space.move(d_xyz, inplace=inplace)[0].polyhedra[0]
+    def plot3d(self, *args, ret=False, ax=None, **kwargs):
+        ax = self.aux_surface.plot3d(*args, ret=True, ax=ax, **kwargs)
+
+        if ret:
+            return ax
 
 
 class Pyramid(OrientedPolyhedron):
-
+    """
+    A pyramid is an oriented polyhedron described by a base polygon and an isolated point.
+    """
     @staticmethod
     def by_point_and_polygon(point, polygon):
+        """
+        Returns a new pyramid from a base polygon and an isolated point.
+        All the other polygons are constructed by joining points in the polygon to the isolated point.
+
+        :param point: the isolated point
+        :type point: numpy.ndarray *size=3*
+        :param polygon: the base polygon
+        :type polygon: OrientedPolygon
+        :return: the new pyramid
+        :rtype: Pyramid
+        """
 
         base_points = polygon.points
         polygons = [polygon]
@@ -555,6 +707,8 @@ class Pyramid(OrientedPolyhedron):
             C = base_points[i, :]
             polygon = OrientedPolygon(np.row_stack([C, B, A]))  # ccw
             polygons.append(polygon)
+
+        return Pyramid(polygons)
 
 
 class Building(OrientedPolyhedron):
@@ -570,7 +724,7 @@ class Building(OrientedPolyhedron):
         Constructs a building from a 3D polygon on the ground.
 
         :param polygon: 3D polygon
-        :type polygon: pyny.Polygon or ndarray *shape=(N, 3)*
+        :type polygon: OrientedPolygon or numpy.ndarray *shape=(N, 3)*
         :param height: the height of the building
         :type height: float or int
         :param make_ccw: if True, ensure that polygon is oriented correctly
@@ -581,7 +735,7 @@ class Building(OrientedPolyhedron):
         :rtype: Building
         """
 
-        if isinstance(polygon, pyny.Polygon):
+        if isinstance(polygon, OrientedPolygon):
             bottom_points = polygon.points
         elif isinstance(polygon, np.ndarray):
             bottom_points = polygon
@@ -600,9 +754,9 @@ class Building(OrientedPolyhedron):
         top = OrientedPolygon(top_points)
         bottom = OrientedPolygon(bottom_points)
 
-        if top.get_parametric(check=False)[2] < 0:  # z component should be positive
+        if top.get_normal()[2] < 0:  # z component should be positive
             top.parametric = - top.parametric
-        if bottom.get_parametric(check=False)[2] > 0:  # z component should be negative
+        if bottom.get_normal()[2] > 0:  # z component should be negative
             bottom.parametric = - bottom.parametric
 
         n = top_points.shape[0]
@@ -634,7 +788,7 @@ class Building(OrientedPolyhedron):
         Constructs a building from a 2D polygon.
 
         :param polygon: 2D polygon
-        :type polygon: Polygon (shapely or pyny3d) or ndarray *shape=(N, 3)*
+        :type polygon: Polygon (shapely), OrientedPolygon or numpy.ndarray *shape=(N, 3)*
         :param height: the height of the building
         :type height: float or int
         :param make_ccw: if True, ensure that polygon is oriented correctly
@@ -645,7 +799,7 @@ class Building(OrientedPolyhedron):
         :rtype: Building
         """
 
-        if isinstance(polygon, pyny.Polygon):
+        if isinstance(polygon, OrientedPolygon):
             x, y = polygon.points[:, :-1]
         elif isinstance(polygon, shPolygon):
             x, y = polygon.exterior.coords.xy
@@ -659,7 +813,7 @@ class Building(OrientedPolyhedron):
         z0 = np.zeros_like(x, dtype=float)
         bottom_points = np.column_stack([x, y, z0])
 
-        polygon = pyny.Polygon(bottom_points, make_ccw=False)
+        polygon = OrientedPolygon(bottom_points)
 
         return Building.by_polygon_and_height(polygon, height, make_ccw=make_ccw, keep_ground=keep_ground)
 
@@ -693,36 +847,26 @@ class Cube(OrientedPolyhedron):
 
         building = Building.by_polygon_and_height(polygon, side_length)
 
-        Cube.cast(building, inplace=True)  # Cast to Cube object
-
-        return building
+        return Cube(building.polygons)
 
 
-class OrientedPlace(pyny.Place, OrientedGeometry):
+class OrientedPlace(OrientedGeometry):
 
-    def __init__(self, surface, polyhedra=[], set_of_points=np.empty((0, 3)),
-                 melt=False):
+    def __init__(self, surface, polyhedra=[], set_of_points=np.empty((0, 3))):
+        super().__init__()
 
         if isinstance(surface, OrientedSurface):
             self.surface = surface
-        elif isinstance(surface, pyny.Surface):
-            self.surface = OrientedSurface(surface.polygons, holes=surface.holes)
-        elif type(surface) == dict:  # Seed
-            self.surface = OrientedSurface(**surface)
         elif type(surface) == list or type(surface) == np.ndarray:
-            self.surface = OrientedSurface(**{'polygons': surface, 'melt': melt})
+            self.surface = OrientedSurface(surface)
         else:
-            raise ValueError('OrientedPlace needs a dict, OrientedSurface or pyny3d.Surface as input')
+            raise ValueError('OrientedPlace needs an OrientedSurface or a numpy.ndarray as surface input')
 
         if polyhedra != []:
             if type(polyhedra) != list:
                 polyhedra = [polyhedra]
             if isinstance(polyhedra[0], OrientedPolyhedron):
                 self.polyhedra = polyhedra
-            elif isinstance(polyhedra[0], pyny.Polyhedron):
-                self.polyhedra = [
-                    OrientedPolyhedron(polyhedron.polygons) for polyhedron in polyhedra
-                ]
             else:
                 self.polyhedra = [
                     OrientedPolyhedron(polyhedron) for polyhedron in polyhedra
@@ -735,6 +879,15 @@ class OrientedPlace(pyny.Place, OrientedGeometry):
                 self.set_of_points = set_of_points
         else:
             raise ValueError('OrientedPlace has an invalid set_of_points as input')
+
+    def add_set_of_points(self, points):
+        """
+        Adds a set of points to the current set of points in the place.
+
+        :param points: the points to add
+        :type points: numpy.ndarray *shape=(N, 3)*
+        """
+        self.set_of_points = np.concatenate([self.set_of_points, points])
 
     def get_polygons_iter(self):
         return itertools.chain(
@@ -751,94 +904,56 @@ class OrientedPlace(pyny.Place, OrientedGeometry):
         set_of_points = func(self.set_of_points, *args, **kwargs)
         return OrientedPlace(surface, polyhedra=polyhedra, set_of_points=set_of_points)
 
-    def plot(self, color='default', ret=False, ax=None, normals=False, orientation=False, tight_box=False):
-        ax = super().plot(color=color, ret=True, ax=ax)
+    def plot2d(self, ret=False, ax=None,
+               poly_args=None, poly_kwargs=None,
+               points_args=None, points_kwargs=None):
 
-        if normals or orientation:
-            for polyhedron in self.polyhedra:
-                for polygon in polyhedron.polygons:
-                    x, y, z = polygon.get_centroid()
-                    u, v, w, _ = polygon.get_parametric()
-                    if normals:
-                        ax.quiver(x, y, z, u, v, w, length=4, normalize=True, linewidth=2, color='k')
+        if poly_args is None:
+            poly_args = ()
+        if poly_kwargs is None:
+            poly_kwargs = {}
+        if points_args is None:
+            points_args = ()
+        if points_kwargs is None:
+            points_kwargs = {}
 
-                    points = polygon.points
+        ax = plot_utils.get_2d_plot_ax(ax)
 
-                    if orientation:
-                        n = points.shape[0]
-                        for i in range(n):
-                            x, y, z = points[i, :]
-                            u, v, w = points[(i + 1) % n, :] - points[i, :]
-                            ax.quiver(x, y, z, u, v, w, length=4, normalize=True, linewidth=2, color='r')
-
-        if tight_box:
-            domain = self.get_domain()
-            ax.set_xlim([domain[0][0], domain[1][0]])
-            ax.set_ylim([domain[0][1], domain[1][1]])
-            ax.set_zlim([domain[0][2], domain[1][2]])
-
-        if ret:
-            return ax
-
-    def plot2d(self, poly_color='default', h_color='w', point_color='r', alpha=1, ret=False, ax=None):
-        ax = self.surface.plot2d(p_color=poly_color, h_color=h_color, alpha=alpha, ax=ax, ret=True)
+        self.surface.plot2d(*poly_args, ax=ax, ret=False, **poly_kwargs)
 
         for polyhedron in self.polyhedra:
-            ax = polyhedron.plot2d(color=poly_color, alpha=alpha, ax=ax, ret=True)
+            polyhedron.plot2d(*poly_args, ax=ax, ret=False, **poly_kwargs)
 
         if self.set_of_points.size > 0:
             points = self.set_of_points
-            ax.scatter(points[:, 0], points[:, 1], color=point_color, s=25)
-
-        domain = self.get_domain()[:, :2]
-        ax.set_xlim(domain[0, 0], domain[1, 0])
-        ax.set_ylim(domain[0, 1], domain[1, 1])
+            ax.scatter(points[:, 0], points[:, 1], *points_args, **points_kwargs)
 
         if ret:
             return ax
 
+    def plot3d(self, ret=False, ax=None,
+               poly_args=None, poly_kwargs=None,
+               points_args=None, points_kwargs=None):
 
-class OrientedSpace(pyny.Space, OrientedGeometry):
+        if poly_args is None:
+            poly_args = ()
+        if poly_kwargs is None:
+            poly_kwargs = {}
+        if points_args is None:
+            points_args = ()
+        if points_kwargs is None:
+            points_kwargs = {}
 
-    def __init__(self, places=[]):
-        # Empty initializations
-        self.places = []
+        ax = plot_utils.get_3d_plot_ax(ax)
 
-        # Lock attributes
-        self.locked = False
-        self.map = None
-        self.seed = None
-        self.map2seed_schedule = None
-        self.explode_map_schedule = None
+        self.surface.plot3d(*poly_args, ax=ax, ret=False, **poly_kwargs)
 
-        # Creating the object
-        if places != []:
-            if type(places) != list:
-                places = [places]
-            if isinstance(places[0], OrientedPlace):
-                self.add_places(places)
-            elif type(places[0]) == dict:
-                # Initialize the places
-                self.add_places([
-                    OrientedPlace(**place) for place in places
-                ])
-            else:
-                raise ValueError('OrientedSpace needs a list, dict, '+\
-                                 'pyny3d.Place or OrientedPlace as input')
+        for polyhedron in self.polyhedra:
+            polyhedron.plot3d(*poly_args, ax=ax, ret=False, **poly_kwargs)
 
-    def get_polygons_iter(self):
-        return itertools.chain.from_iterable(
-            place.get_polygons_iter() for place in self.places
-        )
-
-    def apply_on_points(self, func, *args, **kwargs):
-        return OrientedSpace(places=[place.appy_on_points(func, *args, **kwargs)
-                                     for place in self.places])
-
-    def plot2d(self, p_color='default', h_color='w', alpha=1, ret=False, ax=None):
-
-        for place in self.places:
-            ax = place.plot2d(p_color=p_color, h_color=h_color, alpha=alpha, ax=ax, ret=True)
+        if self.set_of_points.size > 0:
+            points = self.set_of_points
+            ax.scatter(points[:, 0], points[:, 1], points[:, 2], *points_args, **points_kwargs)
 
         if ret:
             return ax
@@ -863,13 +978,13 @@ def generate_place_from_rooftops_file(roof_top_file, center=True):
 
     bounds = gdf.total_bounds.reshape(2, 2)
 
-    points = np.empty((4, 2))
+    points = np.zeros((4, 3))
     points[0::3, 0] = bounds[0, 0]
     points[1:3, 0] = bounds[1, 0]
     points[:2, 1] = bounds[0, 1]
     points[2:, 1] = bounds[1, 1]
 
-    ground_surface = pyny.Surface(points)
+    ground_surface = OrientedSurface(points)
 
     place = OrientedPlace(ground_surface)
     place.polyhedra = polyhedra
@@ -900,7 +1015,7 @@ if __name__ == '__main__':
     # 2.1.1 Rotate this cube around its center
     from scipy.spatial.transform import Rotation as R
 
-    rot2 = R.from_euler('xyz', [0, 0, 0], degrees=True).as_matrix()
+    rot2 = R.from_euler('xyz', [0, 10, 0], degrees=True).as_matrix()
 
     cube = cube.project(rot2, around_point=tx)
 
@@ -914,14 +1029,20 @@ if __name__ == '__main__':
     cube = cube.translate(-tx)
 
     # 3. Plot the whole geometry
-    ax = place.iplot(ret=True)
-    cube.plot(ax=ax)
+    ax = place.plot3d(ret=True)
+    cube.plot3d(ax=ax)
+
+
+    place.center_3d_plot(ax)
+
 
     # 3.1 Picking one face of the cube as the screen and coloring it
     screen = cube.polygons[2]
 
-    screen.plot(color='g', ax=ax)
-
+    screen.plot3d(facecolor='g', alpha=0.5, ax=ax, orientation=True, normal=True)
+    x, y, z = screen.get_centroid()
+    u, v, w = screen.get_normal()
+    ax.quiver(x, y, z, u, v, w, length=10)
     # 4. Create the screen on which geometry will be projected
     distance = 10  # Distance from TX to screen
 
@@ -930,15 +1051,15 @@ if __name__ == '__main__':
     print('Screen points:\n', screen.points)
 
     # 5. First, changing geometry coordinates to match screen's orientation
-    matrix = screen.get_matrix(normalized=True)
+    matrix = screen.get_matrix()
 
     print('Coordinates matrix:\n', matrix)
     place = place.project(matrix)
     screen = screen.project(matrix)
 
-    ax = place.iplot(ret=True)
-    cube.plot(ax=ax)
-    screen.plot(color='g', ax=ax)
+    ax = place.plot3d(ret=True)
+    cube.plot3d(ax=ax)
+    screen.plot3d(facecolor='g', ax=ax)
 
 
     def filter_func(polygon):
@@ -955,9 +1076,9 @@ if __name__ == '__main__':
 
     rot = R.from_euler('xyz', [0, 0, -90], degrees=True).as_matrix()
 
-    ax = place.project(rot).plot2d(ret=True, alpha=0.5)
+    ax = place.project(rot).plot2d(ret=True)
 
-    screen.project(rot).plot2d(color='g', ax=ax, alpha=0.5)
+    screen.project(rot).plot2d(ax=ax)
     print(len(list(place.get_polygons_iter())))
     plt.axis('equal')
 
