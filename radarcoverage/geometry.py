@@ -1,7 +1,7 @@
 # Plotting libraries
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as mplot3d
-import plot_utils
+from radarcoverage import plot_utils
 
 # Numerical libraries
 import numpy as np
@@ -148,7 +148,7 @@ def project_points_with_perspective_mapping(points, focal_distance=1, axis=2):
         if i != axis:
             p[:, i] *= factor
 
-    return p[:, :]
+    return p
 
 
 def any_point_above(points, a, axis=2):
@@ -225,36 +225,6 @@ class OrientedGeometry:
     def __init__(self):
         self.domain = None
         self.centroid = None
-
-    def superclass(self, inplace=False):
-        """
-        Parses the object into its parent class.
-        If not in place, will return a new object.
-
-        :param inplace: if False, will return a copy
-        :type inplace: bool
-        :return: the object with type as parent class or nothing
-        :rtype: pyny.root or None
-        """
-        base = self.__class__.__base__
-        return modify_class(self, base, inplace=inplace)
-
-    @classmethod
-    def cast(cls, obj, inplace=False):
-        """
-        Parses the object into given subclass or class sharing parent class.
-        If not in place, will return a new object.
-
-        :param obj: the object to be parsed
-        :type obj: pyny.root
-        :param inplace: if False, will return a copy
-        :type inplace: bool
-        :return: the object with type as subclass or nothing
-        :rtype: cls or None
-        """
-        if not share_parent_class(cls, obj.__class__):
-            raise ValueError(f'Cannot cast type {type(obj)} into {cls}.')
-        return modify_class(obj, cls, inplace=inplace)
 
     def get_polygons_iter(self):
         """
@@ -521,7 +491,7 @@ class OrientedPolygon(OrientedGeometry):
 
     def get_matrix(self):
         """
-        Returns a 3-by-3 matrix where is column correspond to an axis of the polygon.
+        Returns a 3-by-3 orthogonal matrix where is column correspond to an axis of the polygon.
         matrix = [x, y, z] where
             x belongs to the polygon
             y belongs to the polygon
@@ -551,11 +521,11 @@ class OrientedPolygon(OrientedGeometry):
 
         return self.matrix
 
-    def plot2d(self, *args, color='b', alpha=1, edgecolor='k', lw=1, ret=False, ax=None, **kwargs):
+    def plot2d(self, *args, facecolor='b', alpha=1, edgecolor='k', lw=1, ret=False, ax=None, **kwargs):
 
         ax = plot_utils.get_2d_plot_ax(ax)
 
-        plot_utils.add_polygon_to_2d_ax(ax, self.points, *args, facecolor=color, alpha=alpha,
+        plot_utils.add_polygon_to_2d_ax(ax, self.points, *args, facecolor=facecolor, alpha=alpha,
                                         edgecolor=edgecolor, lw=lw, **kwargs)
 
         if ret:
@@ -566,9 +536,9 @@ class OrientedPolygon(OrientedGeometry):
              orientation=False, orientation_kwargs=None):
 
         if normal and normal_kwargs is None:
-            normal_kwargs = {'color': 'b', 'length': 1}
+            normal_kwargs = {'color': 'b', 'length': 10}
         if orientation and orientation_kwargs is None:
-            orientation_kwargs = {'color': 'r'}
+            orientation_kwargs = {'color': 'r', 'arrow_length_ratio': 0.1}
 
         ax = plot_utils.get_3d_plot_ax(ax=ax)
 
@@ -582,7 +552,7 @@ class OrientedPolygon(OrientedGeometry):
             ax.quiver(x, y, z, u, v, w, **normal_kwargs)
 
         if orientation:
-            factor = 0.8
+            factor = 0.9
             n = self.points.shape[0]
             for i in range(n):
                 A = self.points[i - 1, :]
@@ -764,7 +734,7 @@ class Building(OrientedPolyhedron):
         if keep_ground:
             polygons = [top, bottom]
         else:
-            polygons = []
+            polygons = [top]
 
         bottom_points = bottom_points[::-1, :]  # Bottom points are now oriented cw to match top points
 
@@ -996,7 +966,7 @@ if __name__ == '__main__':
 
     # 1. Load data
 
-    place = generate_place_from_rooftops_file('data/small.geojson')
+    place = generate_place_from_rooftops_file('../data/small.geojson')
 
     # 2. Create TX and RX
 
@@ -1015,7 +985,7 @@ if __name__ == '__main__':
     # 2.1.1 Rotate this cube around its center
     from scipy.spatial.transform import Rotation as R
 
-    rot2 = R.from_euler('xyz', [0, 10, 0], degrees=True).as_matrix()
+    rot2 = R.from_euler('xyz', [0, 10, 10], degrees=True).as_matrix()
 
     cube = cube.project(rot2, around_point=tx)
 
@@ -1029,12 +999,10 @@ if __name__ == '__main__':
     cube = cube.translate(-tx)
 
     # 3. Plot the whole geometry
-    ax = place.plot3d(ret=True)
+    ax = place.plot3d(ret=True, poly_kwargs=dict(normal=True, orientation=True))
     cube.plot3d(ax=ax)
 
-
     place.center_3d_plot(ax)
-
 
     # 3.1 Picking one face of the cube as the screen and coloring it
     screen = cube.polygons[2]
@@ -1044,18 +1012,19 @@ if __name__ == '__main__':
     u, v, w = screen.get_normal()
     ax.quiver(x, y, z, u, v, w, length=10)
     # 4. Create the screen on which geometry will be projected
-    distance = 10  # Distance from TX to screen
+    distance = 5  # Distance from TX to screen
 
     #screen = screen.magnify(tx * 0, distance=distance)  # TX is now at [0, 0, 0]
 
     print('Screen points:\n', screen.points)
 
     # 5. First, changing geometry coordinates to match screen's orientation
-    matrix = screen.get_matrix()
+    matrix = screen.get_matrix().T
 
     print('Coordinates matrix:\n', matrix)
     place = place.project(matrix)
     screen = screen.project(matrix)
+    print('Screen points after transformation:\n', screen.points)
 
     ax = place.plot3d(ret=True)
     cube.plot3d(ax=ax)
@@ -1076,9 +1045,9 @@ if __name__ == '__main__':
 
     rot = R.from_euler('xyz', [0, 0, -90], degrees=True).as_matrix()
 
-    ax = place.project(rot).plot2d(ret=True)
+    ax = place.project(rot).plot2d(ret=True, poly_kwargs=dict(alpha=0.5))
 
-    screen.project(rot).plot2d(ax=ax)
+    screen.project(rot).plot2d(ax=ax, facecolor='g', alpha=0.5)
     print(len(list(place.get_polygons_iter())))
     plt.axis('equal')
 
