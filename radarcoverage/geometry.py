@@ -12,7 +12,6 @@ import geopandas as gpd
 
 # Utils
 import itertools
-from utils import modify_class, share_parent_class
 
 
 def enclosed_area(points):
@@ -499,6 +498,8 @@ class OrientedPolygon(OrientedGeometry):
 
         The axes follow the right hand side rule and will be normalized.
 
+        In order to project points into the polygon's coordinates, use the transposed matrix !
+
         :return: the matrix of axes
         :rtype: ndarray *shape=(3, 3)*
         """
@@ -930,9 +931,19 @@ class OrientedPlace(OrientedGeometry):
 
 
 def generate_place_from_rooftops_file(roof_top_file, center=True):
+    """
+    Returns a place from a geographic file containing building rooftops and their height.
+
+    :param roof_top_file: file containing polygons describing buildings on ground, with height attribute
+    :type roof_top_file: str, any filetype supported by :func:`geopandas.read_file`
+    :param center: if True, will center the coordinates
+    :type center: bool
+    :return: a place containing the buildings and a flat ground surface covering the whole area
+    :rtype: OrientedPlace
+    """
     gdf = gpd.read_file(roof_top_file)
     gdf.dropna(subset=['height'], inplace=True)
-    gdf.to_crs(epsg=3035, inplace=True)
+    gdf.to_crs(epsg=3035, inplace=True)  # To make buildings look more realistic, there may be a better choice :)
 
     if center:
         bounds = gdf.total_bounds
@@ -997,20 +1008,18 @@ if __name__ == '__main__':
 
     place = place.translate(-tx)
     cube = cube.translate(-tx)
+    polygons = place.get_polygons_list()
 
     # 3. Plot the whole geometry
-    ax = place.plot3d(ret=True, poly_kwargs=dict(normal=True, orientation=True))
-    cube.plot3d(ax=ax)
+    ax1 = place.plot3d(ret=True)
+    cube.plot3d(ax=ax1)
 
-    place.center_3d_plot(ax)
+    place.center_3d_plot(ax1)
 
     # 3.1 Picking one face of the cube as the screen and coloring it
     screen = cube.polygons[2]
 
-    screen.plot3d(facecolor='g', alpha=0.5, ax=ax, orientation=True, normal=True)
-    x, y, z = screen.get_centroid()
-    u, v, w = screen.get_normal()
-    ax.quiver(x, y, z, u, v, w, length=10)
+    screen.plot3d(facecolor='g', alpha=0.5, ax=ax1, orientation=True, normal=True)
     # 4. Create the screen on which geometry will be projected
     distance = 5  # Distance from TX to screen
 
@@ -1032,11 +1041,14 @@ if __name__ == '__main__':
 
 
     def filter_func(polygon):
-        return np.dot(polygon.get_normal(), screen.get_normal()) < 0 and any_point_below(polygon.points, 0, axis=2)
+        return np.dot(polygon.get_normal(), screen.get_normal()) < np.arccos(np.pi/4) and any_point_above(polygon.points, 0, axis=2)
 
-    poly = place.get_polygons_matching(filter_func)
+    poly = place.get_polygons_matching(filter_func, polygons)
 
-    print(len(list(poly)))
+    for _, polygon in poly:
+        polygon.plot3d(ax=ax1, edgecolor='r')
+
+    #print(len(list(poly)))
     # 6. Perspective mapping on z direction
     place = place.project_with_perspective_mapping(focal_distance=distance)
 
@@ -1047,7 +1059,7 @@ if __name__ == '__main__':
 
     ax = place.project(rot).plot2d(ret=True, poly_kwargs=dict(alpha=0.5))
 
-    screen.project(rot).plot2d(ax=ax, facecolor='g', alpha=0.5)
+    screen.project(rot).plot2d(ax=ax, facecolor='g', alpha=0.4)
     print(len(list(place.get_polygons_iter())))
     plt.axis('equal')
 
