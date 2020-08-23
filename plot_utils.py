@@ -40,13 +40,14 @@ def add_polygon_to_2d_ax(ax, points, *args, **kwargs):
     :type ax: matplotlib.axes.Axes
     :param points: the points of the polygon
     :type points: numpy.ndarray *shape(N, M>=2)*
-    :param args: positional arguments passed to :func:`matplotlib.patches.Polygon`
+    :param args: positional arguments passed to :func:`matplotlib.patches.PathPatch`
     :type args: any
-    :param kwargs: keyword arguments passed to :func:`matplotlib.patches.Polygon`
+    :param kwargs: keyword arguments passed to :func:`matplotlib.patches.PathPatch`
     :type kwargs: any
     """
-    polygon = patches.Polygon(points[:, :2], *args, **kwargs)
-    ax.add_patch(polygon)
+    path = patches.Path(points[:, :2])
+    patch = patches.PathPatch(path, *args, **kwargs)
+    ax.add_patch(patch)
 
 
 def add_polygon_to_3d_ax(ax, points, *args, **kwargs):
