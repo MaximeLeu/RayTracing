@@ -32,6 +32,30 @@ def get_3d_plot_ax(ax=None):
     return ax
 
 
+def add_points_to_2d_ax(ax, points, *args, **kwargs):
+    points = points.reshape(-1, 3)
+    ax.scatter(points[:, 0], points[:, 1], *args, **kwargs)
+
+
+def add_points_to_3d_ax(ax, points, *args, **kwargs):
+    points = points.reshape(-1, 3)
+    ax.scatter(points[:, 0], points[:, 1], points[:, 2], *args, **kwargs)
+
+
+def add_text_at_point_2d_ax(ax, point, *args, **kwargs):
+    pass
+
+
+def add_text_at_point_3d_ax(ax, point, *args, **kwargs):
+    point = point.reshape(3)
+    ax.text(point[0], point[1], point[2], *args, **kwargs)
+
+
+def add_2d_text_at_point_3d_ax(ax, point, *args, **kwargs):
+    point = point.reshape(-1)
+    ax.text2D(point[0], point[1], *args, transform=ax.transAxes, **kwargs)
+
+
 def add_polygon_to_2d_ax(ax, points, *args, **kwargs):
     """
     Adds a 2D polygon to axes. If higher dimension polygon is given, will only keep the 2 first dimensions.

@@ -72,7 +72,7 @@ def parse_3d_axis(axis):
     return axis
 
 
-def reflexion_on_plane(incidents, normal):
+def reflexion_on_plane(incidents, normal, normalized=False):
     """
     Return the reflexion of incident vector on a plane with given normal.
     See details: https://en.wikipedia.org/wiki/Reflection_(mathematics)
@@ -81,13 +81,68 @@ def reflexion_on_plane(incidents, normal):
     :type incidents: numpy.ndarray *shape=(N, 3)*
     :param normal: normal vector to the plane
     :type normal: numpy.ndarray *size=3*
+    :param normalized: if True, assume normal vector is a unit vector (accelerates computation)
+    :type normalized: bool
     :return: the reflected vector(s)
     :rtype: numpy.ndarray *shape(N, 3)*
     """
     normal = normal.reshape((1, 3))
     incidents = incidents.reshape((-1, 3))
-    den = normal @ normal.T
+    if normalized:
+        den = 1
+    else:
+        den = normal @ normal.T
     return incidents - (incidents @ normal.T) @ ((2 / den) * normal)  # Order of operation minimizes the # of op.
+
+
+def reflexion_point_from_origin_destination_and_planes(origin, destination, planes_parametric, **kwargs):
+    """
+    Returns the reflection point on each plane such that a path between origin and destination is possible.
+    The parametric equation of the plane should contained the normal vector in a normalized form.
+
+    :param origin: the origin point
+    :type origin: numpy.ndarray *size=3*
+    :param destination: the destination point
+    :type destination: numpy.ndarray *size=3*
+    :param planes_parametric: the coefficients of the parametric equation of each plane
+    :type planes_parametric: list of np.ndarray *shape=(4)*
+    :param kwargs: keyword parameters passed to :func:`scipy.optimize.fsolve`
+    :type kwargs: any
+    :return: the reflection point on each of the planes
+    :rtype:
+    """
+    A = origin.reshape(1, 3)
+    B = destination.reshape(1, 3)
+    parametric = np.vstack(planes_parametric)
+    normal = parametric[:, :3]
+    d = parametric[:, 3].reshape(-1, 1)
+
+    n = parametric.shape[0]
+
+    points = np.empty((n + 2, 3), dtype=float)
+    points[0, :] = A
+    points[-1, :] = B
+
+    for i in range(1, n + 1):
+        # First guess for solution (gamma = 1)
+        points[i, :] = 0.5 * (points[i - 1, :] + B - 2 * (d[i-1] + points[i - 1, :] @ normal[i-1, :].T) * normal[i-1, :])
+
+    def gamma(v):
+        norms = np.linalg.norm(v, axis=1)
+        return norms[:-1] / norms[1:]
+
+    def func(x):
+        points[1:n+1, :] = x.reshape(-1, 3)
+        v = np.diff(points, axis=0)
+        g = gamma(v).reshape(-1, 1)
+
+        dot_product = np.einsum('ij,ij->i', points[:n, :], normal).reshape(-1, 1)
+
+        return (g * v[1:, :] - v[:-1, :] - 2 * (d + dot_product) * normal).reshape(-1)
+
+    from scipy.optimize import fsolve
+
+    return fsolve(func, x0=points[1:n+1, :].reshape(-1), **kwargs).reshape(-1, 3)
 
 
 def translate_points(points, vector):
@@ -141,7 +196,30 @@ def project_points_with_perspective_mapping(points, focal_distance=1, axis=2):
     p = np.array(points)  # Copy
     axis = parse_3d_axis(axis)
     factor = focal_distance / points[:, axis]
-    p[:, axis].fill(focal_distance)
+
+    for i in range(3):
+        if i != axis:
+            p[:, i] *= factor
+
+    return p
+
+
+def restore_points_before_projective_mapping(points, focal_distance=1, axis=2):
+    """
+    Reverses a projective mapping for points. Only possible if data along given axis has been kept.
+
+    :param points: the points to be restored
+    :type points: numpy.ndarray *shape=(N, 3)*
+    :param focal_distance: the distance to the screen
+    :type focal_distance: float or int
+    :param axis: the axis which will be used for perspective
+    :type axis: any type accepted by :func:`parse_3d_axis`
+    :return: the restored points
+    :rtype: numpy.ndarray *shape=(N, 3)*
+    """
+    p = np.array(points)  # Copy
+    axis = parse_3d_axis(axis)
+    factor = points[:, axis] / focal_distance
 
     for i in range(3):
         if i != axis:
@@ -409,6 +487,19 @@ class OrientedPolygon(OrientedGeometry):
 
         self.parametric = None
         self.matrix = None
+        self.shapely = None
+
+    def get_shapely(self):
+        """
+        Returns a 2D polygon from this polygon by removing the z component.
+
+        :return: the 2D polygon
+        :rtype: shapely.geometry.Polygon
+        """
+        if self.shapely is None:
+            self.shapely = shPolygon(self.points[:, :2])
+
+        return self.shapely
 
     def get_polygons_iter(self):
         yield self
@@ -486,7 +577,7 @@ class OrientedPolygon(OrientedGeometry):
         :return: the normal vector
         :rtype: np.ndarray *shape=(3)
         """
-        return self.get_parametric()[:-1]
+        return self.get_parametric()[:3]
 
     def get_matrix(self):
         """
@@ -971,101 +1062,4 @@ def generate_place_from_rooftops_file(roof_top_file, center=True):
     place.polyhedra = polyhedra
 
     return place
-
-
-if __name__ == '__main__':
-
-    # 1. Load data
-
-    place = generate_place_from_rooftops_file('../data/small.geojson')
-
-    # 2. Create TX and RX
-
-    domain = place.get_domain()
-    ground_center = place.get_centroid()
-
-    tx = ground_center + [-50, 5, 1]
-    rx = ground_center + [-2, 0, 5]
-    tx = tx.reshape(1, 3)
-    rx = rx.reshape(1, 3)
-
-    # 2.1 Create a cube around TX
-
-    cube = Cube.by_point_and_side_length(tx, 10)
-
-    # 2.1.1 Rotate this cube around its center
-    from scipy.spatial.transform import Rotation as R
-
-    rot2 = R.from_euler('xyz', [0, 10, 10], degrees=True).as_matrix()
-
-    cube = cube.project(rot2, around_point=tx)
-
-    # 2.2 Place TX and RX in the 'place'
-    #place.add_set_of_points(tx)
-    place.add_set_of_points(rx)
-
-    # 2.3 Translate the geometry around TX
-
-    place = place.translate(-tx)
-    cube = cube.translate(-tx)
-    polygons = place.get_polygons_list()
-
-    # 3. Plot the whole geometry
-    ax1 = place.plot3d(ret=True)
-    cube.plot3d(ax=ax1)
-
-    place.center_3d_plot(ax1)
-
-    # 3.1 Picking one face of the cube as the screen and coloring it
-    screen = cube.polygons[2]
-
-    screen.plot3d(facecolor='g', alpha=0.5, ax=ax1, orientation=True, normal=True)
-    # 4. Create the screen on which geometry will be projected
-    distance = 5  # Distance from TX to screen
-
-    #screen = screen.magnify(tx * 0, distance=distance)  # TX is now at [0, 0, 0]
-
-    print('Screen points:\n', screen.points)
-
-    # 5. First, changing geometry coordinates to match screen's orientation
-    matrix = screen.get_matrix().T
-
-    print('Coordinates matrix:\n', matrix)
-    place = place.project(matrix)
-    screen = screen.project(matrix)
-    print('Screen points after transformation:\n', screen.points)
-
-    ax = place.plot3d(ret=True)
-    cube.plot3d(ax=ax)
-    screen.plot3d(facecolor='g', ax=ax)
-
-
-    def filter_func(polygon):
-        return np.dot(polygon.get_normal(), screen.get_normal()) < np.arccos(np.pi/4) and any_point_above(polygon.points, 0, axis=2)
-
-    poly = place.get_polygons_matching(filter_func, polygons)
-
-    for _, polygon in poly:
-        polygon.plot3d(ax=ax1, edgecolor='r')
-
-    #print(len(list(poly)))
-    # 6. Perspective mapping on z direction
-    place = place.project_with_perspective_mapping(focal_distance=distance)
-
-    screen = screen.project_with_perspective_mapping(focal_distance=distance)
-    print('Screen points:\n', screen.points)
-
-    rot = R.from_euler('xyz', [0, 0, -90], degrees=True).as_matrix()
-
-    ax = place.project(rot).plot2d(ret=True, poly_kwargs=dict(alpha=0.5))
-
-    screen.project(rot).plot2d(ax=ax, facecolor='g', alpha=0.4)
-    print(len(list(place.get_polygons_iter())))
-    plt.axis('equal')
-
-    plt.show()
-
-
-
-
 
