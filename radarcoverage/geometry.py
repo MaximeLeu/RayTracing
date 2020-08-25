@@ -16,6 +16,7 @@ import geopandas as gpd
 
 # Utils
 import itertools
+import sys
 
 
 def enclosed_area(points):
@@ -352,8 +353,8 @@ def polygon_visibility_vector(polygon_A, polygons, angle_tol=0, out=None):
     :rtype: numpy.ndarray *dtype=bool, shape=(N)*
     """
     matrix_A = polygon_A.get_matrix().T
-    projected_polygon_A = polygon_A.project(matrix_A)
-    z_projected_polygon_A = projected_polygon_A.points[0, 2]  # All the z should be the same
+    centroid = polygon_A.get_centroid()
+    projected_polygon_A = polygon_A.translate(-centroid).project(matrix_A)
     tol = np.cos(np.deg2rad(angle_tol))
     if out is None:
         polygons = list(polygons)
@@ -361,10 +362,17 @@ def polygon_visibility_vector(polygon_A, polygons, angle_tol=0, out=None):
     else:
         visibility_vector = out
 
-    for i, polygon_B in enumerate(polygons):
-        projected_polygon_B = polygon_B.project(matrix_A)
-        if projected_polygon_B.get_domain()[1, 2] > z_projected_polygon_A:
-            if np.dot(polygon_A.get_normal(), polygon_B.get_normal()) <= tol:
+    def func(polygon):
+        domain = polygon.get_domain()[0]
+        return norm(domain[:2])
+
+    polygons_projected = [polygon.translate(-centroid).project(matrix_A) for polygon in polygons]
+
+    polygons_projected = sorted(enumerate(polygons_projected), key=lambda x: func(x[1]))
+
+    for i, projected_polygon_B in polygons_projected:
+        if projected_polygon_B.get_domain()[1, 2] > 1e-8:
+            if np.dot(polygon_A.get_normal(), polygons[i].get_normal()) < 1:
                 visibility_vector[i] = True
 
     return visibility_vector
@@ -372,7 +380,7 @@ def polygon_visibility_vector(polygon_A, polygons, angle_tol=0, out=None):
 
 def polygons_visibility_matrix(polygons, angle_tol=0):
     """
-    Returns the symmetric visibility matrix for N given polygons.
+    Returns the visibility matrix for N given polygons.
     For each row i, the matrix tells if it is physically possible that a ray pointing outward the polygon[i]'s
     face could intercept an other polygon[j]. Initially, only rays normal to the polygon are considered. Nonetheless,
     the angle tolerance (in degrees) permits a variation on the ray direction (max. 90°).
@@ -392,10 +400,10 @@ def polygons_visibility_matrix(polygons, angle_tol=0):
     visibility_matrix = np.zeros((n, n), dtype=bool)
     for i in range(n):
         polygon_A = polygons[i]
-        polygon_visibility_vector(polygon_A, polygons[:i], out=visibility_matrix[i, :i], angle_tol=angle_tol)
+        polygon_visibility_vector(polygon_A, polygons, out=visibility_matrix[i, :], angle_tol=angle_tol)
 
     # Symmetric matrix
-    visibility_matrix |= visibility_matrix.T
+    #visibility_matrix |= visibility_matrix.T
 
     return visibility_matrix
 
@@ -419,6 +427,7 @@ class OrientedGeometry:
         self.domain = None
         self.centroid = None
         self.visibility_matrix = None
+        self.pause = False
 
     def get_polygons_iter(self):
         """
@@ -613,6 +622,59 @@ class OrientedGeometry:
             self.visibility_matrix = polygons_visibility_matrix(self.get_polygons_iter(), angle_tol=angle_tol)
 
         return self.visibility_matrix
+
+    def show_visibility_matrix_animation(self):
+        ax = self.plot3d(ret=True)
+        self.center_3d_plot(ax)
+        polys3d = ax.collections
+        visibility_matrix = self.get_visibility_matrix()
+        pos = np.array([0.05, 0.95])
+
+        plot_utils.add_2d_text_at_point_3d_ax(ax, pos, f'Press \'q\' to quit, \'space\' to play/pause')
+
+        fig = plt.gcf()
+
+        global pause
+        pause = False
+
+        def press(event):
+            sys.stdout.flush()
+            if event.key.lower() == 'q':
+                plt.close(fig)
+            elif event.key.lower() == ' ':
+                self.pause ^= True
+
+        fig.canvas.mpl_connect('key_press_event', press)
+
+        n = len(polys3d)
+        indices = itertools.cycle(itertools.chain.from_iterable(itertools.repeat(i, 30) for i in range(n)))
+        i = next(indices)
+        angle = 0
+        ax.view_init(30, 0)
+
+        while plt.fignum_exists(fig.number):
+
+            if self.pause:
+                angle = ax.azim
+                plt.pause(0.1)
+                continue
+
+            for poly3d in polys3d:
+                poly3d.set_alpha(0)
+
+            ax.view_init(ax.elev, angle)
+
+            for j in np.where(visibility_matrix[i])[0]:
+                polys3d[j].set_facecolor('r')
+                polys3d[j].set_alpha(0.5)
+
+            polys3d[i].set_facecolor('b')
+            polys3d[i].set_alpha(0.8)
+
+            plt.draw()
+            plt.pause(0.01)
+            i = next(indices)
+            angle = (ax.azim + 1) % 360
 
 
 class OrientedPolygon(OrientedGeometry):
