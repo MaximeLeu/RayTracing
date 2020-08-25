@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as mplot3d
 import matplotlib.patches as patches
 
+# Numerical libraries
+import numpy as np
+
 
 def get_2d_plot_ax(ax=None):
     """
@@ -42,18 +45,32 @@ def add_points_to_3d_ax(ax, points, *args, **kwargs):
     ax.scatter(points[:, 0], points[:, 1], points[:, 2], *args, **kwargs)
 
 
-def add_text_at_point_2d_ax(ax, point, *args, **kwargs):
-    pass
+def add_line_to_2d_ax(ax, points, *args, **kwargs):
+    x = points[:, 0]
+    y = points[:, 1]
+    ax.plot(x, y, *args, **kwargs)
 
 
-def add_text_at_point_3d_ax(ax, point, *args, **kwargs):
+def add_line_to_3d_ax(ax, points, *args, **kwargs):
+    x = points[:, 0]
+    y = points[:, 1]
+    z = points[:, 2]
+    ax.plot(x, y, z, *args, **kwargs)
+
+
+def add_text_at_point_2d_ax(ax, point, text, *args, **kwargs):
+    point = point.reshape(2)
+    ax.annotate(text, point)
+
+
+def add_text_at_point_3d_ax(ax, point, text, *args, **kwargs):
     point = point.reshape(3)
-    ax.text(point[0], point[1], point[2], *args, **kwargs)
+    ax.text(point[0], point[1], point[2], text, *args, **kwargs)
 
 
-def add_2d_text_at_point_3d_ax(ax, point, *args, **kwargs):
+def add_2d_text_at_point_3d_ax(ax, point, text, *args, **kwargs):
     point = point.reshape(-1)
-    ax.text2D(point[0], point[1], *args, transform=ax.transAxes, **kwargs)
+    ax.text2D(point[0], point[1], text, *args, transform=ax.transAxes, **kwargs)
 
 
 def add_polygon_to_2d_ax(ax, points, *args, **kwargs):
@@ -106,8 +123,8 @@ def add_vector_to_2d_ax(ax, point, vector, *args, **kwargs):
     :param kwargs: keyword arguments passed to :func:`matplotlib.pyplot.quiver`
     :type kwargs: any
     """
-    x, y = point[:2]
-    u, v = vector[:2]
+    x, y = point[:2].T
+    u, v = vector[:2].T
     ax.quiver(x, y, u, v, *args, **kwargs)
 
 
@@ -126,6 +143,6 @@ def add_vector_to_3d_ax(ax, point, vector, *args, **kwargs):
     :param kwargs: keyword arguments passed to :func:`mpl_toolkits.mplot3d.Axes3D.quiver`
     :type kwargs: any
     """
-    x, y, z = point
-    u, v, w = vector
+    x, y, z = point.T
+    u, v, w = vector.T
     ax.quiver(x, y, z, u, v, w, *args, **kwargs)

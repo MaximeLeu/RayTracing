@@ -8,6 +8,8 @@ import numpy as np
 
 # Geometry libraries
 from shapely.geometry import Polygon as shPolygon
+from shapely.geometry import LineString as shLine
+from shapely.geometry import Point as shPoint
 import geopandas as gpd
 
 # Utils
@@ -284,6 +286,85 @@ def any_point_between(points, a, b, axis=2):
     return np.any(a <= points[:, axis] <= b)
 
 
+def polygons_obstruct_line_path(polygons, points):
+    """
+    Returns whether a line path is obstructed by any of the polygons.
+
+    :param polygons: the polygons:
+    :type polygons: Iterable[OrientedPolygon]
+    :param points: two points describing line path
+    :type points: numpy.ndarray *shape=(2, 3)*
+    :return: True if any polygon intercepts the line path
+    :rtype: bool
+    """
+    points = points.reshape(-1, 3)
+    A = points[0, :]
+    B = points[1, :]
+    z = B - A
+    z /= np.linalg.norm(z)
+    y = np.array([0, 1, 0], dtype=float)  # Arbitrary
+    y -= y.dot(z) * z
+    y /= np.linalg.norm(y)
+    x = np.cross(y, z)
+    matrix = np.row_stack([x, y, z])
+
+    projected_points = project_points(points, matrix)
+    pA = projected_points[0, :]
+    pB = projected_points[1, :]
+    line = shLine([pA, pB])
+    z_min = pA[2]
+    z_max = pB[2]
+
+    for polygon in polygons:
+        polygon = polygon.project(matrix)
+        domain = polygon.get_domain()
+
+        if domain[1, 2] > z_min and domain[0, 2] < z_max:
+            if polygon.get_shapely().intersects(line):
+                return True
+    return False
+
+
+def polygons_visibility_matrix(polygons, angle_tol=0):
+    """
+    Returns the symmetric visibility matrix for N given polygons.
+    For each row i, the matrix tells if it is physically possible that a ray pointing outward the polygon[i]'s
+    face could intercept an other polygon[j]. Initially, only rays normal to the polygon are considered. Nonetheless,
+    the angle tolerance (in degrees) permits a variation on the ray direction (max. 90°).
+
+    If your study case implies grazing angles, the angle tolerance should be changed accordingly.
+
+    :param polygons: the polygons
+    :type polygons: Iterable[OrientedPolygons]
+    :param angle_tol: tolerance angle, in degrees
+    :type angle_tol: float
+    :return: the visibility matrix
+    :rtype: numpy.ndarray *dtype=bool, shape=(N, N)*
+    """
+    polygons = list(polygons)
+    n = len(polygons)
+
+    tol = np.cos(np.deg2rad(angle_tol))
+
+    visibility_matrix = np.zeros((n, n), dtype=bool)
+    for i in range(n):
+        polygon_A = polygons[i]
+        matrix_A = polygon_A.get_matrix().T
+        projected_polygon_A = polygon_A.project(matrix_A)
+        z_projected_polygon_A = projected_polygon_A.points[0, 2]  # All the z should be the same
+
+        for j, polygon_B in enumerate(polygons[:i]):
+            projected_polygon_B = polygon_B.project(matrix_A)
+            if projected_polygon_B.get_domain()[1, 2] > z_projected_polygon_A:
+                polygon_B = polygons[j]
+                if np.dot(polygon_A.get_normal(), polygon_B.get_normal()) <= tol:
+                    visibility_matrix[i, j] = True
+
+    # Symmetric matrix
+    visibility_matrix |= visibility_matrix.T
+
+    return visibility_matrix
+
 class OrientedGeometry:
     """
     Disclaimer: this class and its subclasses are clearly inspired from the pakcage `pyny3d`. The main problem with this
@@ -302,6 +383,7 @@ class OrientedGeometry:
     def __init__(self):
         self.domain = None
         self.centroid = None
+        self.visibility_matrix = None
 
     def get_polygons_iter(self):
         """
@@ -446,31 +528,56 @@ class OrientedGeometry:
         """
         return np.concatenate([polygon.points for polygon in self.get_polygons_iter()])
 
-    def get_domain(self):
+    def get_domain(self, force=False):
         """
         Returns coordinates of the smallest prism containing this geometry.
 
-        :return: opposite vertices of the bounding prism for this object.
+        :param force: if True, will force to (re)compute value (only necessary if geometry has changed)
+        :type force: bool
+        :return: opposite vertices of the bounding prism for this object
         :rtype: numpy.ndarray([min], [max])
         """
-        if self.domain is None:
+        if force or self.domain is None:
             points = self.get_points()
             self.domain = np.array([points.min(axis=0),
                                     points.max(axis=0)])
         return self.domain
 
-    def get_centroid(self):
+    def get_centroid(self, force=False):
         """
         The centroid is considered the center point of the circumscribed
         parallelepiped, not the mass center.
 
-        :returns: (x, y, z) coordinates of the centroid of the object.
+        :param force: if True, will force to (re)compute value (only necessary if geometry has changed)
+        :type force: bool
+        :returns: (x, y, z) coordinates of the centroid of the object
         :rtype: numpy.ndarray
         """
-        if self.centroid is None:
+        if force or self.centroid is None:
             self.centroid = self.get_domain().mean(axis=0)
 
         return self.centroid
+
+    def get_visibility_matrix(self, angle_tol=0, force=False):
+        """
+        Returns the symmetric visibility matrix for the polygons in this geometry.
+        For each row i, the matrix tells if it is physically possible that a ray pointing outward the polygon[i]'s
+        face could intercept an other polygon[j]. Initially, only rays normal to the polygon are considered. Nonetheless,
+        the angle tolerance (in degrees) permits a variation on the ray direction (max. 90°).
+
+        If your study case implies grazing angles, the angle tolerance should be changed accordingly.
+
+        :param angle_tol: tolerance angle, in degrees
+        :type angle_tol: float
+        :param force: if True, will force to (re)compute value (only necessary if geometry has changed)
+        :type force: bool
+        :return: the visibility matrix
+        :rtype: numpy.ndarray *dtype=bool, shape=(N, N)*
+        """
+        if force or self.visibility_matrix is None:
+            self.visibility_matrix = polygons_visibility_matrix(self.get_polygons_iter(), angle_tol=angle_tol)
+
+        return self.visibility_matrix
 
 
 class OrientedPolygon(OrientedGeometry):
@@ -489,14 +596,16 @@ class OrientedPolygon(OrientedGeometry):
         self.matrix = None
         self.shapely = None
 
-    def get_shapely(self):
+    def get_shapely(self, force=False):
         """
         Returns a 2D polygon from this polygon by removing the z component.
 
+        :param force: if True, will force to (re)compute value (only necessary if geometry has changed)
+        :type force: bool
         :return: the 2D polygon
         :rtype: shapely.geometry.Polygon
         """
-        if self.shapely is None:
+        if force or self.shapely is None:
             self.shapely = shPolygon(self.points[:, :2])
 
         return self.shapely
@@ -551,15 +660,17 @@ class OrientedPolygon(OrientedGeometry):
         points = vectors + point
         return OrientedPolygon(points)
 
-    def get_parametric(self):
+    def get_parametric(self, force=False):
         """
         Returns the parametric equation of the plane described by the polygon.
         It will return all four coefficients such that: a*x + b*y + c*z + d = 0.
 
+        :param force: if True, will force to (re)compute value (only necessary if geometry has changed)
+        :type force: bool
         :return: the coefficients of the parametric equation
         :rtype: np.ndarray *shape=(4)*
         """
-        if self.parametric is None:
+        if force or self.parametric is None:
 
             # Plane calculation
             normal = np.cross(self.points[1, :] - self.points[0, :],
@@ -579,7 +690,30 @@ class OrientedPolygon(OrientedGeometry):
         """
         return self.get_parametric()[:3]
 
-    def get_matrix(self):
+    def contains_point(self, point, check_in_plane=False, plane_tol=1e-9):
+        """
+        Returns true if point belongs to polygon. By default it assumes that the point lies in the same plane as this
+        polygon. If needed, can first check this condition.
+
+        :param point: the point
+        :type point: numpy.ndarray *size=3*
+        :param check_in_plane: if True, will first check if point and polygon lie in the same plane
+        :type check_in_plane: bool
+        :param plane_tol: tolerance for check in plane
+        :type plane_tol: float
+        :return: wether the point is in the plane
+        :rtype: bool
+        """
+        point = point.reshape(3)
+        if check_in_plane:
+            d = self.get_parametric()[3]
+            normal = self.get_normal()
+            if not np.allclose(np.dot(normal, point), -d, rtol=plane_tol):
+                return False
+
+        return self.get_shapely().intersects(shPoint(point))
+
+    def get_matrix(self, force=False):
         """
         Returns a 3-by-3 orthogonal matrix where is column correspond to an axis of the polygon.
         matrix = [x, y, z] where
@@ -591,10 +725,12 @@ class OrientedPolygon(OrientedGeometry):
 
         In order to project points into the polygon's coordinates, use the transposed matrix !
 
+        :param force: if True, will force to (re)compute value (only necessary if geometry has changed)
+        :type force: bool
         :return: the matrix of axes
         :rtype: ndarray *shape=(3, 3)*
         """
-        if self.matrix is not None:
+        if not force and self.matrix is not None:
             return self.matrix
 
         points = self.points
@@ -914,7 +1050,7 @@ class Cube(OrientedPolyhedron):
 
 class OrientedPlace(OrientedGeometry):
 
-    def __init__(self, surface, polyhedra=[], set_of_points=np.empty((0, 3))):
+    def __init__(self, surface, polyhedra=None, set_of_points=np.empty((0, 3))):
         super().__init__()
 
         if isinstance(surface, OrientedSurface):
@@ -924,7 +1060,7 @@ class OrientedPlace(OrientedGeometry):
         else:
             raise ValueError('OrientedPlace needs an OrientedSurface or a numpy.ndarray as surface input')
 
-        if polyhedra != []:
+        if polyhedra is not None:
             if type(polyhedra) != list:
                 polyhedra = [polyhedra]
             if isinstance(polyhedra[0], OrientedPolyhedron):
@@ -965,6 +1101,17 @@ class OrientedPlace(OrientedGeometry):
                      for polyhedron in self.polyhedra]
         set_of_points = func(self.set_of_points, *args, **kwargs)
         return OrientedPlace(surface, polyhedra=polyhedra, set_of_points=set_of_points)
+
+    def obstructs_line_path(self, points):
+        """
+        Returns whether a line path is obstructed by any polygon present in this place.
+
+        :param points: two points describing line path
+        :type points: numpy.ndarray *shape=(2, 3)*
+        :return: True if any polygon intercepts the line path
+        :rtype: bool
+        """
+        return polygons_obstruct_line_path(self.get_polygons_iter(), points)
 
     def plot2d(self, ret=False, ax=None,
                poly_args=None, poly_kwargs=None,
