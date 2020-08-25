@@ -5,6 +5,8 @@ from radarcoverage import plot_utils
 
 # Numerical libraries
 import numpy as np
+from numpy.dual import norm
+from scipy.optimize import fsolve
 
 # Geometry libraries
 from shapely.geometry import Polygon as shPolygon
@@ -130,7 +132,7 @@ def reflexion_point_from_origin_destination_and_planes(origin, destination, plan
         points[i, :] = 0.5 * (points[i - 1, :] + B - 2 * (d[i-1] + points[i - 1, :] @ normal[i-1, :].T) * normal[i-1, :])
 
     def gamma(v):
-        norms = np.linalg.norm(v, axis=1)
+        norms = norm(v, axis=1)
         return norms[:-1] / norms[1:]
 
     def func(x):
@@ -142,9 +144,7 @@ def reflexion_point_from_origin_destination_and_planes(origin, destination, plan
 
         return (g * v[1:, :] - v[:-1, :] - 2 * (d + dot_product) * normal).reshape(-1)
 
-    from scipy.optimize import fsolve
-
-    return fsolve(func, x0=points[1:n+1, :].reshape(-1), **kwargs).reshape(-1, 3)
+    return fsolve(func, x0=points[1:n+1, :].reshape(-1), xtol=1e-4, **kwargs).reshape(-1, 3)
 
 
 def translate_points(points, vector):
@@ -195,9 +195,9 @@ def project_points_with_perspective_mapping(points, focal_distance=1, axis=2):
     :return: the projected points
     :rtype: numpy.ndarray *shape=(N, 3)*
     """
-    p = np.array(points)  # Copy
+    p = np.array(points, ndmin=2)  # Copy
     axis = parse_3d_axis(axis)
-    factor = focal_distance / points[:, axis]
+    factor = focal_distance / p[:, axis]
 
     for i in range(3):
         if i != axis:
@@ -300,11 +300,11 @@ def polygons_obstruct_line_path(polygons, points):
     points = points.reshape(-1, 3)
     A = points[0, :]
     B = points[1, :]
-    z = B - A
-    z /= np.linalg.norm(z)
+    V = B - A
+    z = V / norm(V)
     y = np.array([0, 1, 0], dtype=float)  # Arbitrary
     y -= y.dot(z) * z
-    y /= np.linalg.norm(y)
+    y /= norm(y)
     x = np.cross(y, z)
     matrix = np.row_stack([x, y, z])
 
@@ -315,14 +315,59 @@ def polygons_obstruct_line_path(polygons, points):
     z_min = pA[2]
     z_max = pB[2]
 
+    tol = 1e-8
+
     for polygon in polygons:
-        polygon = polygon.project(matrix)
-        domain = polygon.get_domain()
+        projected_polygon = polygon.project(matrix)
+        domain = projected_polygon.get_domain()
 
         if domain[1, 2] > z_min and domain[0, 2] < z_max:
-            if polygon.get_shapely().intersects(line):
-                return True
+            if projected_polygon.get_shapely().intersects(line):  # Projection of line is intersected by polygon
+                normal = polygon.get_normal()
+                d = polygon.get_parametric()[3]
+                t = - (d + np.dot(A, normal)) / np.dot(V, normal)
+                if tol < t < 1 - tol:  # Is the polygon between A and B ?
+                    return True
     return False
+
+
+def polygon_visibility_vector(polygon_A, polygons, angle_tol=0, out=None):
+    """
+    Returns the visibility vector for a polygon facing N given polygons.
+    For each element i, the vector tells if it is physically possible that a ray pointing outward the polygon_A's
+    face could intercept an other polygon[i]. Initially, only rays normal to the polygon are considered. Nonetheless,
+    the angle tolerance (in degrees) permits a variation on the ray direction (max. 90°).
+
+    If your study case implies grazing angles, the angle tolerance should be changed accordingly.
+
+    :param polygon_A: the reference polygon
+    :type polygon_A: OrientedPolygon
+    :param polygons: the polygons
+    :type polygons: Iterable[OrientedPolygons]
+    :param angle_tol: tolerance angle, in degrees
+    :type angle_tol: float
+    :param out: if provided, will store the result in this array
+    :type out: None or numpy.ndarray *dtype=bool, shape=(N)*
+    :return: the visibility vector
+    :rtype: numpy.ndarray *dtype=bool, shape=(N)*
+    """
+    matrix_A = polygon_A.get_matrix().T
+    projected_polygon_A = polygon_A.project(matrix_A)
+    z_projected_polygon_A = projected_polygon_A.points[0, 2]  # All the z should be the same
+    tol = np.cos(np.deg2rad(angle_tol))
+    if out is None:
+        polygons = list(polygons)
+        visibility_vector = np.empty(len(polygons), dtype=bool)
+    else:
+        visibility_vector = out
+
+    for i, polygon_B in enumerate(polygons):
+        projected_polygon_B = polygon_B.project(matrix_A)
+        if projected_polygon_B.get_domain()[1, 2] > z_projected_polygon_A:
+            if np.dot(polygon_A.get_normal(), polygon_B.get_normal()) <= tol:
+                visibility_vector[i] = True
+
+    return visibility_vector
 
 
 def polygons_visibility_matrix(polygons, angle_tol=0):
@@ -344,26 +389,16 @@ def polygons_visibility_matrix(polygons, angle_tol=0):
     polygons = list(polygons)
     n = len(polygons)
 
-    tol = np.cos(np.deg2rad(angle_tol))
-
     visibility_matrix = np.zeros((n, n), dtype=bool)
     for i in range(n):
         polygon_A = polygons[i]
-        matrix_A = polygon_A.get_matrix().T
-        projected_polygon_A = polygon_A.project(matrix_A)
-        z_projected_polygon_A = projected_polygon_A.points[0, 2]  # All the z should be the same
-
-        for j, polygon_B in enumerate(polygons[:i]):
-            projected_polygon_B = polygon_B.project(matrix_A)
-            if projected_polygon_B.get_domain()[1, 2] > z_projected_polygon_A:
-                polygon_B = polygons[j]
-                if np.dot(polygon_A.get_normal(), polygon_B.get_normal()) <= tol:
-                    visibility_matrix[i, j] = True
+        polygon_visibility_vector(polygon_A, polygons[:i], out=visibility_matrix[i, :i], angle_tol=angle_tol)
 
     # Symmetric matrix
     visibility_matrix |= visibility_matrix.T
 
     return visibility_matrix
+
 
 class OrientedGeometry:
     """
@@ -675,7 +710,7 @@ class OrientedPolygon(OrientedGeometry):
             # Plane calculation
             normal = np.cross(self.points[1, :] - self.points[0, :],
                               self.points[2, :] - self.points[1, :])
-            normal /= np.linalg.norm(normal)  # Normalize
+            normal /= norm(normal)  # Normalize
             a, b, c = normal
             d = -np.dot(np.array([a, b, c]), self.points[2, :])
             self.parametric = np.array([a, b, c, d])
@@ -711,7 +746,11 @@ class OrientedPolygon(OrientedGeometry):
             if not np.allclose(np.dot(normal, point), -d, rtol=plane_tol):
                 return False
 
-        return self.get_shapely().intersects(shPoint(point))
+        matrix = self.get_matrix().T
+        projected_polygon = self.project(matrix)
+        projected_point = project_points(point, matrix).reshape(3)
+
+        return projected_polygon.get_shapely().intersects(shPoint(projected_point))
 
     def get_matrix(self, force=False):
         """
@@ -743,7 +782,7 @@ class OrientedPolygon(OrientedGeometry):
         matrix[2, :] = normal  # Already normalized
 
         for i in range(2):
-            matrix[i, :] /= np.linalg.norm([matrix[i, :]])
+            matrix[i, :] /= norm([matrix[i, :]])
 
         self.matrix = matrix.T
 

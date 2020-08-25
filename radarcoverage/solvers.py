@@ -1,0 +1,192 @@
+from radarcoverage import geometry as geom
+from radarcoverage import plot_utils
+
+from time import time
+
+import numpy as np
+
+from collections import defaultdict
+
+
+class RadarCoveringProblem:
+
+    def __init__(self, emitter, emitter_screen, place, receivers=None):
+        self.emitter = emitter
+        self.emitter_screen = emitter_screen
+        self.place = place
+        self.polygons = np.array(place.get_polygons_list())
+
+        if receivers is not None:
+            self.place.add_set_of_points(receivers)
+
+        self.receivers = self.place.set_of_points
+
+        self.visibility_matrix = None
+        self.distance_to_screen = None
+        self.emitter_visibility = None
+        self.los = list()  # Line of sight
+        self.reflections = defaultdict(list)
+        self.precompute()
+
+    def precompute(self):
+        self.visibility_matrix = self.place.get_visibility_matrix()
+        self.distance_to_screen = self.emitter_screen.distance_to_point(self.emitter)
+        self.emitter_visibility = geom.polygon_visibility_vector(
+            self.emitter_screen, self.polygons, angle_tol=45
+        )
+
+        screen_matrix = self.emitter_screen.get_matrix().T
+
+        projected_screen = self.emitter_screen.translate(-self.emitter).project(screen_matrix)
+        screen_shapely = projected_screen.get_shapely()
+
+        for i, is_visible in enumerate(self.emitter_visibility):
+            if is_visible:
+                projected_polygon = self.polygons[i].translate(-self.emitter).project(screen_matrix)
+                projected_with_perspective_polygon = projected_polygon.project_with_perspective_mapping(
+                    focal_distance=self.distance_to_screen
+                )
+                if not screen_shapely.intersects(projected_with_perspective_polygon.get_shapely()):
+                    self.emitter_visibility[i] = False
+
+        visible_polygons = self.polygons[self.emitter_visibility]
+
+        for receiver in self.receivers:
+            projected_receiver = geom.project_points(receiver - self.emitter, screen_matrix)
+            projected_with_perspective_receiver = geom.project_points_with_perspective_mapping(
+                projected_receiver,
+                focal_distance=self.distance_to_screen
+            )
+            point = geom.shPoint(projected_with_perspective_receiver.reshape(-1))
+            if screen_shapely.intersects(point):
+                line = np.row_stack([self.emitter, receiver])
+                if not geom.polygons_obstruct_line_path(visible_polygons, line):
+                    self.los.append(line)
+
+    def get_visible_polygons_indices(self, index):
+        indices = self.visibility_matrix[index, :]
+        return np.where(indices)[0]
+
+    def solve(self, max_order=2):
+
+        visible_polygons = self.polygons[self.emitter_visibility]
+        emitter = self.emitter
+        receivers = self.receivers
+        indices = np.where(self.emitter_visibility)[0]
+
+        def recursive(polygons_indices, order):
+            planes_parametric = [self.polygons[index].get_parametric() for index in polygons_indices]
+
+            for receiver in receivers:
+                points = geom.reflexion_point_from_origin_destination_and_planes(emitter, receiver, planes_parametric)
+
+                lines = np.row_stack([emitter, points, receiver])
+
+                contains = True
+
+                for i, index in enumerate(polygons_indices):
+                    if not self.polygons[index].contains_point(lines[i+1:i+2, :]):
+                        contains = False
+                        break
+
+                if not contains:
+                    #print('Fail bc does not contains')
+                    continue
+
+                obstructs = False
+
+                if geom.polygons_obstruct_line_path(visible_polygons, lines[:2, :]):
+                    obstructs = True
+
+                if obstructs:
+                    #print('Fail bc does obst')
+                    continue
+
+                for i, index in enumerate(polygons_indices):
+                    indices = self.get_visible_polygons_indices(index)
+                    if geom.polygons_obstruct_line_path(self.polygons[indices], lines[i+1:i+3, :]):
+                        obstructs = True
+                        break
+
+                if obstructs:
+                    #print('Fail bc does obst')
+                    continue
+
+                self.reflections[order].append(lines)
+
+            if order == max_order:
+                return
+            else:
+                index = polygons_indices[-1]
+                indices = self.get_visible_polygons_indices(index)
+                for i in indices:
+                    recursive(polygons_indices + [i], order=order + 1)
+
+        for index in indices:
+            recursive([index], 1)
+
+    def plot3d(self, ax=None, ret=False):
+        ax = plot_utils.get_3d_plot_ax(ax)
+
+        self.place.plot3d(ax=ax)
+
+        plot_utils.add_points_to_3d_ax(ax, self.emitter, color='r', s=10)
+
+        self.emitter_screen.plot3d(ax=ax, facecolor='g', alpha=0.5)
+
+        for line in self.los:
+            plot_utils.add_line_to_3d_ax(ax, line, color='b')
+
+        for order, lines in self.reflections.items():
+            for line in lines:
+                plot_utils.add_line_to_3d_ax(ax, line, color='g')
+
+        self.place.center_3d_plot(ax)
+
+        if ret:
+            return ax
+
+
+if __name__ == '__main__':
+
+    place = geom.generate_place_from_rooftops_file('../data/small.geojson')
+
+    # 2. Create TX and RX
+
+    domain = place.get_domain()
+    ground_center = place.get_centroid()
+
+    tx = ground_center + [-50, 5, 1]
+    rx = ground_center + np.array([
+        [35, 5, 5],
+        [35, -5, 5],
+        [10, -3, -5]
+        ])
+    tx = tx.reshape(-1, 3)
+    rx = rx.reshape(-1, 3)
+
+    # 2.1 Create a cube around TX
+
+    distance = 5
+    cube = geom.Cube.by_point_and_side_length(tx, 2 * distance)
+
+    # 2.1.1 Rotate this cube around its center
+    from scipy.spatial.transform import Rotation as R
+
+    rot2 = R.from_euler('xyz', [0, 10, -10], degrees=True).as_matrix()
+
+    cube = cube.project(rot2, around_point=tx)
+    screen = cube.polygons[2]
+
+    t = time()
+    problem = RadarCoveringProblem(tx, screen, place, rx)
+    print(f'Took {time()-t:.4f} seconds to init. problem.')
+
+    t = time()
+    problem.solve(2)
+    print(f'Took {time()-t:.4f} seconds to init. problem.')
+    problem.plot3d()
+
+    import matplotlib.pyplot as plt
+
+    plt.show()

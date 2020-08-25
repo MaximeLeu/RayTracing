@@ -101,8 +101,10 @@ if __name__ == '__main__':
 
             if poly_original.contains_point(point[0]):
 
-                if not place.obstructs_line_path(np.row_stack([tx, point[0]])):
-                    if not place.obstructs_line_path(np.row_stack([point[0], rx])):
+                i1 = np.row_stack([tx, point[0]])
+                if not place.obstructs_line_path(i1):
+                    i2 = np.row_stack([point[0], rx])
+                    if not place.obstructs_line_path(i2):
 
                         plot_utils.add_points_to_3d_ax(ax1, point)
 
