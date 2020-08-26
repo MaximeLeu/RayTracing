@@ -1,0 +1,1324 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>geometry module &mdash; Radar Coverage 2020 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="plot_utils module" href="plot_utils.html" />
+    <link rel="prev" title="file_utils module" href="file_utils.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> Radar Coverage
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">radarcoverage</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="class_utils.html">class_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="file_utils.html">file_utils module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">geometry module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_utils.html">plot_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="solvers.html">solvers module</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Radar Coverage</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="modules.html">radarcoverage</a> &raquo;</li>
+        
+      <li>geometry module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/radarcoverage/geometry.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-geometry">
+<span id="geometry-module"></span><h1>geometry module<a class="headerlink" href="#module-geometry" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="geometry.Building">
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">Building</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Building" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#geometry.OrientedPolyhedron" title="geometry.OrientedPolyhedron"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedPolyhedron</span></code></a></p>
+<p>A building is an oriented polyhedron constructed by extruding a polygon in the z direction.
+It consists in 2 flat faces, one for ground and one for rooftop, and as many other vertical faces are there
+are vertices in the original polygon.</p>
+<dl class="py method">
+<dt id="geometry.Building.by_polygon2d_and_height">
+<em class="property">static </em><code class="sig-name descname">by_polygon2d_and_height</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygon</span></em>, <em class="sig-param"><span class="n">height</span></em>, <em class="sig-param"><span class="n">make_ccw</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">keep_ground</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Building.by_polygon2d_and_height" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs a building from a 2D polygon.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>polygon</strong> (Polygon (shapely), OrientedPolygon or numpy.ndarray <em>shape=(N, 3)</em>) – 2D polygon</p></li>
+<li><p><strong>height</strong> (<em>float</em><em> or </em><em>int</em>) – the height of the building</p></li>
+<li><p><strong>make_ccw</strong> (<em>bool</em>) – if True, ensure that polygon is oriented correctly</p></li>
+<li><p><strong>keep_ground</strong> (<em>bool</em>) – if True, will keep the ground polygon in the building</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a building</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.Building" title="geometry.Building">Building</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.Building.by_polygon_and_height">
+<em class="property">static </em><code class="sig-name descname">by_polygon_and_height</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygon</span></em>, <em class="sig-param"><span class="n">height</span></em>, <em class="sig-param"><span class="n">make_ccw</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">keep_ground</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Building.by_polygon_and_height" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs a building from a 3D polygon on the ground.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>polygon</strong> (OrientedPolygon or numpy.ndarray <em>shape=(N, 3)</em>) – 3D polygon</p></li>
+<li><p><strong>height</strong> (<em>float</em><em> or </em><em>int</em>) – the height of the building</p></li>
+<li><p><strong>make_ccw</strong> (<em>bool</em>) – if True, ensure that polygon is oriented correctly</p></li>
+<li><p><strong>keep_ground</strong> (<em>bool</em>) – if True, will keep the ground polygon in the building</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a building</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.Building" title="geometry.Building">Building</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="geometry.Cube">
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">Cube</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Cube" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#geometry.OrientedPolyhedron" title="geometry.OrientedPolyhedron"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedPolyhedron</span></code></a></p>
+<p>A cube is an oriented polyhedron that can be fully described by its center and one of its 6 faces.</p>
+<dl class="py method">
+<dt id="geometry.Cube.by_point_and_side_length">
+<em class="property">static </em><code class="sig-name descname">by_point_and_side_length</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">point</span></em>, <em class="sig-param"><span class="n">side_length</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Cube.by_point_and_side_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a cube from an origin point and a side length.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>point</strong> (ndarray <em>size=3</em>) – the center of the cube</p></li>
+<li><p><strong>side_length</strong> (<em>float</em>) – the length of one side of the cube</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a cube</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.Cube" title="geometry.Cube">Cube</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="geometry.OrientedGeometry">
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedGeometry</code><a class="headerlink" href="#geometry.OrientedGeometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Disclaimer: this class and its subclasses are clearly inspired from the pakcage <cite>pyny3d</cite>. The main problem with this
+package is the lack of modularity and ability to subclass objects with ease; this is why no inheritance from this
+package is done, but a complete re-writing of useful functions has been preferred.</p>
+<p>An oriented geometry is any 3D geometry where each embedded is oriented.
+The orientation of the geometry is defined as this:</p>
+<blockquote>
+<div><p>“If your geometry has an inside and an outside, then the normal of each polygon contained in this geometry
+should be pointing outward. Watching the polygon from the outside, the loop passing through its points should be
+ccw (counter-clock-wise).”</p>
+</div></blockquote>
+<p>Oriented geometry constructors assume that their inputs are already oriented.</p>
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.apply_on_points">
+<code class="sig-name descname">apply_on_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.apply_on_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a function recursively on all the geometries contained in this one.
+The function must take as first argument the points, as an numpy.ndarray with (N, 3) shape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – the function</p></li>
+<li><p><strong>args</strong> – positional arguments passed to <cite>func</cite></p></li>
+<li><p><strong>kwargs</strong> – keyword argument passed to <cite>func</cite></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the new geometry</p>
+</dd>
+</dl>
+<p>:rtype OrientedGeometry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.center_3d_plot">
+<code class="sig-name descname">center_3d_plot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.center_3d_plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Centers and keep the aspect ratio in a 3D representation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ax</strong> (<em>mplot3d.Axes3D</em>) – axes to apply the method.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.get_centroid">
+<code class="sig-name descname">get_centroid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.get_centroid" title="Permalink to this definition">¶</a></dt>
+<dd><p>The centroid is considered the center point of the circumscribed
+parallelepiped, not the mass center.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>force</strong> (<em>bool</em>) – if True, will force to (re)compute value (only necessary if geometry has changed)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(x, y, z) coordinates of the centroid of the object</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.get_domain">
+<code class="sig-name descname">get_domain</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.get_domain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns coordinates of the smallest prism containing this geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>force</strong> (<em>bool</em>) – if True, will force to (re)compute value (only necessary if geometry has changed)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>opposite vertices of the bounding prism for this object</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray([min], [max])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.get_points">
+<code class="sig-name descname">get_points</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.get_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the points in the geometry in a concatenated array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the points</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>numpy.ndarray <em>shape=(N, 3)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.get_polygons_count">
+<code class="sig-name descname">get_polygons_count</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.get_polygons_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the count of polygons in the geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the count of polygons</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.get_polygons_iter">
+<code class="sig-name descname">get_polygons_iter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.get_polygons_iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the polygons contained in the geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a generator of polygons</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generator[<a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon">OrientedPolygon</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.get_polygons_list">
+<code class="sig-name descname">get_polygons_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.get_polygons_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all the polygons contained in the geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a list of polygons</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>List[<a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon">OrientedPolygon</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.get_polygons_matching">
+<code class="sig-name descname">get_polygons_matching</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">func_args</span><span class="o">=</span><span class="default_value">()</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.get_polygons_matching" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the polygons that match a given function.
+The function must take as first argument a polygon.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – the match function</p></li>
+<li><p><strong>args</strong> (<em>Iterable</em><em>[</em><em>Any</em><em>]</em>) – extra objects to be filtered along with polygons</p></li>
+<li><p><strong>func_args</strong> – positional arguments passed to <cite>func</cite></p></li>
+<li><p><strong>kwargs</strong> – keyword arguments passed to <cite>func</cite></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a generator of polygons</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Generator[<a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon">OrientedPolygon</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.get_visibility_matrix">
+<code class="sig-name descname">get_visibility_matrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">strict</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.get_visibility_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the symmetric visibility matrix for the polygons in this geometry.
+See <a class="reference internal" href="#geometry.polygons_visibility_matrix" title="geometry.polygons_visibility_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">polygons_visibility_matrix()</span></code></a>’s documentation for more information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>strict</strong> (<em>bool</em>) – if True, will choose strict approach</p></li>
+<li><p><strong>force</strong> (<em>bool</em>) – if True, will force to (re)compute value (only necessary if geometry has changed)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the visibility matrix</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray <em>dtype=bool, shape=(N, N)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="geometry.OrientedGeometry.id">
+<code class="sig-name descname">id</code><em class="property"> = 0</em><a class="headerlink" href="#geometry.OrientedGeometry.id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.project">
+<code class="sig-name descname">project</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">matrix</span></em>, <em class="sig-param"><span class="n">around_point</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Projects a geometry on different axes given by matrix columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>matrix</strong> (numpy.ndarray <em>shape=(3, 3)</em>) – the matrix to project all the geometry</p></li>
+<li><p><strong>around_point</strong> (numpy.ndarray <em>size=3</em>) – if present, will apply the project around this point</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the new geometry</p>
+</dd>
+</dl>
+<p>:rtype OrientedGeometry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.project_on_spherical_coordinates">
+<code class="sig-name descname">project_on_spherical_coordinates</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">r_axis</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.project_on_spherical_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.project_with_perspective_mapping">
+<code class="sig-name descname">project_with_perspective_mapping</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">focal_distance</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">axis</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.project_with_perspective_mapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Projects points with a perspective using similar triangles rule.
+The screen on which the points are projected is at a given distance from the origin.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>focal_distance</strong> (<em>float</em><em> or </em><em>int</em>) – the distance to the screen</p></li>
+<li><p><strong>axis</strong> (any type accepted by <a class="reference internal" href="#geometry.parse_3d_axis" title="geometry.parse_3d_axis"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse_3d_axis()</span></code></a>) – the axis which will be used for perspective</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the new geometry</p>
+</dd>
+</dl>
+<p>:rtype OrientedGeometry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.show_visibility_matrix_animation">
+<code class="sig-name descname">show_visibility_matrix_animation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">strict</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.show_visibility_matrix_animation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.tight_3d_plot">
+<code class="sig-name descname">tight_3d_plot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.tight_3d_plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the axes limits to be tight on the geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ax</strong> (<em>mplot3d.Axes3D</em>) – axes to apply the method.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.translate">
+<code class="sig-name descname">translate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vector</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.translate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Translates geometry using a vector as displacement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points to translate</p></li>
+<li><p><strong>vector</strong> (numpy.ndarray <em>size=3</em>) – the displacement vector</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the new geometry</p>
+</dd>
+</dl>
+<p>:rtype OrientedGeometry</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="geometry.OrientedPlace">
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedPlace</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">surface</span></em>, <em class="sig-param"><span class="n">polyhedra</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">set_of_points</span><span class="o">=</span><span class="default_value">array([], shape=0, 3, dtype=float64)</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedGeometry</span></code></a></p>
+<dl class="py method">
+<dt id="geometry.OrientedPlace.add_set_of_points">
+<code class="sig-name descname">add_set_of_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace.add_set_of_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a set of points to the current set of points in the place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points to add</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPlace.apply_on_points">
+<code class="sig-name descname">apply_on_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace.apply_on_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a function recursively on all the geometries contained in this one.
+The function must take as first argument the points, as an numpy.ndarray with (N, 3) shape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – the function</p></li>
+<li><p><strong>args</strong> – positional arguments passed to <cite>func</cite></p></li>
+<li><p><strong>kwargs</strong> – keyword argument passed to <cite>func</cite></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the new geometry</p>
+</dd>
+</dl>
+<p>:rtype OrientedGeometry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPlace.get_polygons_iter">
+<code class="sig-name descname">get_polygons_iter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace.get_polygons_iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the polygons contained in the geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a generator of polygons</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generator[<a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon">OrientedPolygon</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPlace.obstructs_line_path">
+<code class="sig-name descname">obstructs_line_path</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace.obstructs_line_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether a line path is obstructed by any polygon present in this place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>points</strong> (numpy.ndarray <em>shape=(2, 3)</em>) – two points describing line path</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if any polygon intercepts the line path</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPlace.plot2d">
+<code class="sig-name descname">plot2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">poly_args</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">poly_kwargs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">points_args</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">points_kwargs</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace.plot2d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPlace.plot3d">
+<code class="sig-name descname">plot3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">poly_args</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">poly_kwargs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">points_args</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">points_kwargs</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace.plot3d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="geometry.OrientedPolygon">
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedPolygon</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedGeometry</span></code></a></p>
+<p>An oriented polygon is the simplest oriented geometry: it consists in an array of points, connected between their
+direct neighbours.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.apply_on_points">
+<code class="sig-name descname">apply_on_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.apply_on_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a function recursively on all the geometries contained in this one.
+The function must take as first argument the points, as an numpy.ndarray with (N, 3) shape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – the function</p></li>
+<li><p><strong>args</strong> – positional arguments passed to <cite>func</cite></p></li>
+<li><p><strong>kwargs</strong> – keyword argument passed to <cite>func</cite></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the new geometry</p>
+</dd>
+</dl>
+<p>:rtype OrientedGeometry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.contains_point">
+<code class="sig-name descname">contains_point</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">point</span></em>, <em class="sig-param"><span class="n">check_in_plane</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">plane_tol</span><span class="o">=</span><span class="default_value">1e-09</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.contains_point" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if point belongs to polygon. By default it assumes that the point lies in the same plane as this
+polygon. If needed, can first check this condition.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>point</strong> (numpy.ndarray <em>size=3</em>) – the point</p></li>
+<li><p><strong>check_in_plane</strong> (<em>bool</em>) – if True, will first check if point and polygon lie in the same plane</p></li>
+<li><p><strong>plane_tol</strong> (<em>float</em>) – tolerance for check in plane</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>wether the point is in the plane</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.distance_to_point">
+<code class="sig-name descname">distance_to_point</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">point</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.distance_to_point" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the distance from this polygon the a given point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>point</strong> (ndarray <em>size=3</em>) – the point</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the distance</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.get_matrix">
+<code class="sig-name descname">get_matrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.get_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a 3-by-3 orthogonal matrix where is column correspond to an axis of the polygon.
+matrix = [x, y, z] where</p>
+<blockquote>
+<div><p>x belongs to the polygon
+y belongs to the polygon
+z is normal to the polygon</p>
+</div></blockquote>
+<p>The axes follow the right hand side rule and will be normalized.</p>
+<p>In order to project points into the polygon’s coordinates, use the transposed matrix !</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>force</strong> (<em>bool</em>) – if True, will force to (re)compute value (only necessary if geometry has changed)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the matrix of axes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>ndarray <em>shape=(3, 3)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.get_normal">
+<code class="sig-name descname">get_normal</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.get_normal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the normal, as a unit vector, pointing outward of the polygon.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the normal vector</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>np.ndarray <a href="#id1"><span class="problematic" id="id2">*</span></a>shape=(3)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.get_parametric">
+<code class="sig-name descname">get_parametric</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.get_parametric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the parametric equation of the plane described by the polygon.
+It will return all four coefficients such that: a*x + b*y + c*z + d = 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>force</strong> (<em>bool</em>) – if True, will force to (re)compute value (only necessary if geometry has changed)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the coefficients of the parametric equation</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray <em>shape=(4)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.get_polygons_iter">
+<code class="sig-name descname">get_polygons_iter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.get_polygons_iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the polygons contained in the geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a generator of polygons</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generator[<a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon">OrientedPolygon</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.get_shapely">
+<code class="sig-name descname">get_shapely</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.get_shapely" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a 2D polygon from this polygon by removing the z component.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>force</strong> (<em>bool</em>) – if True, will force to (re)compute value (only necessary if geometry has changed)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the 2D polygon</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>shapely.geometry.Polygon</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.magnify">
+<code class="sig-name descname">magnify</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">point</span></em>, <em class="sig-param"><span class="n">factor</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">distance</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.magnify" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Returns an new polygon which is obtained by magnifying its size:</dt><dd><ul class="simple">
+<li><p>if factor is present, will multiply the distance of all the points to the given point in the polygon by
+this factor</p></li>
+<li><p>else if distance is present, will set the distance between this polygon and the given point</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>point</strong> (ndarray <em>size=3</em>) – the reference point</p></li>
+<li><p><strong>factor</strong> – the multiplication factor</p></li>
+<li><p><strong>distance</strong> (<em>float</em><em> or </em><em>int</em>) – the required distance between the point and the polygon</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the new polygon</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon">OrientedPolygon</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.plot2d">
+<code class="sig-name descname">plot2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">facecolor</span><span class="o">=</span><span class="default_value">'b'</span></em>, <em class="sig-param"><span class="n">alpha</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">edgecolor</span><span class="o">=</span><span class="default_value">'k'</span></em>, <em class="sig-param"><span class="n">lw</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.plot2d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.plot3d">
+<code class="sig-name descname">plot3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">facecolor</span><span class="o">=</span><span class="default_value">0, 0, 0, 0</span></em>, <em class="sig-param"><span class="n">edgecolor</span><span class="o">=</span><span class="default_value">'k'</span></em>, <em class="sig-param"><span class="n">alpha</span><span class="o">=</span><span class="default_value">0.1</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">normal</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">normal_kwargs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">orientation</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">orientation_kwargs</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.plot3d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="geometry.OrientedPolyhedron">
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedPolyhedron</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolyhedron" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedGeometry</span></code></a></p>
+<p>An oriented polyhedron is a polyhedron with an “inside” and an “outside”.
+It is composed with oriented polygons.
+Surfaces are oriented ccw where watched from the outside. Normal vectors are pointing outward.</p>
+<dl class="py method">
+<dt id="geometry.OrientedPolyhedron.apply_on_points">
+<code class="sig-name descname">apply_on_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolyhedron.apply_on_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a function recursively on all the geometries contained in this one.
+The function must take as first argument the points, as an numpy.ndarray with (N, 3) shape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – the function</p></li>
+<li><p><strong>args</strong> – positional arguments passed to <cite>func</cite></p></li>
+<li><p><strong>kwargs</strong> – keyword argument passed to <cite>func</cite></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the new geometry</p>
+</dd>
+</dl>
+<p>:rtype OrientedGeometry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolyhedron.get_polygons_iter">
+<code class="sig-name descname">get_polygons_iter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolyhedron.get_polygons_iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the polygons contained in the geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a generator of polygons</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generator[<a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon">OrientedPolygon</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolyhedron.plot2d">
+<code class="sig-name descname">plot2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolyhedron.plot2d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolyhedron.plot3d">
+<code class="sig-name descname">plot3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolyhedron.plot3d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="geometry.OrientedSurface">
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedSurface</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedSurface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedGeometry</span></code></a></p>
+<p>An oriented surface is a combination of oriented polygons.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>polygons</strong> (<em>a list of</em><em> (or </em><em>an instance of</em><em>) </em><em>numpy.ndarray</em><em> (</em><em>points</em><em>) or </em><em>OrientedPolygons</em>) – the polygons</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="geometry.OrientedSurface.apply_on_points">
+<code class="sig-name descname">apply_on_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedSurface.apply_on_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a function recursively on all the geometries contained in this one.
+The function must take as first argument the points, as an numpy.ndarray with (N, 3) shape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – the function</p></li>
+<li><p><strong>args</strong> – positional arguments passed to <cite>func</cite></p></li>
+<li><p><strong>kwargs</strong> – keyword argument passed to <cite>func</cite></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the new geometry</p>
+</dd>
+</dl>
+<p>:rtype OrientedGeometry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedSurface.get_polygons_iter">
+<code class="sig-name descname">get_polygons_iter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedSurface.get_polygons_iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the polygons contained in the geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a generator of polygons</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generator[<a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon">OrientedPolygon</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedSurface.plot2d">
+<code class="sig-name descname">plot2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedSurface.plot2d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedSurface.plot3d">
+<code class="sig-name descname">plot3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedSurface.plot3d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="geometry.Pyramid">
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">Pyramid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Pyramid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#geometry.OrientedPolyhedron" title="geometry.OrientedPolyhedron"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedPolyhedron</span></code></a></p>
+<p>A pyramid is an oriented polyhedron described by a base polygon and an isolated point.</p>
+<dl class="py method">
+<dt id="geometry.Pyramid.by_point_and_polygon">
+<em class="property">static </em><code class="sig-name descname">by_point_and_polygon</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">point</span></em>, <em class="sig-param"><span class="n">polygon</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Pyramid.by_point_and_polygon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a new pyramid from a base polygon and an isolated point.
+All the other polygons are constructed by joining points in the polygon to the isolated point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>point</strong> (numpy.ndarray <em>size=3</em>) – the isolated point</p></li>
+<li><p><strong>polygon</strong> (<a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon"><em>OrientedPolygon</em></a>) – the base polygon</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the new pyramid</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.Pyramid" title="geometry.Pyramid">Pyramid</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.any_point_above">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">any_point_above</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">axis</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.any_point_above" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if a point in the array of points has a coordinate along given axis higher or equal to given threshold.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points</p></li>
+<li><p><strong>a</strong> (<em>float</em>) – lower bound condition</p></li>
+<li><p><strong>axis</strong> (any type accepted by <a class="reference internal" href="#geometry.parse_3d_axis" title="geometry.parse_3d_axis"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse_3d_axis()</span></code></a>) – the axis which will be used for perspective</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if any point satisfies the condition</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.any_point_below">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">any_point_below</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">axis</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.any_point_below" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if a point in the array of points has a coordinate along given axis lower or equal to given threshold.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points</p></li>
+<li><p><strong>b</strong> (<em>float</em>) – upper bound condition</p></li>
+<li><p><strong>axis</strong> (any type accepted by <a class="reference internal" href="#geometry.parse_3d_axis" title="geometry.parse_3d_axis"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse_3d_axis()</span></code></a>) – the axis which will be used for perspective</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if any point satisfies the condition</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.any_point_between">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">any_point_between</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">axis</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.any_point_between" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if a point in the array of points has a coordinate along given axis between the given thresholds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points</p></li>
+<li><p><strong>a</strong> (<em>float</em>) – lower bound condition</p></li>
+<li><p><strong>b</strong> (<em>float</em>) – upper bound condition</p></li>
+<li><p><strong>axis</strong> (any type accepted by <a class="reference internal" href="#geometry.parse_3d_axis" title="geometry.parse_3d_axis"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse_3d_axis()</span></code></a>) – the axis which will be used for perspective</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if any point satisfies the condition</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.enclosed_area">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">enclosed_area</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.enclosed_area" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the enclosed area of the polygon described by the points.
+The polygon is projected on the z=0 plane.
+If results is negative, it means that the curve orientation is ccw.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 2 or 3)</em>) – the points of the polygon</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the enclosed area</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.generate_place_from_rooftops_file">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">generate_place_from_rooftops_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">roof_top_file</span></em>, <em class="sig-param"><span class="n">center</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.generate_place_from_rooftops_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a place from a geographic file containing building rooftops and their height.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>roof_top_file</strong> (str, any filetype supported by <code class="xref py py-func docutils literal notranslate"><span class="pre">geopandas.read_file()</span></code>) – file containing polygons describing buildings on ground, with height attribute</p></li>
+<li><p><strong>center</strong> (<em>bool</em>) – if True, will center the coordinates</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a place containing the buildings and a flat ground surface covering the whole area</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedPlace" title="geometry.OrientedPlace">OrientedPlace</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.is_ccw">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">is_ccw</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.is_ccw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns if the curve described by the points is oriented ccw or not.
+The curve is projected on the z=0 plane.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 2 or 3)</em>) – the points of the polygon</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if the curve is oriented ccw</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.parse_3d_axis">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">parse_3d_axis</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.parse_3d_axis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses an axis to a valid axis in 3D geometry, i.e. 0, 1 or 2 (resp. to x, y, or z).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>axis</strong> (<em>int</em><em> (</em><em>-3 to 2</em><em>) or </em><em>str</em><em> (</em><em>x</em><em>, </em><em>y</em><em> or </em><em>z</em><em>)</em>) – axis to be parsed</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the axis</p>
+</dd>
+</dl>
+<p>:rtype int</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.polygon_visibility_vector">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">polygon_visibility_vector</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygon_A</span></em>, <em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="n">out</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">strict</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.polygon_visibility_vector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the visibility vector for a polygon facing N given polygons.
+For each element i, the vector tells if it is physically possible that a ray pointing outward the polygon_A’s
+face could intercept an other polygon[i].</p>
+<dl>
+<dt>As this problem is known to be NP complete, two approaches are offered:</dt><dd><ol class="arabic simple">
+<li><p>the <cite>strict</cite> approach makes no compromise and will only remove polygons that are 100% for sure not visible</p></li>
+</ol>
+<p>2. the other approach is to only take the polygons visible from the centroid of the polygon, therefore not
+taking into account all the possible paths and, thus, maybe removing visible polygons</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>polygon_A</strong> (<a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon"><em>OrientedPolygon</em></a>) – the reference polygon</p></li>
+<li><p><strong>polygons</strong> (<em>Iterable</em><em>[</em><em>OrientedPolygons</em><em>]</em>) – the polygons</p></li>
+<li><p><strong>out</strong> (None or numpy.ndarray <em>dtype=bool, shape=(N)</em>) – if provided, will store the result in this array</p></li>
+<li><p><strong>strict</strong> (<em>bool</em>) – if True, will choose strict approach</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the visibility vector</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray <em>dtype=bool, shape=(N)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.polygons_obstruct_line_path">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">polygons_obstruct_line_path</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="n">points</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.polygons_obstruct_line_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether a line path is obstructed by any of the polygons.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>polygons</strong> (<em>Iterable</em><em>[</em><a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon"><em>OrientedPolygon</em></a><em>]</em>) – the polygons:</p></li>
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(2, 3)</em>) – two points describing line path</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if any polygon intercepts the line path</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.polygons_visibility_matrix">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">polygons_visibility_matrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="n">strict</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.polygons_visibility_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the visibility matrix for N given polygons.
+For each row i, the matrix tells if it is physically possible that a ray pointing outward the polygon[i]’s
+face could intercept an other polygon[j]. See <a class="reference internal" href="#geometry.polygon_visibility_vector" title="geometry.polygon_visibility_vector"><code class="xref py py-func docutils literal notranslate"><span class="pre">polygon_visibility_vector()</span></code></a>’s documentation for more
+information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>polygons</strong> (<em>Iterable</em><em>[</em><em>OrientedPolygons</em><em>]</em>) – the polygons</p></li>
+<li><p><strong>strict</strong> (<em>bool</em>) – if True, will choose strict approach</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the visibility matrix</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray <em>dtype=bool, shape=(N, N)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.project_points">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">project_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">matrix</span></em>, <em class="sig-param"><span class="n">around_point</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.project_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Projects points on different axes given by matrix columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points to be projected</p></li>
+<li><p><strong>matrix</strong> (numpy.ndarray <em>shape=(3, 3)</em>) – the matrix to project all the geometry</p></li>
+<li><p><strong>around_point</strong> (numpy.ndarray <em>size=3</em>) – if present, will apply the projection around this point</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the projected points</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray <em>shape=(N, 3)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.project_points_on_spherical_coordinates">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">project_points_on_spherical_coordinates</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">r_axis</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.project_points_on_spherical_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="geometry.project_points_with_perspective_mapping">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">project_points_with_perspective_mapping</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">focal_distance</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">axis</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.project_points_with_perspective_mapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Projects points with a perspective using similar triangles rule.
+The screen on which the points are projected is at a given distance from the origin.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points to be projected</p></li>
+<li><p><strong>focal_distance</strong> (<em>float</em><em> or </em><em>int</em>) – the distance to the screen</p></li>
+<li><p><strong>axis</strong> (any type accepted by <a class="reference internal" href="#geometry.parse_3d_axis" title="geometry.parse_3d_axis"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse_3d_axis()</span></code></a>) – the axis which will be used for perspective</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the projected points</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray <em>shape=(N, 3)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.reflexion_on_plane">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">reflexion_on_plane</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">incidents</span></em>, <em class="sig-param"><span class="n">normal</span></em>, <em class="sig-param"><span class="n">normalized</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.reflexion_on_plane" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the reflexion of incident vector on a plane with given normal.
+See details: <a class="reference external" href="https://en.wikipedia.org/wiki/Reflection_(mathematics">https://en.wikipedia.org/wiki/Reflection_(mathematics</a>)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>incidents</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – incident vectors</p></li>
+<li><p><strong>normal</strong> (numpy.ndarray <em>size=3</em>) – normal vector to the plane</p></li>
+<li><p><strong>normalized</strong> (<em>bool</em>) – if True, assume normal vector is a unit vector (accelerates computation)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the reflected vector(s)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray <em>shape(N, 3)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.reflexion_point_from_origin_destination_and_planes">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">reflexion_point_from_origin_destination_and_planes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">origin</span></em>, <em class="sig-param"><span class="n">destination</span></em>, <em class="sig-param"><span class="n">planes_parametric</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.reflexion_point_from_origin_destination_and_planes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the reflection point on each plane such that a path between origin and destination is possible.
+The parametric equation of the plane should contained the normal vector in a normalized form.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>origin</strong> (numpy.ndarray <em>size=3</em>) – the origin point</p></li>
+<li><p><strong>destination</strong> (numpy.ndarray <em>size=3</em>) – the destination point</p></li>
+<li><p><strong>planes_parametric</strong> (list of np.ndarray <em>shape=(4)</em>) – the coefficients of the parametric equation of each plane</p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – keyword parameters passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.optimize.fsolve()</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the reflection point on each of the planes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.restore_points_before_projective_mapping">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">restore_points_before_projective_mapping</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">focal_distance</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">axis</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.restore_points_before_projective_mapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reverses a projective mapping for points. Only possible if data along given axis has been kept.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points to be restored</p></li>
+<li><p><strong>focal_distance</strong> (<em>float</em><em> or </em><em>int</em>) – the distance to the screen</p></li>
+<li><p><strong>axis</strong> (any type accepted by <a class="reference internal" href="#geometry.parse_3d_axis" title="geometry.parse_3d_axis"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse_3d_axis()</span></code></a>) – the axis which will be used for perspective</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the restored points</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray <em>shape=(N, 3)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.translate_points">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">translate_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">vector</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.translate_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Translates points using a vector as displacement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points to translate</p></li>
+<li><p><strong>vector</strong> (numpy.ndarray <em>size=3</em>) – the displacement vector</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the new points</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray <em>shape=(N, 3)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="plot_utils.html" class="btn btn-neutral float-right" title="plot_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="file_utils.html" class="btn btn-neutral float-left" title="file_utils module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Jérome Eertmans
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
