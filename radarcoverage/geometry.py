@@ -59,7 +59,7 @@ def parse_3d_axis(axis):
     :param axis: axis to be parsed
     :type axis: int (-3 to 2) or str (x, y or z)
     :return: the axis
-    :rtype int
+    :rtype: int
     """
     if isinstance(axis, str):
         axis = axis.lower()
@@ -145,7 +145,7 @@ def reflexion_point_from_origin_destination_and_planes(origin, destination, plan
 
         return (g * v[1:, :] - v[:-1, :] - 2 * (d + dot_product) * normal).reshape(-1)
 
-    return fsolve(func, x0=points[1:n+1, :].reshape(-1), xtol=1e-4, **kwargs).reshape(-1, 3)
+    return fsolve(func, x0=points[1:n+1, :].reshape(-1), **kwargs).reshape(-1, 3)
 
 
 def translate_points(points, vector):
@@ -180,6 +180,17 @@ def project_points(points, matrix, around_point=None):
         return ((points - around_point) @ matrix.T) + around_point
     else:
         return points @ matrix.T
+
+
+def project_points_on_spherical_coordinates(points, r_axis=2):
+    r_axis = parse_3d_axis(r_axis)
+    p = np.array(points, ndmin=2)  # Copy
+    spherical_points = np.empty(p.shape, dtype=float)
+    spherical_points[:, 0] = norm(p, axis=1)
+    spherical_points[:, 1] = np.arctan2(p[:, 1], p[:, 0])
+    spherical_points[:, 2] = np.arccos(p[:, 2] / spherical_points[:, 0])
+
+    return np.roll(spherical_points, r_axis, axis=1)
 
 
 def project_points_with_perspective_mapping(points, focal_distance=1, axis=2):
@@ -332,65 +343,103 @@ def polygons_obstruct_line_path(polygons, points):
     return False
 
 
-def polygon_visibility_vector(polygon_A, polygons, angle_tol=0, out=None):
+def polygon_visibility_vector(polygon_A, polygons, out=None, strict=False):
     """
     Returns the visibility vector for a polygon facing N given polygons.
     For each element i, the vector tells if it is physically possible that a ray pointing outward the polygon_A's
-    face could intercept an other polygon[i]. Initially, only rays normal to the polygon are considered. Nonetheless,
-    the angle tolerance (in degrees) permits a variation on the ray direction (max. 90°).
+    face could intercept an other polygon[i].
 
-    If your study case implies grazing angles, the angle tolerance should be changed accordingly.
+    As this problem is known to be NP complete, two approaches are offered:
+        1. the `strict` approach makes no compromise and will only remove polygons that are 100% for sure not visible
+        2. the other approach is to only take the polygons visible from the centroid of the polygon, therefore not
+        taking into account all the possible paths and, thus, maybe removing visible polygons
 
     :param polygon_A: the reference polygon
     :type polygon_A: OrientedPolygon
     :param polygons: the polygons
     :type polygons: Iterable[OrientedPolygons]
-    :param angle_tol: tolerance angle, in degrees
-    :type angle_tol: float
     :param out: if provided, will store the result in this array
     :type out: None or numpy.ndarray *dtype=bool, shape=(N)*
+    :param strict: if True, will choose strict approach
+    :type strict: bool
     :return: the visibility vector
     :rtype: numpy.ndarray *dtype=bool, shape=(N)*
     """
-    matrix_A = polygon_A.get_matrix().T
-    centroid = polygon_A.get_centroid()
-    projected_polygon_A = polygon_A.translate(-centroid).project(matrix_A)
-    tol = np.cos(np.deg2rad(angle_tol))
+    # Tolerances : the lower, the more polygons are considered visible, but some badly
+    tol_dz = 1e-4  # Tolerance on z coordinate variation
+    tol_dot = 1e-4  # Tolerance on dot product result
+    tol_area = 1e-4
+
+    # Output of data can be stored in a given array
+    polygons = list(polygons)
     if out is None:
-        polygons = list(polygons)
         visibility_vector = np.empty(len(polygons), dtype=bool)
     else:
         visibility_vector = out
 
+    # Translating and projecting all polygons in polygon A coordinate system
+    matrix_A = polygon_A.get_matrix().T
+    centroid_A = polygon_A.get_centroid()
+
+    projected_polygon_A = polygon_A.translate(-centroid_A).project(matrix_A)
+    projected_polygons = [(i, polygon.translate(-centroid_A).project(matrix_A))
+                          for i, polygon in enumerate(polygons) if polygon != polygon_A]
+
+    # First filter: by z coordinate and vector analysis
+    filtered_polygons = list()
+    for i, projected_polygon_B in projected_polygons:
+        if projected_polygon_B.get_domain()[1, 2] > tol_dz:
+            centroid_B = polygons[i].get_centroid()
+
+            # For each point in polygon A, we check if any can produce a rays bouncing on polygon B
+            for point in polygon_A.points:
+                vector = point - centroid_B
+                vector /= norm(vector)
+                if np.dot(vector, polygons[i].get_normal()) > tol_dot:
+                    if strict:
+                        visibility_vector[i] = True
+                    filtered_polygons.append((i, projected_polygon_B.project_on_spherical_coordinates()))
+                    break
+
+    if strict:
+        return visibility_vector
+
     def func(polygon):
         domain = polygon.get_domain()[0]
-        return norm(domain[:2])
+        return domain[2], norm(polygon.get_centroid())
 
-    polygons_projected = [polygon.translate(-centroid).project(matrix_A) for polygon in polygons]
+    polygons_filtered = sorted(filtered_polygons, key=lambda x: func(x[1]))
 
-    polygons_projected = sorted(enumerate(polygons_projected), key=lambda x: func(x[1]))
+    screen = polygon_A.project_on_spherical_coordinates().get_shapely()
 
-    for i, projected_polygon_B in polygons_projected:
-        if projected_polygon_B.get_domain()[1, 2] > 1e-8:
-            if np.dot(polygon_A.get_normal(), polygons[i].get_normal()) < 1:
-                visibility_vector[i] = True
+    canvas = shPolygon()
+    for i, projected_polygon_B in polygons_filtered:
+        shapely_polygon_B = projected_polygon_B.project_with_perspective_mapping().get_shapely()
+        if not shapely_polygon_B.is_valid:
+            continue
+        try:
+            polygon_B_in_screen = shapely_polygon_B
+        except:
+            continue
+        difference = polygon_B_in_screen.difference(canvas)
+        if not difference.is_empty:
+            canvas = canvas.union(polygon_B_in_screen)
+            visibility_vector[i] = True
 
     return visibility_vector
 
 
-def polygons_visibility_matrix(polygons, angle_tol=0):
+def polygons_visibility_matrix(polygons, strict=False):
     """
     Returns the visibility matrix for N given polygons.
     For each row i, the matrix tells if it is physically possible that a ray pointing outward the polygon[i]'s
-    face could intercept an other polygon[j]. Initially, only rays normal to the polygon are considered. Nonetheless,
-    the angle tolerance (in degrees) permits a variation on the ray direction (max. 90°).
-
-    If your study case implies grazing angles, the angle tolerance should be changed accordingly.
+    face could intercept an other polygon[j]. See :func:`polygon_visibility_vector`'s documentation for more
+    information.
 
     :param polygons: the polygons
     :type polygons: Iterable[OrientedPolygons]
-    :param angle_tol: tolerance angle, in degrees
-    :type angle_tol: float
+    :param strict: if True, will choose strict approach
+    :type strict: bool
     :return: the visibility matrix
     :rtype: numpy.ndarray *dtype=bool, shape=(N, N)*
     """
@@ -400,10 +449,10 @@ def polygons_visibility_matrix(polygons, angle_tol=0):
     visibility_matrix = np.zeros((n, n), dtype=bool)
     for i in range(n):
         polygon_A = polygons[i]
-        polygon_visibility_vector(polygon_A, polygons, out=visibility_matrix[i, :], angle_tol=angle_tol)
+        polygon_visibility_vector(polygon_A, polygons, out=visibility_matrix[i, :], strict=strict)
 
     # Symmetric matrix
-    #visibility_matrix |= visibility_matrix.T
+    #visibility_matrix = visibility_matrix | visibility_matrix.T
 
     return visibility_matrix
 
@@ -423,11 +472,18 @@ class OrientedGeometry:
 
     Oriented geometry constructors assume that their inputs are already oriented.
     """
+    id = 0
+
     def __init__(self):
+        self.id = OrientedGeometry.id
+        OrientedGeometry.id += 1
         self.domain = None
         self.centroid = None
         self.visibility_matrix = None
         self.pause = False
+
+    def __eq__(self, other):
+        return self.id == other.id
 
     def get_polygons_iter(self):
         """
@@ -520,6 +576,9 @@ class OrientedGeometry:
         """
         return self.apply_on_points(project_points, matrix, around_point=around_point)
 
+    def project_on_spherical_coordinates(self, r_axis=2):
+        return self.apply_on_points(project_points_on_spherical_coordinates, r_axis=r_axis)
+
     def project_with_perspective_mapping(self, focal_distance=1, axis=2):
         """
         Projects points with a perspective using similar triangles rule.
@@ -602,32 +661,29 @@ class OrientedGeometry:
 
         return self.centroid
 
-    def get_visibility_matrix(self, angle_tol=0, force=False):
+    def get_visibility_matrix(self, strict=False, force=False):
         """
         Returns the symmetric visibility matrix for the polygons in this geometry.
-        For each row i, the matrix tells if it is physically possible that a ray pointing outward the polygon[i]'s
-        face could intercept an other polygon[j]. Initially, only rays normal to the polygon are considered. Nonetheless,
-        the angle tolerance (in degrees) permits a variation on the ray direction (max. 90°).
+        See :func:`polygons_visibility_matrix`'s documentation for more information.
 
-        If your study case implies grazing angles, the angle tolerance should be changed accordingly.
 
-        :param angle_tol: tolerance angle, in degrees
-        :type angle_tol: float
+        :param strict: if True, will choose strict approach
+        :type strict: bool
         :param force: if True, will force to (re)compute value (only necessary if geometry has changed)
         :type force: bool
         :return: the visibility matrix
         :rtype: numpy.ndarray *dtype=bool, shape=(N, N)*
         """
         if force or self.visibility_matrix is None:
-            self.visibility_matrix = polygons_visibility_matrix(self.get_polygons_iter(), angle_tol=angle_tol)
+            self.visibility_matrix = polygons_visibility_matrix(self.get_polygons_iter(), strict=strict)
 
         return self.visibility_matrix
 
-    def show_visibility_matrix_animation(self):
+    def show_visibility_matrix_animation(self, strict=False):
         ax = self.plot3d(ret=True)
         self.center_3d_plot(ax)
         polys3d = ax.collections
-        visibility_matrix = self.get_visibility_matrix()
+        visibility_matrix = self.get_visibility_matrix(strict=strict)
         pos = np.array([0.05, 0.95])
 
         plot_utils.add_2d_text_at_point_3d_ax(ax, pos, f'Press \'q\' to quit, \'space\' to play/pause')
@@ -687,7 +743,7 @@ class OrientedPolygon(OrientedGeometry):
     """
     def __init__(self, points):
         super().__init__()
-        self.points = points
+        self.points = points.astype(float)
 
         self.parametric = None
         self.matrix = None
@@ -704,7 +760,18 @@ class OrientedPolygon(OrientedGeometry):
         """
         if force or self.shapely is None:
             self.shapely = shPolygon(self.points[:, :2])
-
+            """
+            if not self.shapely.is_valid:
+                from scipy.spatial import ConvexHull
+                from scipy.spatial.qhull import QhullError
+                print('points', self.points)
+                try:
+                    hull = ConvexHull(self.points[:, :2])
+                    points = self.points[hull.vertices, :2]
+                    self.shapely = shPolygon(points)
+                except QhullError:
+                    pass
+            """
         return self.shapely
 
     def get_polygons_iter(self):

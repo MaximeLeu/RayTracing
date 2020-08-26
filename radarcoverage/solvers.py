@@ -29,10 +29,10 @@ class RadarCoveringProblem:
         self.precompute()
 
     def precompute(self):
-        self.visibility_matrix = self.place.get_visibility_matrix()
+        self.visibility_matrix = self.place.get_visibility_matrix(strict=False)
         self.distance_to_screen = self.emitter_screen.distance_to_point(self.emitter)
         self.emitter_visibility = geom.polygon_visibility_vector(
-            self.emitter_screen, self.polygons, angle_tol=45
+            self.emitter_screen, self.polygons, strict=True
         )
 
         screen_matrix = self.emitter_screen.get_matrix().T
@@ -85,7 +85,7 @@ class RadarCoveringProblem:
                 contains = True
 
                 for i, index in enumerate(polygons_indices):
-                    if not self.polygons[index].contains_point(lines[i+1:i+2, :]):
+                    if not self.polygons[index].contains_point(lines[i+1:i+2, :], check_in_plane=True):
                         contains = False
                         break
 
@@ -128,18 +128,27 @@ class RadarCoveringProblem:
     def plot3d(self, ax=None, ret=False):
         ax = plot_utils.get_3d_plot_ax(ax)
 
-        self.place.plot3d(ax=ax)
+        self.place.plot3d(ax=ax, points_kwargs=dict(color='k', s=20))
 
-        plot_utils.add_points_to_3d_ax(ax, self.emitter, color='r', s=10)
+        plot_utils.add_points_to_3d_ax(ax, self.emitter, color='r', s=20)
 
         self.emitter_screen.plot3d(ax=ax, facecolor='g', alpha=0.5)
 
         for line in self.los:
             plot_utils.add_line_to_3d_ax(ax, line, color='b')
 
+        colors = {
+            1: 'g',
+            2: 'm',
+            3: 'y',
+            4: 'o'
+        }
+
         for order, lines in self.reflections.items():
+            color = colors[order]
             for line in lines:
-                plot_utils.add_line_to_3d_ax(ax, line, color='g')
+                plot_utils.add_line_to_3d_ax(ax, line, color=color)
+                plot_utils.add_points_to_3d_ax(ax, line[1:order+1, :], color=color)
 
         self.place.center_3d_plot(ax)
 
@@ -180,11 +189,13 @@ if __name__ == '__main__':
 
     t = time()
     problem = RadarCoveringProblem(tx, screen, place, rx)
-    print(f'Took {time()-t:.4f} seconds to init. problem.')
+    print(f'Took {time()-t:.4f} seconds to initialize and precompute problem.')
 
+
+    print(problem.visibility_matrix)
     t = time()
-    problem.solve(2)
-    print(f'Took {time()-t:.4f} seconds to init. problem.')
+    problem.solve(3)
+    print(f'Took {time()-t:.4f} seconds to solve problem.')
     problem.plot3d()
 
     import matplotlib.pyplot as plt

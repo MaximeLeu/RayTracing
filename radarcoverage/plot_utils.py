@@ -35,6 +35,19 @@ def get_3d_plot_ax(ax=None):
     return ax
 
 
+def set_cartesian_axes_label(ax):
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    if isinstance(ax, mplot3d.Axes3D):
+        ax.set_zlabel('z')
+
+
+def set_spherical_axes_label(ax):
+    ax.set_xlabel('phi')
+    ax.set_ylabel('theta')
+    ax.set_zlabel('r')
+
+
 def add_points_to_2d_ax(ax, points, *args, **kwargs):
     points = points.reshape(-1, 3)
     ax.scatter(points[:, 0], points[:, 1], *args, **kwargs)
