@@ -8,7 +8,7 @@ This project's main objective is to provide intuitive tools in order to compute 
 ```
 Radar coverage
 │   README.md
-└───radarcoverage
+└───radarcoverage - code
 └───examples - visual exampes
 └───docs - documentation sources and builds
     │   README.MD
