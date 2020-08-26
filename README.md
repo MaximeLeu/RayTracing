@@ -1,6 +1,6 @@
 # Radar coverage
 
-This project's main objective is to provide intuitive tools in order to compute radar coverage in cities. In take into account multiple orders of reflections and/or refraction for a given signal path. When possible, analytical solutions are provided, but numerical solutions are also used in order to reduce the complexity of the software.
+This project's main objective is to provide intuitive tools in order to compute radar coverage in cities. It takes into account multiple orders of reflections and/or refraction for a given signal path. When possible, analytical solutions are provided, but numerical solutions are also used in order to reduce the complexity of the software.
 
 ## Project structure
 
