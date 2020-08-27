@@ -11,6 +11,6 @@ if __name__ == '__main__':
 
     # 1. Load data
 
-    place = geom.generate_place_from_rooftops_file('../data/small.geojson')
+    place = geom.generate_place_from_rooftops_file('../data/ny.geojson')
 
-    place.show_visibility_matrix_animation(strict=False)
+    place.show_visibility_matrix_animation(strict=True)

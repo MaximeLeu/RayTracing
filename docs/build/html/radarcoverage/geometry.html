@@ -272,8 +272,10 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the new geometry</p>
 </dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
+</dd>
 </dl>
-<p>:rtype OrientedGeometry</p>
 </dd></dl>
 
 <dl class="py method">
@@ -441,8 +443,10 @@ See <a class="reference internal" href="#geometry.polygons_visibility_matrix" ti
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the new geometry</p>
 </dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
+</dd>
 </dl>
-<p>:rtype OrientedGeometry</p>
 </dd></dl>
 
 <dl class="py method">
@@ -465,8 +469,10 @@ The screen on which the points are projected is at a given distance from the ori
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the new geometry</p>
 </dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
+</dd>
 </dl>
-<p>:rtype OrientedGeometry</p>
 </dd></dl>
 
 <dl class="py method">
@@ -499,8 +505,10 @@ The screen on which the points are projected is at a given distance from the ori
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the new geometry</p>
 </dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
+</dd>
 </dl>
-<p>:rtype OrientedGeometry</p>
 </dd></dl>
 
 </dd></dl>
@@ -536,8 +544,10 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the new geometry</p>
 </dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
+</dd>
 </dl>
-<p>:rtype OrientedGeometry</p>
 </dd></dl>
 
 <dl class="py method">
@@ -610,8 +620,10 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the new geometry</p>
 </dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
+</dd>
 </dl>
-<p>:rtype OrientedGeometry</p>
 </dd></dl>
 
 <dl class="py method">
@@ -657,12 +669,10 @@ polygon. If needed, can first check this condition.</p>
 <dt id="geometry.OrientedPolygon.get_matrix">
 <code class="sig-name descname">get_matrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.get_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a 3-by-3 orthogonal matrix where is column correspond to an axis of the polygon.
-matrix = [x, y, z] where</p>
-<blockquote>
-<div><p>x belongs to the polygon
-y belongs to the polygon
-z is normal to the polygon</p>
-</div></blockquote>
+matrix = [x, y, z] where
+- x belongs to the polygon
+- y belongs to the polygon
+- z is normal to the polygon</p>
 <p>The axes follow the right hand side rule and will be normalized.</p>
 <p>In order to project points into the polygon’s coordinates, use the transposed matrix !</p>
 <dl class="field-list simple">
@@ -687,7 +697,7 @@ z is normal to the polygon</p>
 <dd class="field-odd"><p>the normal vector</p>
 </dd>
 <dt class="field-even">Return type</dt>
-<dd class="field-even"><p>np.ndarray <a href="#id1"><span class="problematic" id="id2">*</span></a>shape=(3)</p>
+<dd class="field-even"><p>np.ndarray <em>shape=(3)</em></p>
 </dd>
 </dl>
 </dd></dl>
@@ -804,8 +814,10 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the new geometry</p>
 </dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
+</dd>
 </dl>
-<p>:rtype OrientedGeometry</p>
 </dd></dl>
 
 <dl class="py method">
@@ -860,8 +872,10 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the new geometry</p>
 </dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
+</dd>
 </dl>
-<p>:rtype OrientedGeometry</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1050,8 +1064,10 @@ The curve is projected on the z=0 plane.</p>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the axis</p>
 </dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
 </dl>
-<p>:rtype int</p>
 </dd></dl>
 
 <dl class="py function">
@@ -1060,12 +1076,15 @@ The curve is projected on the z=0 plane.</p>
 <dd><p>Returns the visibility vector for a polygon facing N given polygons.
 For each element i, the vector tells if it is physically possible that a ray pointing outward the polygon_A’s
 face could intercept an other polygon[i].</p>
-<dl>
+<dl class="simple">
 <dt>As this problem is known to be NP complete, two approaches are offered:</dt><dd><ol class="arabic simple">
 <li><p>the <cite>strict</cite> approach makes no compromise and will only remove polygons that are 100% for sure not visible</p></li>
+<li><dl class="simple">
+<dt>the other approach is to only take the polygons visible from the centroid of the polygon, therefore not</dt><dd><p>taking into account all the possible paths and, thus, maybe removing visible polygons</p>
+</dd>
+</dl>
+</li>
 </ol>
-<p>2. the other approach is to only take the polygons visible from the centroid of the polygon, therefore not
-taking into account all the possible paths and, thus, maybe removing visible polygons</p>
 </dd>
 </dl>
 <dl class="field-list simple">

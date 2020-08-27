@@ -95,7 +95,7 @@ class RadarCoveringProblem:
 
                 obstructs = False
 
-                if geom.polygons_obstruct_line_path(visible_polygons, lines[:2, :]):
+                if geom.polygons_obstruct_line_path(self.polygons, lines[:2, :]):
                     obstructs = True
 
                 if obstructs:
@@ -104,7 +104,7 @@ class RadarCoveringProblem:
 
                 for i, index in enumerate(polygons_indices):
                     indices = self.get_visible_polygons_indices(index)
-                    if geom.polygons_obstruct_line_path(self.polygons[indices], lines[i+1:i+3, :]):
+                    if geom.polygons_obstruct_line_path(self.polygons, lines[i+1:i+3, :]):
                         obstructs = True
                         break
 

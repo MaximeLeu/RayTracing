@@ -352,7 +352,7 @@ def polygon_visibility_vector(polygon_A, polygons, out=None, strict=False):
     As this problem is known to be NP complete, two approaches are offered:
         1. the `strict` approach makes no compromise and will only remove polygons that are 100% for sure not visible
         2. the other approach is to only take the polygons visible from the centroid of the polygon, therefore not
-        taking into account all the possible paths and, thus, maybe removing visible polygons
+            taking into account all the possible paths and, thus, maybe removing visible polygons
 
     :param polygon_A: the reference polygon
     :type polygon_A: OrientedPolygon
@@ -546,7 +546,7 @@ class OrientedGeometry:
         :param args: positional arguments passed to `func`
         :param kwargs: keyword argument passed to `func`
         :return: the new geometry
-        :rtype OrientedGeometry
+        :rtype: OrientedGeometry
         """
         raise NotImplementedError
 
@@ -559,7 +559,7 @@ class OrientedGeometry:
         :param vector: the displacement vector
         :type vector: numpy.ndarray *size=3*
         :return: the new geometry
-        :rtype OrientedGeometry
+        :rtype: OrientedGeometry
         """
         return self.apply_on_points(translate_points, vector)
 
@@ -572,7 +572,7 @@ class OrientedGeometry:
         :param around_point: if present, will apply the project around this point
         :type around_point: numpy.ndarray *size=3*
         :return: the new geometry
-        :rtype OrientedGeometry
+        :rtype: OrientedGeometry
         """
         return self.apply_on_points(project_points, matrix, around_point=around_point)
 
@@ -589,7 +589,7 @@ class OrientedGeometry:
         :param axis: the axis which will be used for perspective
         :type axis: any type accepted by :func:`parse_3d_axis`
         :return: the new geometry
-        :rtype OrientedGeometry
+        :rtype: OrientedGeometry
         """
         return self.apply_on_points(project_points_with_perspective_mapping, focal_distance=focal_distance, axis=axis)
 
@@ -850,7 +850,7 @@ class OrientedPolygon(OrientedGeometry):
         Returns the normal, as a unit vector, pointing outward of the polygon.
 
         :return: the normal vector
-        :rtype: np.ndarray *shape=(3)
+        :rtype: np.ndarray *shape=(3)*
         """
         return self.get_parametric()[:3]
 
@@ -885,9 +885,9 @@ class OrientedPolygon(OrientedGeometry):
         """
         Returns a 3-by-3 orthogonal matrix where is column correspond to an axis of the polygon.
         matrix = [x, y, z] where
-            x belongs to the polygon
-            y belongs to the polygon
-            z is normal to the polygon
+        - x belongs to the polygon
+        - y belongs to the polygon
+        - z is normal to the polygon
 
         The axes follow the right hand side rule and will be normalized.
 

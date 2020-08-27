@@ -1,7 +1,7 @@
 
 .idea/
 venv/
-data/
+
 __pycache__/utils.cpython-36.pyc
 
 radarcoverage/__pycache__/file_utils.cpython-36.pyc
