@@ -97,7 +97,7 @@ if __name__ == '__main__':
         shp = poly_changed.get_shapely()
         if shp.intersects(screen2d):
             parametric = poly_original.get_parametric()
-            point = geom.reflexion_point_from_origin_destination_and_planes(tx, rx, [parametric])
+            point = geom.reflexion_points_from_origin_destination_and_planes(tx, rx, [parametric])
 
             if poly_original.contains_point(point[0]):
 

@@ -78,7 +78,10 @@ class RadarCoveringProblem:
             planes_parametric = [self.polygons[index].get_parametric() for index in polygons_indices]
 
             for receiver in receivers:
-                points = geom.reflexion_point_from_origin_destination_and_planes(emitter, receiver, planes_parametric)
+                points, sol = geom.reflexion_points_from_origin_destination_and_planes(emitter, receiver, planes_parametric)
+
+                if not sol.success:
+                    continue
 
                 lines = np.row_stack([emitter, points, receiver])
 

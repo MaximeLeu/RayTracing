@@ -6,7 +6,7 @@ from radarcoverage import plot_utils
 # Numerical libraries
 import numpy as np
 from numpy.dual import norm
-from scipy.optimize import fsolve
+from scipy.optimize import fsolve, root
 
 # Geometry libraries
 from shapely.geometry import Polygon as shPolygon
@@ -100,7 +100,7 @@ def reflexion_on_plane(incidents, normal, normalized=False):
     return incidents - (incidents @ normal.T) @ ((2 / den) * normal)  # Order of operation minimizes the # of op.
 
 
-def reflexion_point_from_origin_destination_and_planes(origin, destination, planes_parametric, **kwargs):
+def reflexion_points_from_origin_destination_and_planes(origin, destination, planes_parametric, **kwargs):
     """
     Returns the reflection point on each plane such that a path between origin and destination is possible.
     The parametric equation of the plane should contained the normal vector in a normalized form.
@@ -110,11 +110,11 @@ def reflexion_point_from_origin_destination_and_planes(origin, destination, plan
     :param destination: the destination point
     :type destination: numpy.ndarray *size=3*
     :param planes_parametric: the coefficients of the parametric equation of each plane
-    :type planes_parametric: list of np.ndarray *shape=(4)*
+    :type planes_parametric: list of numpy.ndarray *shape=(4)*
     :param kwargs: keyword parameters passed to :func:`scipy.optimize.fsolve`
     :type kwargs: any
-    :return: the reflection point on each of the planes
-    :rtype:
+    :return: the reflection point on each of the planes and the solution
+    :rtype: numpy.array *shape(1, 3)*, scipy.optimize.OptimizeResult
     """
     A = origin.reshape(1, 3)
     B = destination.reshape(1, 3)
@@ -129,7 +129,7 @@ def reflexion_point_from_origin_destination_and_planes(origin, destination, plan
     points[-1, :] = B
 
     for i in range(1, n + 1):
-        # First guess for solution (gamma = 1)
+        # First guess for solution
         points[i, :] = 0.5 * (points[i - 1, :] + B - 2 * (d[i-1] + points[i - 1, :] @ normal[i-1, :].T) * normal[i-1, :])
 
     def gamma(v):
@@ -145,7 +145,139 @@ def reflexion_point_from_origin_destination_and_planes(origin, destination, plan
 
         return (g * v[1:, :] - v[:-1, :] - 2 * (d + dot_product) * normal).reshape(-1)
 
-    return fsolve(func, x0=points[1:n+1, :].reshape(-1), **kwargs).reshape(-1, 3)
+    sol = root(func, x0=points[1:n + 1, :].reshape(-1), **kwargs)
+
+    x = sol.x.reshape(-1, 3)
+
+    return x, sol
+
+
+def diffraction_point_from_origin_destination_and_edge(origin, destination, edge, **kwargs):
+    """
+    Returns the diffraction point on a edge such that a path between origin and destination is possible.
+
+    :param origin: the origin point
+    :type origin: numpy.ndarray *size=3*
+    :param destination: the destination point
+    :type destination: numpy.ndarray *size=3*
+    :param edge: the edge in which reflexion is done
+    :type edge: numpy.ndarray *shape=(2, 3)*
+    :param kwargs: keyword parameters passed to :func:`scipy.optimize.root`
+    :type kwargs: any
+    :return: the diffraction point on the edge and the solution
+    :rtype: numpy.array *shape(1, 3)*, scipy.optimize.OptimizeResult
+    """
+    A = origin.reshape(1, 3)
+    B = destination.reshape(1, 3)
+
+    matrix = projection_matrix_from_line_path(edge).T
+
+    projected_A = project_points(A, matrix)[0, :]
+    projected_B = project_points(B, matrix)[0, :]
+    projected_edge = project_points(edge, matrix)
+    Xe = projected_edge[0, :]
+    ze = Xe[2]
+
+    def func(x):
+        t = x - ze
+        x = np.copy(Xe)
+        x[2] += t
+        i = x - projected_A
+        d = projected_B - x
+
+        num1 = (ze - projected_A[2] + t)
+        num2 = (projected_B[2] - ze - t)
+        den1 = norm(i)
+        den2 = norm(d)
+
+        f = num1 / den1 - num2 / den2
+
+        den1_prime = num1 / den1
+        den2_prime = - num2 / den2
+
+        jac = (-num1 - den1_prime) / (den1 * den1) - (num2 - den2_prime) / (den2 * den2)
+
+        return f, jac
+
+    sol = root(func, x0=ze, jac=True, **kwargs)
+    Xe[2] = sol.x
+
+    return project_points(Xe, matrix.T), sol
+
+
+def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(origin, destination,
+                                                                                   planes_parametric, edge, **kwargs):
+    if len(planes_parametric) == 0:
+        return diffraction_point_from_origin_destination_and_edge(origin, destination, edge, **kwargs)
+
+    A = origin.reshape(1, 3)
+    B = destination.reshape(1, 3)
+
+    # Reflection
+    parametric = np.vstack(planes_parametric)
+    normal = parametric[:, :3]
+    d = parametric[:, 3].reshape(-1, 1)
+    n = parametric.shape[0]
+
+    # Diffraction
+    matrix = projection_matrix_from_line_path(edge).T
+
+    projected_B = project_points(B, matrix)[0, :]
+    projected_edge = project_points(edge, matrix)
+    Xe = projected_edge[0, :]
+    ze = Xe[2]
+
+    points = np.empty((n + 2, 3), dtype=float)
+    points[0, :] = A
+    points[-1, :] = edge[0, :]
+
+    for i in range(1, n + 1):
+        # First guess for solution
+        points[i, :] = 0.5 * (
+                    points[i - 1, :] + B - 2 * (d[i - 1] + points[i - 1, :] @ normal[i - 1, :].T) * normal[i - 1, :])
+
+    def gamma(v):
+        norms = norm(v, axis=1)
+        return norms[:-1] / norms[1:]
+
+    def func(x):
+        # Reflection
+        points[1:n, :] = x[:-1].reshape(-1, 3)
+        points[-1, :] = project_points(np.array([Xe[0], Xe[1], x[-1]]), matrix.T)
+
+        v = np.diff(points, axis=0)
+        g = gamma(v).reshape(-1, 1)
+
+        dot_product = np.einsum('ij,ij->i', points[:n, :], normal).reshape(-1, 1)
+
+        projected_A = project_points(points[-2, :], matrix)
+
+        x[:-1] = (g * v[1:, :] - v[:-1, :] - 2 * (d + dot_product) * normal).reshape(-1)
+
+        # Diffraction
+        t = x[-1] - ze
+        xn = np.copy(Xe)
+        xn[2] += t
+        i_ = xn - projected_A
+        d_ = projected_B - xn
+
+        num1 = (ze - projected_A[2] + t)
+        num2 = (projected_B[2] - ze - t)
+        den1 = norm(i_)
+        den2 = norm(d_)
+
+        x[-1] = num1 / den1 - num2 / den2
+
+        return x
+
+    sol = root(func, x0=points[1:, :].flat[:-2], **kwargs)
+
+    x = sol.x
+
+    points[1:n, :] = x[:-1].reshape(-1, 3)
+    points[-1, :] = project_points(np.array([Xe[0], Xe[1], x[-1]]), matrix.T)
+
+    return points[1:, :], sol
 
 
 def translate_points(points, vector):
@@ -298,6 +430,28 @@ def any_point_between(points, a, b, axis=2):
     return np.any(a <= points[:, axis] <= b)
 
 
+def projection_matrix_from_line_path(points):
+    """
+    Returns an orthogonal matrix which can be used to project any set of points in a coordinates system aligned with
+    given line. The last axis is the axis with the same direction as the line.
+
+    :param points: two points describing line path
+    :type points: numpy.ndarray *shape=(2, 3)*
+    :return: a matrix
+    :rtype: numpy.ndarray *shape=(3, 3)*
+    """
+    points = points.reshape(-1, 3)
+    A = points[0, :]
+    B = points[1, :]
+    V = B - A
+    z = V / norm(V)
+    y = np.array([0, 1, 0], dtype=float)  # Arbitrary
+    y -= y.dot(z) * z
+    y /= norm(y)
+    x = np.cross(y, z)
+    return np.row_stack([x, y, z]).T
+
+
 def polygons_obstruct_line_path(polygons, points):
     """
     Returns whether a line path is obstructed by any of the polygons.
@@ -309,16 +463,7 @@ def polygons_obstruct_line_path(polygons, points):
     :return: True if any polygon intercepts the line path
     :rtype: bool
     """
-    points = points.reshape(-1, 3)
-    A = points[0, :]
-    B = points[1, :]
-    V = B - A
-    z = V / norm(V)
-    y = np.array([0, 1, 0], dtype=float)  # Arbitrary
-    y -= y.dot(z) * z
-    y /= norm(y)
-    x = np.cross(y, z)
-    matrix = np.row_stack([x, y, z])
+    matrix = projection_matrix_from_line_path(points).T
 
     projected_points = project_points(points, matrix)
     pA = projected_points[0, :]

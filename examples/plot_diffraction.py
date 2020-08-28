@@ -1,0 +1,48 @@
+import radarcoverage.geometry as geom
+from radarcoverage import file_utils
+import matplotlib.pyplot as plt
+import numpy as np
+from radarcoverage import plot_utils
+if __name__ == '__main__':
+
+    file_utils.chdir_to_file_dir(__file__)
+
+    A = np.array([-1.5, -4, -1]).reshape(1, 3)
+    B = np.array([-2.5, -5, 1]).reshape(1, 3)
+
+    frame = geom.Cube.by_point_and_side_length(A, 20)
+
+    cube = geom.Cube.by_point_and_side_length(0*A, 5)
+
+    face = cube.polygons[5]
+    vertice = face.points[:2, :]
+
+    screen = face.translate(np.array([0, -5, 0]))
+
+    ax = cube.plot3d(ret=True, alpha=0)
+    screen.plot3d(ax=ax)
+    plot_utils.add_points_to_3d_ax(ax, A)
+    plot_utils.add_text_at_point_3d_ax(ax, A, 'TX')
+    plot_utils.add_points_to_3d_ax(ax, B)
+    plot_utils.add_text_at_point_3d_ax(ax, B, 'RX')
+    plot_utils.add_line_to_3d_ax(ax, vertice, color='r', lw=3)
+    frame.center_3d_plot(ax)
+
+    n = np.random.randint(1, 4)
+
+    I = np.array([0.05, 0.95])
+
+    plot_utils.add_2d_text_at_point_3d_ax(ax, I, f'Reflection on {n} wall(s) ')
+
+    diff_point, _ = geom.diffraction_point_from_origin_destination_and_edge(A, B, vertice)
+    diff_point, _ = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(A, B, [screen.get_parametric()], vertice)
+
+    diff_line = np.row_stack([A, diff_point, B])
+
+    plot_utils.add_line_to_3d_ax(ax, diff_line, linestyle='--')
+
+    ref_point, sol = geom.reflexion_points_from_origin_destination_and_planes(A, B, [screen.get_parametric()])
+    ref_line = np.row_stack([A, ref_point, B])
+    plot_utils.add_line_to_3d_ax(ax, ref_line)
+
+    plt.show()

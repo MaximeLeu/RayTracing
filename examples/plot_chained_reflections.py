@@ -39,7 +39,7 @@ if __name__ == '__main__':
     for i in range(n):
         faces[i].plot3d(facecolor='r', alpha=0.3, ax=ax, edgecolor='r')
 
-    z = geom.reflexion_point_from_origin_destination_and_planes(A, B, param)
+    z = geom.reflexion_points_from_origin_destination_and_planes(A, B, param)
 
     for point in z:
         X.append(point)
