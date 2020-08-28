@@ -7,7 +7,7 @@ if __name__ == '__main__':
 
     file_utils.chdir_to_file_dir(__file__)
 
-    A = np.array([-1.5, -4, -1]).reshape(1, 3)
+    A = np.array([-0.5, -5, -1]).reshape(1, 3)
     B = np.array([-2.5, -5, 1]).reshape(1, 3)
 
     frame = geom.Cube.by_point_and_side_length(A, 20)
@@ -34,15 +34,23 @@ if __name__ == '__main__':
 
     plot_utils.add_2d_text_at_point_3d_ax(ax, I, f'Reflection on {n} wall(s) ')
 
-    diff_point, _ = geom.diffraction_point_from_origin_destination_and_edge(A, B, vertice)
-    diff_point, _ = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(A, B, [screen.get_parametric()], vertice)
+    diff_point_1, _ = geom.diffraction_point_from_origin_destination_and_edge(A, B, vertice)
+    diff_point_2, pos = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(A, B, [screen.get_parametric()], vertice)
+    print(pos)
 
-    diff_line = np.row_stack([A, diff_point, B])
-
-    plot_utils.add_line_to_3d_ax(ax, diff_line, linestyle='--')
+    diff_line_1 = np.row_stack([A, diff_point_1, B])
+    diff_line_2 = np.row_stack([A, diff_point_2, B])
+    plot_utils.add_line_to_3d_ax(ax, diff_line_1, color='b', linestyle='--')
+    plot_utils.add_line_to_3d_ax(ax, diff_line_2, color='r', linestyle='--')
 
     ref_point, sol = geom.reflexion_points_from_origin_destination_and_planes(A, B, [screen.get_parametric()])
     ref_line = np.row_stack([A, ref_point, B])
-    plot_utils.add_line_to_3d_ax(ax, ref_line)
+    plot_utils.add_line_to_3d_ax(ax, ref_line, alpha=0.5)
+
+    ref_points, sol = geom.reflexion_points_from_origin_destination_and_planes(A, B, [screen.get_parametric(), face.get_parametric()])
+
+
+    ref_line = np.row_stack([A, ref_points, B])
+    plot_utils.add_line_to_3d_ax(ax, ref_line, alpha=0.5)
 
     plt.show()

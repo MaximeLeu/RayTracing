@@ -209,6 +209,8 @@ def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_ed
                                                                                    planes_parametric, edge, **kwargs):
     if len(planes_parametric) == 0:
         return diffraction_point_from_origin_destination_and_edge(origin, destination, edge, **kwargs)
+    elif edge is None:
+        return reflexion_points_from_origin_destination_and_planes(origin, destination, planes_parametric, **kwargs)
 
     A = origin.reshape(1, 3)
     B = destination.reshape(1, 3)
@@ -238,11 +240,13 @@ def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_ed
 
     def gamma(v):
         norms = norm(v, axis=1)
-        return norms[:-1] / norms[1:]
+        gamma = norms[:-1] / norms[1:]
+        return gamma
 
     def func(x):
+        r = np.empty_like(x)
         # Reflection
-        points[1:n, :] = x[:-1].reshape(-1, 3)
+        points[1:n+1, :] = x[:-1].reshape(-1, 3)
         points[-1, :] = project_points(np.array([Xe[0], Xe[1], x[-1]]), matrix.T)
 
         v = np.diff(points, axis=0)
@@ -252,7 +256,7 @@ def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_ed
 
         projected_A = project_points(points[-2, :], matrix)
 
-        x[:-1] = (g * v[1:, :] - v[:-1, :] - 2 * (d + dot_product) * normal).reshape(-1)
+        r[:-1] = (g * v[1:, :] - v[:-1, :] - 2 * (d + dot_product) * normal).reshape(-1)
 
         # Diffraction
         t = x[-1] - ze
@@ -266,16 +270,28 @@ def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_ed
         den1 = norm(i_)
         den2 = norm(d_)
 
-        x[-1] = num1 / den1 - num2 / den2
+        r[-1] = num1 / den1 - num2 / den2
 
-        return x
+        return r
+
+    true_sol = np.array([-2.5, -7.5, -0.5, -2.5, -2.5, 0.5])
+
+    proj_sol = project_points(true_sol[3:], matrix).flat[2]
+
+    true_sol[3] = proj_sol
+
+    print('true sol called in func:', func(true_sol[:4]))
+
+    print('x0', points[1:, :].flat[:-2])
 
     sol = root(func, x0=points[1:, :].flat[:-2], **kwargs)
 
     x = sol.x
 
-    points[1:n, :] = x[:-1].reshape(-1, 3)
+    points[1:n+1, :] = x[:-1].reshape(-1, 3)
     points[-1, :] = project_points(np.array([Xe[0], Xe[1], x[-1]]), matrix.T)
+
+    print(points[1:, :])
 
     return points[1:, :], sol
 
