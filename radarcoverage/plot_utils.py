@@ -6,6 +6,11 @@ import matplotlib.patches as patches
 # Numerical libraries
 import numpy as np
 
+# Utils
+import sys
+
+pause = False
+
 
 def get_2d_plot_ax(ax=None):
     """
@@ -159,3 +164,60 @@ def add_vector_to_3d_ax(ax, point, vector, *args, **kwargs):
     x, y, z = point.T
     u, v, w = vector.T
     ax.quiver(x, y, z, u, v, w, *args, **kwargs)
+
+
+def animate_3d_ax(ax, dt=0.01, func=None, *args, **kwargs):
+    """
+    Starts a 3D animation where the plot rotates endlessly or until `func` returns 0.
+
+    :param ax: axes
+    :type ax: mpl_toolkits.mplot3d.Axes3D
+    :param dt: the sleep time in seconds between each frame
+    :type dt: float
+    :param func: a function that will be called at every loop, must take 3D axes as first argument
+    :param args: positional arguments passed to `func`
+    :type args: any
+    :param kwargs: keyword arguments passed to `func`
+    :type kwargs: any
+    """
+    pos = np.array([0.05, 0.95])
+
+    add_2d_text_at_point_3d_ax(ax, pos, f'Press \'q\' to quit, \'space\' to play/pause')
+
+    fig = plt.gcf()
+
+    global pause
+
+    def press(event):
+        sys.stdout.flush()
+        if event.key.lower() == 'q':
+            plt.close(fig)
+        elif event.key.lower() == ' ':
+            global pause
+            pause ^= True
+
+    fig.canvas.mpl_connect('key_press_event', press)
+
+    angle = 0
+    ax.view_init(30, 0)
+
+    global pause
+
+    while plt.fignum_exists(fig.number):
+
+        if pause:
+            angle = ax.azim
+            plt.pause(0.1)
+            continue
+
+        ax.view_init(ax.elev, angle)
+
+        if func is not None:
+            ret = func(ax, *args, **kwargs)
+
+            if ret == 0:
+                break
+
+        plt.draw()
+        plt.pause(dt)
+        angle = (ax.azim + 1) % 360

@@ -274,24 +274,12 @@ def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_ed
 
         return r
 
-    true_sol = np.array([-2.5, -7.5, -0.5, -2.5, -2.5, 0.5])
-
-    proj_sol = project_points(true_sol[3:], matrix).flat[2]
-
-    true_sol[3] = proj_sol
-
-    print('true sol called in func:', func(true_sol[:4]))
-
-    print('x0', points[1:, :].flat[:-2])
-
     sol = root(func, x0=points[1:, :].flat[:-2], **kwargs)
 
     x = sol.x
 
     points[1:n+1, :] = x[:-1].reshape(-1, 3)
     points[-1, :] = project_points(np.array([Xe[0], Xe[1], x[-1]]), matrix.T)
-
-    print(points[1:, :])
 
     return points[1:, :], sol
 
@@ -841,45 +829,26 @@ class OrientedGeometry:
         return self.visibility_matrix
 
     def show_visibility_matrix_animation(self, strict=False):
+        """
+        Shows a 3D animation of the visibility matrix by showing, for each polygon, the polygon face "observing" is blue
+        and and the polygon faces that are visible to it in red.
+
+        :param strict: if True, will choose strict approach
+        :type strict: bool
+        """
         ax = self.plot3d(ret=True)
         self.center_3d_plot(ax)
         polys3d = ax.collections
         visibility_matrix = self.get_visibility_matrix(strict=strict)
-        pos = np.array([0.05, 0.95])
-
-        plot_utils.add_2d_text_at_point_3d_ax(ax, pos, f'Press \'q\' to quit, \'space\' to play/pause')
-
-        fig = plt.gcf()
-
-        global pause
-        pause = False
-
-        def press(event):
-            sys.stdout.flush()
-            if event.key.lower() == 'q':
-                plt.close(fig)
-            elif event.key.lower() == ' ':
-                self.pause ^= True
-
-        fig.canvas.mpl_connect('key_press_event', press)
 
         n = len(polys3d)
         indices = itertools.cycle(itertools.chain.from_iterable(itertools.repeat(i, 30) for i in range(n)))
-        i = next(indices)
-        angle = 0
-        ax.view_init(30, 0)
 
-        while plt.fignum_exists(fig.number):
+        def func(_):
+            i = next(indices)
 
-            if self.pause:
-                angle = ax.azim
-                plt.pause(0.1)
-                continue
-
-            for poly3d in polys3d:
-                poly3d.set_alpha(0)
-
-            ax.view_init(ax.elev, angle)
+            for poly in polys3d:
+                poly.set_alpha(0)
 
             for j in np.where(visibility_matrix[i])[0]:
                 polys3d[j].set_facecolor('r')
@@ -888,10 +857,7 @@ class OrientedGeometry:
             polys3d[i].set_facecolor('b')
             polys3d[i].set_alpha(0.8)
 
-            plt.draw()
-            plt.pause(0.01)
-            i = next(indices)
-            angle = (ax.azim + 1) % 360
+        plot_utils.animate_3d_ax(ax, func=func)
 
 
 class OrientedPolygon(OrientedGeometry):

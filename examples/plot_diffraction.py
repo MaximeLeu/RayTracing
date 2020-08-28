@@ -10,7 +10,7 @@ if __name__ == '__main__':
     A = np.array([-0.5, -5, -1]).reshape(1, 3)
     B = np.array([-2.5, -5, 1]).reshape(1, 3)
 
-    frame = geom.Cube.by_point_and_side_length(A, 20)
+    frame = geom.Cube.by_point_and_side_length(A, 10)
 
     cube = geom.Cube.by_point_and_side_length(0*A, 5)
 
@@ -28,29 +28,24 @@ if __name__ == '__main__':
     plot_utils.add_line_to_3d_ax(ax, vertice, color='r', lw=3)
     frame.center_3d_plot(ax)
 
-    n = np.random.randint(1, 4)
-
-    I = np.array([0.05, 0.95])
-
-    plot_utils.add_2d_text_at_point_3d_ax(ax, I, f'Reflection on {n} wall(s) ')
-
     diff_point_1, _ = geom.diffraction_point_from_origin_destination_and_edge(A, B, vertice)
-    diff_point_2, pos = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(A, B, [screen.get_parametric()], vertice)
-    print(pos)
+    diff_point_2, _ = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(A, B, [screen.get_parametric()], vertice)
 
     diff_line_1 = np.row_stack([A, diff_point_1, B])
     diff_line_2 = np.row_stack([A, diff_point_2, B])
-    plot_utils.add_line_to_3d_ax(ax, diff_line_1, color='b', linestyle='--')
-    plot_utils.add_line_to_3d_ax(ax, diff_line_2, color='r', linestyle='--')
+    plot_utils.add_line_to_3d_ax(ax, diff_line_1, color='b', linestyle='--', label='single diffraction')
+    plot_utils.add_line_to_3d_ax(ax, diff_line_2, color='r', linestyle='--', label='reflection + diffraction')
 
     ref_point, sol = geom.reflexion_points_from_origin_destination_and_planes(A, B, [screen.get_parametric()])
     ref_line = np.row_stack([A, ref_point, B])
-    plot_utils.add_line_to_3d_ax(ax, ref_line, alpha=0.5)
+    plot_utils.add_line_to_3d_ax(ax, ref_line, alpha=0.5, label='single reflection')
 
     ref_points, sol = geom.reflexion_points_from_origin_destination_and_planes(A, B, [screen.get_parametric(), face.get_parametric()])
 
 
     ref_line = np.row_stack([A, ref_points, B])
-    plot_utils.add_line_to_3d_ax(ax, ref_line, alpha=0.5)
+    plot_utils.add_line_to_3d_ax(ax, ref_line, alpha=0.5, label='double reflection')
+
+    plt.legend()
 
     plt.show()
