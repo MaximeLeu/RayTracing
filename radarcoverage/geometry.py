@@ -16,7 +16,7 @@ import geopandas as gpd
 
 # Utils
 import itertools
-import sys
+import pickle
 
 
 def enclosed_area(points):
@@ -606,7 +606,7 @@ def polygons_visibility_matrix(polygons, strict=False):
     return visibility_matrix
 
 
-class OrientedGeometry:
+class OrientedGeometry(object):
     """
     Disclaimer: this class and its subclasses are clearly inspired from the pakcage `pyny3d`. The main problem with this
     package is the lack of modularity and ability to subclass objects with ease; this is why no inheritance from this
@@ -633,6 +633,29 @@ class OrientedGeometry:
 
     def __eq__(self, other):
         return self.id == other.id
+
+    def save(self, filename):
+        """
+        Saves an oriented geometry object into a .ogeom file.
+
+        :param filename: the filepath
+        :type filename: str
+        """
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def load(filename):
+        """
+        Loads an oriented geometry from a .ogeom file
+
+        :param filename: the filepath
+        :type filename: str
+        :return: the geometry stored in the file
+        :rtype: OrientedGeometry
+        """
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
 
     def get_polygons_iter(self):
         """
