@@ -19,7 +19,7 @@ Radar coverage
 1. Clone this repo
 2. Install Python 3.6 (or higher)
 3. [Setup a virtual env](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) (advised but not mandatory)
-4. Install required packages: `pip3 install -r requirements.txt`
+4. Install required packages: `pip3 install install -e .`
 
 ## Obtaining data files
 

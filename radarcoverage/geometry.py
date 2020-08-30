@@ -768,6 +768,22 @@ class OrientedGeometry(object):
         """
         return self.apply_on_points(project_points_with_perspective_mapping, focal_distance=focal_distance, axis=axis)
 
+    def center_2d_plot(self, ax):
+        """
+        Centers and keep the aspect ratio in a 2D representation.
+
+        :param ax: axes to apply the method.
+        :type ax: matplotlib.axes.Axes
+        """
+
+        domain = self.get_domain()
+        bound = np.max(domain[1] - domain[0])
+        centroid = self.get_centroid()
+        pos = np.vstack((centroid - bound / 2, centroid + bound / 2))
+
+        ax.set_xlim(left=pos[0, 0], right=pos[1, 0])
+        ax.set_ylim(bottom=pos[0, 1], top=pos[1, 1])
+
     def center_3d_plot(self, ax):
         """
         Centers and keep the aspect ratio in a 3D representation.
