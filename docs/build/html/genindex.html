@@ -83,6 +83,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="radarcoverage/modules.html">radarcoverage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripts/modules.html">scripts</a></li>
 </ul>
 
             
@@ -150,7 +151,8 @@
 <h1 id="index">Index</h1>
 
 <div class="genindex-jumpbox">
- <a href="#A"><strong>A</strong></a>
+ <a href="#Symbols"><strong>Symbols</strong></a>
+ | <a href="#A"><strong>A</strong></a>
  | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
@@ -158,6 +160,7 @@
  | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#I"><strong>I</strong></a>
+ | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
@@ -166,6 +169,28 @@
  | <a href="#T"><strong>T</strong></a>
  
 </div>
+<h2 id="Symbols">Symbols</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    --dim &lt;dim&gt;
+
+      <ul>
+        <li><a href="scripts/modules.html#cmdoption-geometry-show-dim">geometry-show command line option</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    --geotype &lt;geotype&gt;
+
+      <ul>
+        <li><a href="scripts/modules.html#cmdoption-geometry-create-geotype">geometry-create command line option</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -194,6 +219,8 @@
       <li><a href="radarcoverage/plot_utils.html#plot_utils.add_vector_to_2d_ax">add_vector_to_2d_ax() (in module plot_utils)</a>
 </li>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.add_vector_to_3d_ax">add_vector_to_3d_ax() (in module plot_utils)</a>
+</li>
+      <li><a href="radarcoverage/plot_utils.html#plot_utils.animate_3d_ax">animate_3d_ax() (in module plot_utils)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.any_point_above">any_point_above() (in module geometry)</a>
 </li>
@@ -260,6 +287,10 @@
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="radarcoverage/geometry.html#geometry.diffraction_point_from_origin_destination_and_edge">diffraction_point_from_origin_destination_and_edge() (in module geometry)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon.distance_to_point">distance_to_point() (geometry.OrientedPolygon method)</a>
 </li>
   </ul></td>
@@ -298,6 +329,26 @@
         <li><a href="radarcoverage/geometry.html#module-geometry">module</a>
 </li>
       </ul></li>
+      <li>
+    geometry-create command line option
+
+      <ul>
+        <li><a href="scripts/modules.html#cmdoption-geometry-create-geotype">--geotype &lt;geotype&gt;</a>
+</li>
+        <li><a href="scripts/modules.html#cmdoption-geometry-create-arg-I">I</a>
+</li>
+        <li><a href="scripts/modules.html#cmdoption-geometry-create-arg-O">O</a>
+</li>
+      </ul></li>
+      <li>
+    geometry-show command line option
+
+      <ul>
+        <li><a href="scripts/modules.html#cmdoption-geometry-show-dim">--dim &lt;dim&gt;</a>
+</li>
+        <li><a href="scripts/modules.html#cmdoption-geometry-show-arg-I">I</a>
+</li>
+      </ul></li>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.get_2d_plot_ax">get_2d_plot_ax() (in module plot_utils)</a>
 </li>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.get_3d_plot_ax">get_3d_plot_ax() (in module plot_utils)</a>
@@ -308,14 +359,14 @@
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.get_domain">get_domain() (geometry.OrientedGeometry method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon.get_matrix">get_matrix() (geometry.OrientedPolygon method)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon.get_normal">get_normal() (geometry.OrientedPolygon method)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon.get_parametric">get_parametric() (geometry.OrientedPolygon method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.get_points">get_points() (geometry.OrientedGeometry method)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.get_polygons_count">get_polygons_count() (geometry.OrientedGeometry method)</a>
@@ -348,11 +399,28 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.id">id (geometry.OrientedGeometry attribute)</a>
+      <li>
+    I
+
+      <ul>
+        <li><a href="scripts/modules.html#cmdoption-geometry-create-arg-I">geometry-create command line option</a>
 </li>
+        <li><a href="scripts/modules.html#cmdoption-geometry-show-arg-I">geometry-show command line option</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.id">id (geometry.OrientedGeometry attribute)</a>
+</li>
       <li><a href="radarcoverage/geometry.html#geometry.is_ccw">is_ccw() (in module geometry)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="L">L</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.load">load() (geometry.OrientedGeometry static method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -385,14 +453,21 @@
 <h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    O
+
+      <ul>
+        <li><a href="scripts/modules.html#cmdoption-geometry-create-arg-O">geometry-create command line option</a>
+</li>
+      </ul></li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPlace.obstructs_line_path">obstructs_line_path() (geometry.OrientedPlace method)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry">OrientedGeometry (class in geometry)</a>
 </li>
-      <li><a href="radarcoverage/geometry.html#geometry.OrientedPlace">OrientedPlace (class in geometry)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedPlace">OrientedPlace (class in geometry)</a>
+</li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon">OrientedPolygon (class in geometry)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPolyhedron">OrientedPolyhedron (class in geometry)</a>
@@ -458,6 +533,8 @@
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.project_with_perspective_mapping">project_with_perspective_mapping() (geometry.OrientedGeometry method)</a>
 </li>
+      <li><a href="radarcoverage/geometry.html#geometry.projection_matrix_from_line_path">projection_matrix_from_line_path() (in module geometry)</a>
+</li>
       <li><a href="radarcoverage/geometry.html#geometry.Pyramid">Pyramid (class in geometry)</a>
 </li>
   </ul></td>
@@ -472,7 +549,9 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="radarcoverage/geometry.html#geometry.reflexion_point_from_origin_destination_and_planes">reflexion_point_from_origin_destination_and_planes() (in module geometry)</a>
+      <li><a href="radarcoverage/geometry.html#geometry.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge">reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge() (in module geometry)</a>
+</li>
+      <li><a href="radarcoverage/geometry.html#geometry.reflexion_points_from_origin_destination_and_planes">reflexion_points_from_origin_destination_and_planes() (in module geometry)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.restore_points_before_projective_mapping">restore_points_before_projective_mapping() (in module geometry)</a>
 </li>
@@ -482,6 +561,8 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.save">save() (geometry.OrientedGeometry method)</a>
+</li>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.set_cartesian_axes_label">set_cartesian_axes_label() (in module plot_utils)</a>
 </li>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.set_spherical_axes_label">set_spherical_axes_label() (in module plot_utils)</a>

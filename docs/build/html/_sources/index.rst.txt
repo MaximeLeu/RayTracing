@@ -11,6 +11,7 @@ Welcome to Radar Coverage's documentation!
    :caption: Contents:
 
    radarcoverage/modules
+   scripts/modules
 
 
 

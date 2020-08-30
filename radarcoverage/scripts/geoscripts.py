@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 def geometry():
     """
     Tools to manipulate geometries.
+
+    If in REPL, use CTRL+D to exit.
     """
 
 

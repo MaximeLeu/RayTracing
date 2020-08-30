@@ -4,3 +4,7 @@ geopandas~=0.8.1
 Shapely~=1.7.0
 scipy~=1.5.2
 click~=7.1.2
+click-repl
+sphinx
+sphinx-rtd-theme
+sphinx-click

@@ -1,12 +1,10 @@
 # Plotting libraries
-import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d as mplot3d
 from radarcoverage import plot_utils
 
 # Numerical libraries
 import numpy as np
 from numpy.dual import norm
-from scipy.optimize import fsolve, root
+from scipy.optimize import root
 
 # Geometry libraries
 from shapely.geometry import Polygon as shPolygon
@@ -641,6 +639,8 @@ class OrientedGeometry(object):
         :param filename: the filepath
         :type filename: str
         """
+        if not filename.endswith('.ogeom'):
+            filename += '.ogeom'
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
 
@@ -654,6 +654,9 @@ class OrientedGeometry(object):
         :return: the geometry stored in the file
         :rtype: OrientedGeometry
         """
+        if not filename.endswith('.ogeom'):
+            raise ValueError(f'Can only read .ogeom files.')
+
         with open(filename, 'rb') as f:
             return pickle.load(f)
 
