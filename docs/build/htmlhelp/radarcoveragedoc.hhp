@@ -1,0 +1,98 @@
+[OPTIONS]
+Binary TOC=No
+Binary Index=No
+Compiled file=radarcoveragedoc.chm
+Contents file=radarcoveragedoc.hhc
+Default Window=radarcoveragedoc
+Default topic=index.html
+Display compile progress=No
+Full text search stop list file=radarcoveragedoc.stp
+Full-text search=Yes
+Index file=radarcoveragedoc.hhk
+Language=0x409
+Title=Radar Coverage 2020 documentation
+
+[WINDOWS]
+radarcoveragedoc="Radar Coverage 2020 documentation","radarcoveragedoc.hhc","radarcoveragedoc.hhk","index.html","index.html",,,,,0x63520,220,0x10384e,[0,0,1024,768],,,,,,,0
+
+[FILES]
+genindex.html
+index.html
+py-modindex.html
+_static\basic.css
+_static\file.png
+_static\minus.png
+_static\plus.png
+_static\pygments.css
+_static\css\badge_only.css
+_static\css\theme.css
+_static\css\fonts\Roboto-Slab-Bold.woff
+_static\css\fonts\Roboto-Slab-Bold.woff2
+_static\css\fonts\Roboto-Slab-Regular.woff
+_static\css\fonts\Roboto-Slab-Regular.woff2
+_static\css\fonts\fontawesome-webfont.eot
+_static\css\fonts\fontawesome-webfont.svg
+_static\css\fonts\fontawesome-webfont.ttf
+_static\css\fonts\fontawesome-webfont.woff
+_static\css\fonts\fontawesome-webfont.woff2
+_static\css\fonts\lato-bold-italic.woff
+_static\css\fonts\lato-bold-italic.woff2
+_static\css\fonts\lato-bold.woff
+_static\css\fonts\lato-bold.woff2
+_static\css\fonts\lato-normal-italic.woff
+_static\css\fonts\lato-normal-italic.woff2
+_static\css\fonts\lato-normal.woff
+_static\css\fonts\lato-normal.woff2
+_static\fonts\FontAwesome.otf
+_static\fonts\Roboto-Slab-Bold.woff
+_static\fonts\Roboto-Slab-Bold.woff2
+_static\fonts\Roboto-Slab-Light.woff
+_static\fonts\Roboto-Slab-Light.woff2
+_static\fonts\Roboto-Slab-Regular.woff
+_static\fonts\Roboto-Slab-Regular.woff2
+_static\fonts\Roboto-Slab-Thin.woff
+_static\fonts\Roboto-Slab-Thin.woff2
+_static\fonts\fontawesome-webfont.eot
+_static\fonts\fontawesome-webfont.svg
+_static\fonts\fontawesome-webfont.ttf
+_static\fonts\fontawesome-webfont.woff
+_static\fonts\fontawesome-webfont.woff2
+_static\fonts\lato-bold-italic.woff
+_static\fonts\lato-bold-italic.woff2
+_static\fonts\lato-bold.woff
+_static\fonts\lato-bold.woff2
+_static\fonts\lato-normal-italic.woff
+_static\fonts\lato-normal-italic.woff2
+_static\fonts\lato-normal.woff
+_static\fonts\lato-normal.woff2
+_static\fonts\Lato\lato-bold.eot
+_static\fonts\Lato\lato-bold.ttf
+_static\fonts\Lato\lato-bold.woff
+_static\fonts\Lato\lato-bold.woff2
+_static\fonts\Lato\lato-bolditalic.eot
+_static\fonts\Lato\lato-bolditalic.ttf
+_static\fonts\Lato\lato-bolditalic.woff
+_static\fonts\Lato\lato-bolditalic.woff2
+_static\fonts\Lato\lato-italic.eot
+_static\fonts\Lato\lato-italic.ttf
+_static\fonts\Lato\lato-italic.woff
+_static\fonts\Lato\lato-italic.woff2
+_static\fonts\Lato\lato-regular.eot
+_static\fonts\Lato\lato-regular.ttf
+_static\fonts\Lato\lato-regular.woff
+_static\fonts\Lato\lato-regular.woff2
+_static\fonts\RobotoSlab\roboto-slab-v7-bold.eot
+_static\fonts\RobotoSlab\roboto-slab-v7-bold.ttf
+_static\fonts\RobotoSlab\roboto-slab-v7-bold.woff
+_static\fonts\RobotoSlab\roboto-slab-v7-bold.woff2
+_static\fonts\RobotoSlab\roboto-slab-v7-regular.eot
+_static\fonts\RobotoSlab\roboto-slab-v7-regular.ttf
+_static\fonts\RobotoSlab\roboto-slab-v7-regular.woff
+_static\fonts\RobotoSlab\roboto-slab-v7-regular.woff2
+radarcoverage\class_utils.html
+radarcoverage\file_utils.html
+radarcoverage\geometry.html
+radarcoverage\modules.html
+radarcoverage\plot_utils.html
+radarcoverage\solvers.html
+scripts\modules.html

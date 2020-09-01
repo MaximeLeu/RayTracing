@@ -6,6 +6,8 @@ Here a listed the different command-line tools which can be used directly in a c
 Documentation is generated using sphinx-click but does not offer a pretty rendering.
 For a more detailed documentation, please use :code:`command --help` directly in the command shell.
 
+.. image:: scripts_usage.gif
+
 .. click:: geoscripts:geometry
    :prog: geometry
    :show-nested:

@@ -89,6 +89,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#geometry-create">create</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#geometry-repl">repl</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#geometry-show">show</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#geometry-translate">translate</a></li>
 </ul>
 </li>
 </ul>
@@ -163,6 +164,7 @@
 <p>Here a listed the different command-line tools which can be used directly in a command shell.</p>
 <p>Documentation is generated using sphinx-click but does not offer a pretty rendering.
 For a more detailed documentation, please use <code class="code docutils literal notranslate"><span class="pre">command</span> <span class="pre">--help</span></code> directly in the command shell.</p>
+<img alt="../_images/scripts_usage.gif" src="../_images/scripts_usage.gif" />
 <div class="section" id="geometry">
 <h2>geometry<a class="headerlink" href="#geometry" title="Permalink to this headline">¶</a></h2>
 <p>Tools to manipulate geometries.</p>
@@ -238,6 +240,35 @@ DIM allows to choose between 2D or 3D plot</p>
 <dt id="cmdoption-geometry-show-arg-I">
 <span id="cmdoption-geometry-show-arg-i"></span><code class="sig-name descname">I</code><code class="sig-prename descclassname"></code><a class="headerlink" href="#cmdoption-geometry-show-arg-I" title="Permalink to this definition">¶</a></dt>
 <dd><p>Required argument</p>
+</dd></dl>
+
+</div>
+<div class="section" id="geometry-translate">
+<h3>translate<a class="headerlink" href="#geometry-translate" title="Permalink to this headline">¶</a></h3>
+<p>Translates a geometry with a given displacement vector.</p>
+<p>I is the input .ogeom file
+T is the translation vector</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>geometry translate <span class="o">[</span>OPTIONS<span class="o">]</span> I T...
+</pre></div>
+</div>
+<p class="rubric">Options</p>
+<dl class="std option">
+<dt id="cmdoption-geometry-translate-o">
+<code class="sig-name descname">--o</code><code class="sig-prename descclassname"> &lt;o&gt;</code><a class="headerlink" href="#cmdoption-geometry-translate-o" title="Permalink to this definition">¶</a></dt>
+<dd><p>Output .ogeom file, same as input file if not specified</p>
+</dd></dl>
+
+<p class="rubric">Arguments</p>
+<dl class="std option">
+<dt id="cmdoption-geometry-translate-arg-I">
+<span id="cmdoption-geometry-translate-arg-i"></span><code class="sig-name descname">I</code><code class="sig-prename descclassname"></code><a class="headerlink" href="#cmdoption-geometry-translate-arg-I" title="Permalink to this definition">¶</a></dt>
+<dd><p>Required argument</p>
+</dd></dl>
+
+<dl class="std option">
+<dt id="cmdoption-geometry-translate-arg-T">
+<span id="cmdoption-geometry-translate-arg-t"></span><code class="sig-name descname">T</code><code class="sig-prename descclassname"></code><a class="headerlink" href="#cmdoption-geometry-translate-arg-T" title="Permalink to this definition">¶</a></dt>
+<dd><p>Required argument(s)</p>
 </dd></dl>
 
 </div>

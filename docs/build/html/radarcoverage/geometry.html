@@ -167,7 +167,7 @@
 <em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">Building</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Building" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#geometry.OrientedPolyhedron" title="geometry.OrientedPolyhedron"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedPolyhedron</span></code></a></p>
 <p>A building is an oriented polyhedron constructed by extruding a polygon in the z direction.
-It consists in 2 flat faces, one for ground and one for rooftop, and as many other vertical faces are there
+It consists in 2 flat faces, one for ground and one for rooftop, and as many other vertical faces as there
 are vertices in the original polygon.</p>
 <dl class="py method">
 <dt id="geometry.Building.by_polygon2d_and_height">
@@ -285,7 +285,7 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 <dd><p>Centers and keep the aspect ratio in a 2D representation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – axes to apply the method.</p>
+<dd class="field-odd"><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – the axes</p>
 </dd>
 </dl>
 </dd></dl>
@@ -296,7 +296,7 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 <dd><p>Centers and keep the aspect ratio in a 3D representation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>ax</strong> (<em>mplot3d.Axes3D</em>) – axes to apply the method.</p>
+<dd class="field-odd"><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – the axes</p>
 </dd>
 </dl>
 </dd></dl>
@@ -459,6 +459,50 @@ See <a class="reference internal" href="#geometry.polygons_visibility_matrix" ti
 </dd></dl>
 
 <dl class="py method">
+<dt id="geometry.OrientedGeometry.plot2d">
+<code class="sig-name descname">plot2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.plot2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the geometry on 2D axes using z=0 projection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>any</em>) – geometry-specific positional arguments</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – optionally, the axes on which to plot</p></li>
+<li><p><strong>ret</strong> (<em>bool</em>) – if True, will return the axes</p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – geometry-specific keyword arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing or, if specified, the axes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>matplotlib.axes.Axes</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.plot3d">
+<code class="sig-name descname">plot3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.plot3d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the geometry on 3D axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>any</em>) – geometry-specific positional arguments</p></li>
+<li><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – optionally, the axes on which to plot</p></li>
+<li><p><strong>ret</strong> (<em>bool</em>) – if True, will return the axes</p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – geometry-specific keyword arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing or, if specified, the axes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>mpl_toolkits.mplot3d.Axes3D</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="geometry.OrientedGeometry.project">
 <code class="sig-name descname">project</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">matrix</span></em>, <em class="sig-param"><span class="n">around_point</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.project" title="Permalink to this definition">¶</a></dt>
 <dd><p>Projects a geometry on different axes given by matrix columns.</p>
@@ -533,7 +577,7 @@ and and the polygon faces that are visible to it in red.</p>
 <dd><p>Sets the axes limits to be tight on the geometry.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>ax</strong> (<em>mplot3d.Axes3D</em>) – axes to apply the method.</p>
+<dd class="field-odd"><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – the axes</p>
 </dd>
 </dl>
 </dd></dl>
@@ -631,12 +675,46 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 <dl class="py method">
 <dt id="geometry.OrientedPlace.plot2d">
 <code class="sig-name descname">plot2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">poly_args</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">poly_kwargs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">points_args</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">points_kwargs</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace.plot2d" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Plots the geometry on 2D axes using z=0 projection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>any</em>) – geometry-specific positional arguments</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – optionally, the axes on which to plot</p></li>
+<li><p><strong>ret</strong> (<em>bool</em>) – if True, will return the axes</p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – geometry-specific keyword arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing or, if specified, the axes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>matplotlib.axes.Axes</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="geometry.OrientedPlace.plot3d">
 <code class="sig-name descname">plot3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">poly_args</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">poly_kwargs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">points_args</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">points_kwargs</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace.plot3d" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Plots the geometry on 3D axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>any</em>) – geometry-specific positional arguments</p></li>
+<li><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – optionally, the axes on which to plot</p></li>
+<li><p><strong>ret</strong> (<em>bool</em>) – if True, will return the axes</p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – geometry-specific keyword arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing or, if specified, the axes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>mpl_toolkits.mplot3d.Axes3D</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -829,12 +907,46 @@ this factor</p></li>
 <dl class="py method">
 <dt id="geometry.OrientedPolygon.plot2d">
 <code class="sig-name descname">plot2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">facecolor</span><span class="o">=</span><span class="default_value">'b'</span></em>, <em class="sig-param"><span class="n">alpha</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">edgecolor</span><span class="o">=</span><span class="default_value">'k'</span></em>, <em class="sig-param"><span class="n">lw</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.plot2d" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Plots the geometry on 2D axes using z=0 projection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>any</em>) – geometry-specific positional arguments</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – optionally, the axes on which to plot</p></li>
+<li><p><strong>ret</strong> (<em>bool</em>) – if True, will return the axes</p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – geometry-specific keyword arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing or, if specified, the axes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>matplotlib.axes.Axes</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="geometry.OrientedPolygon.plot3d">
 <code class="sig-name descname">plot3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">facecolor</span><span class="o">=</span><span class="default_value">0, 0, 0, 0</span></em>, <em class="sig-param"><span class="n">edgecolor</span><span class="o">=</span><span class="default_value">'k'</span></em>, <em class="sig-param"><span class="n">alpha</span><span class="o">=</span><span class="default_value">0.1</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">normal</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">normal_kwargs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">orientation</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">orientation_kwargs</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.plot3d" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Plots the geometry on 3D axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>any</em>) – geometry-specific positional arguments</p></li>
+<li><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – optionally, the axes on which to plot</p></li>
+<li><p><strong>ret</strong> (<em>bool</em>) – if True, will return the axes</p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – geometry-specific keyword arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing or, if specified, the axes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>mpl_toolkits.mplot3d.Axes3D</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -884,12 +996,46 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 <dl class="py method">
 <dt id="geometry.OrientedPolyhedron.plot2d">
 <code class="sig-name descname">plot2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolyhedron.plot2d" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Plots the geometry on 2D axes using z=0 projection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>any</em>) – geometry-specific positional arguments</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – optionally, the axes on which to plot</p></li>
+<li><p><strong>ret</strong> (<em>bool</em>) – if True, will return the axes</p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – geometry-specific keyword arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing or, if specified, the axes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>matplotlib.axes.Axes</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="geometry.OrientedPolyhedron.plot3d">
 <code class="sig-name descname">plot3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolyhedron.plot3d" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Plots the geometry on 3D axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>any</em>) – geometry-specific positional arguments</p></li>
+<li><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – optionally, the axes on which to plot</p></li>
+<li><p><strong>ret</strong> (<em>bool</em>) – if True, will return the axes</p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – geometry-specific keyword arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing or, if specified, the axes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>mpl_toolkits.mplot3d.Axes3D</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -942,12 +1088,46 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 <dl class="py method">
 <dt id="geometry.OrientedSurface.plot2d">
 <code class="sig-name descname">plot2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedSurface.plot2d" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Plots the geometry on 2D axes using z=0 projection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>any</em>) – geometry-specific positional arguments</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – optionally, the axes on which to plot</p></li>
+<li><p><strong>ret</strong> (<em>bool</em>) – if True, will return the axes</p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – geometry-specific keyword arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing or, if specified, the axes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>matplotlib.axes.Axes</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="geometry.OrientedSurface.plot3d">
 <code class="sig-name descname">plot3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedSurface.plot3d" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Plots the geometry on 3D axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>any</em>) – geometry-specific positional arguments</p></li>
+<li><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – optionally, the axes on which to plot</p></li>
+<li><p><strong>ret</strong> (<em>bool</em>) – if True, will return the axes</p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – geometry-specific keyword arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing or, if specified, the axes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>mpl_toolkits.mplot3d.Axes3D</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

@@ -15,6 +15,31 @@ import geopandas as gpd
 # Utils
 import itertools
 import pickle
+import uuid
+from radarcoverage import file_utils
+
+
+def intersection_of_2d_lines(points_A, points_B):
+    """
+    Returns the intersection point of two lines.
+
+    :param points_A: the points of the first line
+    :type points_A: numpy.ndarray *size=2*
+    :param points_B: the points of the second line
+    :type points_B: numpy.ndarray *size=2*
+    :return: the intersection point
+    :rtype: numpy.ndarray *shape=(2)*
+    """
+    # https://stackoverflow.com/questions/3252194/numpy-and-line-intersections
+    s = np.vstack([points_A, points_B])
+    h = np.hstack([s, np.ones((4, 1))])
+    l1 = np.cross(h[0], h[1])
+    l2 = np.cross(h[2], h[3])
+    x, y, z = np.cross(l1, l2)
+    if z == 0:
+        return np.full(2, np.nan)
+    else:
+        return np.array([x / z, y / z])
 
 
 def enclosed_area(points):
@@ -75,6 +100,86 @@ def parse_3d_axis(axis):
     return axis
 
 
+def polygons_sharp_edges_iter(polygons):
+    """
+    Returns all the sharp edges contained in the polygon.
+
+    For an edge to be sharp, there are two conditions:
+    1. it must belong to 2 different polygons
+    2. the 2 polygons must make a convex polyhedron when joined by common edge
+
+    Also, two polygons can only share 1 edge.
+
+    :param polygons: the polygon
+    :type polygons: Iterable[OrientedPolygon]
+    :return: an iterable of (edge, i, j) and i and j are indices relating to polygons
+    :rtype: Iterable[Tuple[numpy.ndarray, int, int]]
+    """
+    polygons = list(polygons)
+    indices = np.arange(len(polygons), dtype=int)
+
+    comb_indices = itertools.combinations(indices, 2)
+
+    for i, j in comb_indices:
+        polygon_A = polygons[i]
+        normal_A = polygon_A.get_normal()
+        centroid_A = polygon_A.get_centroid()
+        domain_A = polygon_A.get_domain()
+        line_A = np.row_stack([centroid_A, centroid_A + normal_A])
+        polygon_B = polygons[j]
+        normal_B = polygon_B.get_normal()
+        centroid_B = polygon_B.get_centroid()
+        domain_B = polygon_B.get_domain()
+        line_B = np.row_stack([centroid_B, centroid_B + normal_B])
+
+        if np.any(
+                np.abs(centroid_A - centroid_B) > np.diff(domain_A, axis=0) + np.diff(domain_B, axis=0)
+        ):  # Check that polygons are close enough to possibly touch
+            continue
+
+        if abs(np.dot(normal_A, normal_B)) == 1:  # Check that planes are not parallel
+            continue
+
+        x = np.cross(normal_A, normal_B)
+        matrix = projection_matrix_from_vector(x)
+        projected_line_A = project_points(line_A, matrix.T)
+        projected_line_B = project_points(line_B, matrix.T)
+
+        intersection_point = intersection_of_2d_lines(projected_line_A[:, :2], projected_line_B[:, :2])
+
+        if np.any(np.isnan(intersection_point)):  # No line intersection = planes are parallel
+            continue
+
+        # X = A + V * t
+        A = projected_line_A[0, :2]
+        V = projected_line_A[1, :2] - A
+        if V[0] != 0:
+            t = (intersection_point[0] - A[0]) / V[0]
+        elif V[1] != 0:
+            t = (intersection_point[1] - A[1]) / V[1]
+        else:
+            continue
+
+        if t < 0:  # If two polygons make a convex form => t < 0 (because normals intercept inside the polyhedron)
+            points_A = polygon_A.points
+            points_B = polygon_B.points
+
+            # Sort points in order to easily check if two edges are the same
+            edges_A = [
+                np.sort(np.row_stack([points_A[k - 1, :], points_A[k, :]]), axis=0) for k in range(points_A.shape[0])
+            ]
+            edges_B = [
+                np.sort(np.row_stack([points_B[m - 1, :], points_B[m, :]]), axis=0) for m in range(points_B.shape[0])
+            ]
+            for k, m in itertools.product(range(points_A.shape[0]), range(points_B.shape[0])):
+                edge_A = edges_A[k]
+                edge_B = edges_B[m]
+
+                if np.allclose(edge_A, edge_B):  # Edges are the same
+                    yield edge_A, i, j
+                    break
+
+
 def reflexion_on_plane(incidents, normal, normalized=False):
     """
     Return the reflexion of incident vector on a plane with given normal.
@@ -128,14 +233,15 @@ def reflexion_points_from_origin_destination_and_planes(origin, destination, pla
 
     for i in range(1, n + 1):
         # First guess for solution
-        points[i, :] = 0.5 * (points[i - 1, :] + B - 2 * (d[i-1] + points[i - 1, :] @ normal[i-1, :].T) * normal[i-1, :])
+        points[i, :] = 0.5 * (
+                    points[i - 1, :] + B - 2 * (d[i - 1] + points[i - 1, :] @ normal[i - 1, :].T) * normal[i - 1, :])
 
     def gamma(v):
         norms = norm(v, axis=1)
         return norms[:-1] / norms[1:]
 
     def func(x):
-        points[1:n+1, :] = x.reshape(-1, 3)
+        points[1:n + 1, :] = x.reshape(-1, 3)
         v = np.diff(points, axis=0)
         g = gamma(v).reshape(-1, 1)
 
@@ -234,7 +340,7 @@ def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_ed
     for i in range(1, n + 1):
         # First guess for solution
         points[i, :] = 0.5 * (
-                    points[i - 1, :] + B - 2 * (d[i - 1] + points[i - 1, :] @ normal[i - 1, :].T) * normal[i - 1, :])
+                points[i - 1, :] + B - 2 * (d[i - 1] + points[i - 1, :] @ normal[i - 1, :].T) * normal[i - 1, :])
 
     def gamma(v):
         norms = norm(v, axis=1)
@@ -244,7 +350,7 @@ def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_ed
     def func(x):
         r = np.empty_like(x)
         # Reflection
-        points[1:n+1, :] = x[:-1].reshape(-1, 3)
+        points[1:n + 1, :] = x[:-1].reshape(-1, 3)
         points[-1, :] = project_points(np.array([Xe[0], Xe[1], x[-1]]), matrix.T)
 
         v = np.diff(points, axis=0)
@@ -276,7 +382,7 @@ def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_ed
 
     x = sol.x
 
-    points[1:n+1, :] = x[:-1].reshape(-1, 3)
+    points[1:n + 1, :] = x[:-1].reshape(-1, 3)
     points[-1, :] = project_points(np.array([Xe[0], Xe[1], x[-1]]), matrix.T)
 
     return points[1:, :], sol
@@ -432,6 +538,24 @@ def any_point_between(points, a, b, axis=2):
     return np.any(a <= points[:, axis] <= b)
 
 
+def projection_matrix_from_vector(vector):
+    """
+    Returns an orthogonal matrix which can be used to project any set of points in a coordinates system aligned with
+    given vector. The last axis is the axis with the same direction as the vector.
+
+    :param vector: the vector
+    :type vector: numpy.ndarray *s=(3)*
+    :return: a matrix
+    :rtype: numpy.ndarray *shape=(3, 3)*
+    """
+    z = vector / norm(vector)
+    y = np.array([0, 1, 0], dtype=float)  # Arbitrary
+    y -= y.dot(z) * z
+    y /= norm(y)
+    x = np.cross(y, z)
+    return np.row_stack([x, y, z]).T
+
+
 def projection_matrix_from_line_path(points):
     """
     Returns an orthogonal matrix which can be used to project any set of points in a coordinates system aligned with
@@ -442,16 +566,10 @@ def projection_matrix_from_line_path(points):
     :return: a matrix
     :rtype: numpy.ndarray *shape=(3, 3)*
     """
-    points = points.reshape(-1, 3)
     A = points[0, :]
     B = points[1, :]
     V = B - A
-    z = V / norm(V)
-    y = np.array([0, 1, 0], dtype=float)  # Arbitrary
-    y -= y.dot(z) * z
-    y /= norm(y)
-    x = np.cross(y, z)
-    return np.row_stack([x, y, z]).T
+    return projection_matrix_from_vector(V)
 
 
 def polygons_obstruct_line_path(polygons, points):
@@ -465,6 +583,9 @@ def polygons_obstruct_line_path(polygons, points):
     :return: True if any polygon intercepts the line path
     :rtype: bool
     """
+    A = points[0, :]
+    B = points[1, :]
+    V = B - A
     matrix = projection_matrix_from_line_path(points).T
 
     projected_points = project_points(points, matrix)
@@ -599,7 +720,7 @@ def polygons_visibility_matrix(polygons, strict=False):
         polygon_visibility_vector(polygon_A, polygons, out=visibility_matrix[i, :], strict=strict)
 
     # Symmetric matrix
-    #visibility_matrix = visibility_matrix | visibility_matrix.T
+    # visibility_matrix = visibility_matrix | visibility_matrix.T
 
     return visibility_matrix
 
@@ -618,16 +739,20 @@ class OrientedGeometry(object):
         ccw (counter-clock-wise)."
 
     Oriented geometry constructors assume that their inputs are already oriented.
-    """
-    id = 0
 
-    def __init__(self):
-        self.id = OrientedGeometry.id
-        OrientedGeometry.id += 1
+    :param attributes: attributes that will be stored with geometry
+    :type attributes: any
+    """
+
+    def __init__(self, **attributes):
+        self.id = attributes.pop('id', None)
+        if self.id is None:
+            self.id = uuid.uuid4()
+        self.attributes = attributes
         self.domain = None
         self.centroid = None
         self.visibility_matrix = None
-        self.pause = False
+        self.sharp_edges = None
 
     def __eq__(self, other):
         return self.id == other.id
@@ -659,6 +784,39 @@ class OrientedGeometry(object):
 
         with open(filename, 'rb') as f:
             return pickle.load(f)
+
+    @staticmethod
+    def from_json(data=None, filename=None):
+        """
+        Parse a dictionary or a json file into a geometry.
+
+        :param data: the dictionary of data, see :func:`to_json`
+        :type data: dict
+        :param filename: if not None, will load the geometry from a json file
+        :type filename: str
+        :return: the geometry
+        :rtype: OrientedGeometry
+        """
+        raise NotImplementedError
+
+    def to_json(self, filename=None):
+        """
+        Returns a dictionary in a json format
+
+        :param filename: if not None, will save the geometry in a json file
+        :type filename: str
+        :return: the geometry in a json format
+        :rtype: dict
+        """
+        data = dict(
+            id=self.id,
+            **self.attributes
+        )
+
+        if filename is not None:
+            file_utils.json_save(filename, data)
+
+        return data
 
     def get_polygons_iter(self):
         """
@@ -768,11 +926,45 @@ class OrientedGeometry(object):
         """
         return self.apply_on_points(project_points_with_perspective_mapping, focal_distance=focal_distance, axis=axis)
 
+    def plot2d(self, *args, ax=None, ret=False, **kwargs):
+        """
+        Plots the geometry on 2D axes using z=0 projection.
+
+        :param args: geometry-specific positional arguments
+        :type args: any
+        :param ax: optionally, the axes on which to plot
+        :type ax: matplotlib.axes.Axes
+        :param ret: if True, will return the axes
+        :type ret: bool
+        :param kwargs: geometry-specific keyword arguments
+        :type kwargs: any
+        :return: nothing or, if specified, the axes
+        :rtype: matplotlib.axes.Axes
+        """
+        raise NotImplementedError
+
+    def plot3d(self, *args, ax=None, ret=False, **kwargs):
+        """
+        Plots the geometry on 3D axes.
+
+        :param args: geometry-specific positional arguments
+        :type args: any
+        :param ax: optionally, the axes on which to plot
+        :type ax: mpl_toolkits.mplot3d.Axes3D
+        :param ret: if True, will return the axes
+        :type ret: bool
+        :param kwargs: geometry-specific keyword arguments
+        :type kwargs: any
+        :return: nothing or, if specified, the axes
+        :rtype: mpl_toolkits.mplot3d.Axes3D
+        """
+        raise NotImplementedError
+
     def center_2d_plot(self, ax):
         """
         Centers and keep the aspect ratio in a 2D representation.
 
-        :param ax: axes to apply the method.
+        :param ax: the axes
         :type ax: matplotlib.axes.Axes
         """
 
@@ -788,8 +980,8 @@ class OrientedGeometry(object):
         """
         Centers and keep the aspect ratio in a 3D representation.
 
-        :param ax: axes to apply the method.
-        :type ax: mplot3d.Axes3D
+        :param ax: the axes
+        :type ax: mpl_toolkits.mplot3d.Axes3D
         """
 
         domain = self.get_domain()
@@ -805,8 +997,8 @@ class OrientedGeometry(object):
         """
         Sets the axes limits to be tight on the geometry.
 
-        :param ax: axes to apply the method.
-        :type ax: mplot3d.Axes3D
+        :param ax: the axes
+        :type ax: mpl_toolkits.mplot3d.Axes3D
         """
         domain = self.get_domain()
         ax.set_xlim([domain[0, 0], domain[1, 0]])
@@ -870,6 +1062,24 @@ class OrientedGeometry(object):
 
         return self.visibility_matrix
 
+    def get_sharp_edges(self, force=False):
+        """
+        Returns the symmetric visibility matrix for the polygons in this geometry.
+        See :func:`polygons_visibility_matrix`'s documentation for more information.
+
+
+        :param strict: if True, will choose strict approach
+        :type strict: bool
+        :param force: if True, will force to (re)compute value (only necessary if geometry has changed)
+        :type force: bool
+        :return: the visibility matrix
+        :rtype: numpy.ndarray *dtype=bool, shape=(N, N)*
+        """
+        if force or self.sharp_edges is None:
+            self.sharp_edges = list(polygons_sharp_edges_iter(self.get_polygons_iter()))
+
+        return self.sharp_edges
+
     def show_visibility_matrix_animation(self, strict=False):
         """
         Shows a 3D animation of the visibility matrix by showing, for each polygon, the polygon face "observing" is blue
@@ -901,6 +1111,39 @@ class OrientedGeometry(object):
 
         plot_utils.animate_3d_ax(ax, func=func)
 
+    def show_sharp_edges_animation(self):
+        """
+        Shows a 3D animation of the sharp edges by showing, for each edge, the two polygons making the edge.
+        """
+        ax = self.plot3d(ret=True)
+        self.center_3d_plot(ax)
+        polys3d = ax.collections
+        sharp_edges = self.get_sharp_edges()
+
+        n = len(sharp_edges)
+        indices = itertools.cycle(itertools.chain.from_iterable(itertools.repeat(i, 30) for i in range(n)))
+
+        edge3d = None
+
+        def func(_, edge3d):
+            i = next(indices)
+
+            if edge3d is not None:
+                edge3d.remove()
+
+            for poly in polys3d:
+                poly.set_alpha(0)
+
+            edge, j, k = sharp_edges[i]
+            polys3d[j].set_facecolor('r')
+            polys3d[j].set_alpha(0.5)
+            polys3d[k].set_facecolor('r')
+            polys3d[k].set_alpha(0.5)
+
+            edge3d = plot_utils.add_line_to_3d_ax(ax, edge, lw=4, color='y')
+
+        plot_utils.animate_3d_ax(ax, func=func, edge3d=edge3d)
+
 
 class OrientedPolygon(OrientedGeometry):
     """
@@ -909,14 +1152,38 @@ class OrientedPolygon(OrientedGeometry):
 
     :param points: the points
     :type points: numpy.ndarray *shape=(N, 3)*
+    :param attributes: attributes that will be stored with geometry
+    :type attributes: any
     """
-    def __init__(self, points):
-        super().__init__()
+
+    def __init__(self, points, **attributes):
+        super().__init__(**attributes)
         self.points = points.astype(float)
 
         self.parametric = None
         self.matrix = None
         self.shapely = None
+
+    @staticmethod
+    def from_json(data=None, filename=None):
+        data = data if data is not None else file_utils.json_load(filename)
+        geotype = data.pop('geotype')
+        if geotype != 'polygon':
+            raise ValueError(f'Cannot cast geotype {geotype} to polygon.')
+        points = np.array(data.pop('points'))
+        return OrientedPolygon(points, **data)
+
+    def to_json(self, filename=None):
+        data = dict(
+            super().to_json(),
+            geotype='polygon',
+            points=self.points
+        )
+
+        if filename is not None:
+            file_utils.json_save(filename, data)
+
+        return data
 
     def get_shapely(self, force=False):
         """
@@ -1004,7 +1271,6 @@ class OrientedPolygon(OrientedGeometry):
         :rtype: np.ndarray *shape=(4)*
         """
         if force or self.parametric is None:
-
             # Plane calculation
             normal = np.cross(self.points[1, :] - self.points[0, :],
                               self.points[2, :] - self.points[1, :])
@@ -1097,8 +1363,8 @@ class OrientedPolygon(OrientedGeometry):
             return ax
 
     def plot3d(self, facecolor=(0, 0, 0, 0), edgecolor='k', alpha=0.1, ret=False, ax=None,
-             normal=False, normal_kwargs=None,
-             orientation=False, orientation_kwargs=None):
+               normal=False, normal_kwargs=None,
+               orientation=False, orientation_kwargs=None):
 
         if normal and normal_kwargs is None:
             normal_kwargs = {'color': 'b', 'length': 10}
@@ -1138,9 +1404,12 @@ class OrientedSurface(OrientedGeometry):
 
     :param polygons: the polygons
     :type polygons: a list of (or an instance of) numpy.ndarray (points) or OrientedPolygons
+    :param attributes: attributes that will be stored with geometry
+    :type attributes: any
     """
-    def __init__(self, polygons):
-        super().__init__()
+
+    def __init__(self, polygons, **attributes):
+        super().__init__(**attributes)
 
         if type(polygons) != list:
             polygons = [polygons]
@@ -1152,6 +1421,29 @@ class OrientedSurface(OrientedGeometry):
             self.polygons = polygons
         else:
             raise ValueError('OrientedSurface needs a nump.ndarray or OrientedPolygon as input')
+
+    @staticmethod
+    def from_json(data=None, filename=None):
+        data = data if data is not None else file_utils.json_load(filename)
+        geotype = data.pop('geotype')
+        if geotype != 'surface':
+            raise ValueError(f'Cannot cast geotype {geotype} to surface.')
+        polygons = [OrientedPolygon.from_json(data=poly_data) for poly_data in data.pop('polygons')]
+        return OrientedSurface(polygons, **data)
+
+    def to_json(self, filename=None):
+        data = dict(
+            super().to_json(),
+            geotype='surface',
+            polygons=[
+                polygon.to_json() for polygon in self.polygons
+            ]
+        )
+
+        if filename is not None:
+            file_utils.json_save(filename, data)
+
+        return data
 
     def get_polygons_iter(self):
         return iter(self.polygons)
@@ -1187,11 +1479,40 @@ class OrientedPolyhedron(OrientedGeometry):
     An oriented polyhedron is a polyhedron with an "inside" and an "outside".
     It is composed with oriented polygons.
     Surfaces are oriented ccw where watched from the outside. Normal vectors are pointing outward.
+
+    :param polygons: the polygons in the polyhedron
+    :type polygons: a list of (or an instance of) numpy.ndarray (points) or OrientedPolygons
+    :param attributes: attributes that will be stored with geometry
+    :type attributes: any
     """
-    def __init__(self, polygons, **kwargs):
-        super().__init__()
-        self.aux_surface = OrientedSurface(polygons, **kwargs)
+
+    def __init__(self, polygons, **attributes):
+        super().__init__(**attributes)
+        self.aux_surface = OrientedSurface(polygons)
         self.polygons = self.aux_surface.polygons
+
+    @staticmethod
+    def from_json(data=None, filename=None):
+        data = data if data is not None else file_utils.json_load(filename)
+        geotype = data.pop('geotype')
+        if geotype != 'polyhedron':
+            raise ValueError(f'Cannot cast geotype {geotype} to polyhedron.')
+        polygons = [OrientedPolygon.from_json(data=poly_data) for poly_data in data.pop('polygons')]
+        return OrientedPolyhedron(polygons, **data)
+
+    def to_json(self, filename=None):
+        data = dict(
+            super().to_json(),
+            geotype='polyhedron',
+            polygons=[
+                polygon.to_json() for polygon in self.polygons
+            ]
+        )
+
+        if filename is not None:
+            file_utils.json_save(filename, data)
+
+        return data
 
     def get_polygons_iter(self):
         return iter(self.polygons)
@@ -1217,6 +1538,7 @@ class Pyramid(OrientedPolyhedron):
     """
     A pyramid is an oriented polyhedron described by a base polygon and an isolated point.
     """
+
     @staticmethod
     def by_point_and_polygon(point, polygon):
         """
@@ -1249,7 +1571,7 @@ class Pyramid(OrientedPolyhedron):
 class Building(OrientedPolyhedron):
     """
     A building is an oriented polyhedron constructed by extruding a polygon in the z direction.
-    It consists in 2 flat faces, one for ground and one for rooftop, and as many other vertical faces are there
+    It consists in 2 flat faces, one for ground and one for rooftop, and as many other vertical faces as there
     are vertices in the original polygon.
     """
 
@@ -1386,9 +1708,20 @@ class Cube(OrientedPolyhedron):
 
 
 class OrientedPlace(OrientedGeometry):
+    """
+    An oriented place consists of a surface, usually the ground, and a set of polyhedra and points.
 
-    def __init__(self, surface, polyhedra=None, set_of_points=np.empty((0, 3))):
-        super().__init__()
+    :param surface: the surface
+    :type surface: OrientedSurface or numpy.ndarray (points)
+    :param polyhedra: the polyhedra
+    :type polyhedra: OrientedPolyhedron or List[OrientedPolyhedron]
+    :param set_of_points: the points
+    :type set_of_points: numpy.ndarray *shape=(N, 3)*
+    :param attributes: attributes that will be stored with geometry
+    :type attributes: any
+    """
+    def __init__(self, surface, polyhedra=None, set_of_points=np.empty((0, 3)), **attributes):
+        super().__init__(**attributes)
 
         if isinstance(surface, OrientedSurface):
             self.surface = surface
@@ -1414,6 +1747,33 @@ class OrientedPlace(OrientedGeometry):
                 self.set_of_points = set_of_points
         else:
             raise ValueError('OrientedPlace has an invalid set_of_points as input')
+
+    @staticmethod
+    def from_json(data=None, filename=None):
+        data = data if data is not None else file_utils.json_load(filename)
+        geotype = data.pop('geotype')
+        if geotype != 'place':
+            raise ValueError(f'Cannot cast geotype {geotype} to place.')
+        surface = OrientedSurface.from_json(data=data.pop('surface'))
+        polyhedra = [OrientedPolyhedron.from_json(data=poly_data) for poly_data in data.pop('polyhedra')]
+        points = np.ndarray(data.pop('points'))
+        return OrientedPlace(surface, polyhedra, points, **data)
+
+    def to_json(self, filename=None):
+        data = dict(
+            super().to_json(),
+            geotype='place',
+            surface=self.surface.to_json(),
+            polyhedra=[
+                polyhedron.to_json() for polyhedron in self.polyhedra
+            ],
+            points=self.points
+        )
+
+        if filename is not None:
+            file_utils.json_save(filename, data)
+
+        return data
 
     def add_set_of_points(self, points):
         """
@@ -1546,4 +1906,3 @@ def generate_place_from_rooftops_file(roof_top_file, center=True):
     place.polyhedra = polyhedra
 
     return place
-

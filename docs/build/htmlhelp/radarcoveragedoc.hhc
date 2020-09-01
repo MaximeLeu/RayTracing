@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<meta name="GENERATOR" content="Microsoft&reg; HTML Help Workshop 4.1">
+<!-- Sitemap 1.0 -->
+</HEAD><BODY>
+<OBJECT type="text/site properties">
+        <param name="Window Styles" value="0x801227">
+        <param name="ImageType" value="Folder">
+</OBJECT>
+<UL>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="Radar Coverage 2020 documentation">
+    <param name="Local" value="index.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="Python Module Index">
+    <param name="Local" value="py-modindex.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="radarcoverage">
+    <param name="Local" value="radarcoverage/modules.html">
+</OBJECT>
+<UL>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="class_utils module">
+    <param name="Local" value="radarcoverage/class_utils.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="file_utils module">
+    <param name="Local" value="radarcoverage/file_utils.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="geometry module">
+    <param name="Local" value="radarcoverage/geometry.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="plot_utils module">
+    <param name="Local" value="radarcoverage/plot_utils.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="solvers module">
+    <param name="Local" value="radarcoverage/solvers.html">
+</OBJECT>
+</UL>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="command-line tools">
+    <param name="Local" value="scripts/modules.html">
+</OBJECT>
+<UL>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="geometry">
+    <param name="Local" value="scripts/modules.html#geometry">
+</OBJECT>
+<UL>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="create">
+    <param name="Local" value="scripts/modules.html#geometry-create">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="repl">
+    <param name="Local" value="scripts/modules.html#geometry-repl">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="show">
+    <param name="Local" value="scripts/modules.html#geometry-show">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Name" value="translate">
+    <param name="Local" value="scripts/modules.html#geometry-translate">
+</OBJECT>
+</UL>
+</UL>
+</UL></BODY></HTML>

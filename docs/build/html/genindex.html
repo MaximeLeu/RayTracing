@@ -179,13 +179,20 @@
         <li><a href="scripts/modules.html#cmdoption-geometry-show-dim">geometry-show command line option</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     --geotype &lt;geotype&gt;
 
       <ul>
         <li><a href="scripts/modules.html#cmdoption-geometry-create-geotype">geometry-create command line option</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    --o &lt;o&gt;
+
+      <ul>
+        <li><a href="scripts/modules.html#cmdoption-geometry-translate-o">geometry-translate command line option</a>
 </li>
       </ul></li>
   </ul></td>
@@ -351,18 +358,29 @@
         <li><a href="scripts/modules.html#cmdoption-geometry-show-arg-I">I</a>
 </li>
       </ul></li>
+      <li>
+    geometry-translate command line option
+
+      <ul>
+        <li><a href="scripts/modules.html#cmdoption-geometry-translate-o">--o &lt;o&gt;</a>
+</li>
+        <li><a href="scripts/modules.html#cmdoption-geometry-translate-arg-I">I</a>
+</li>
+        <li><a href="scripts/modules.html#cmdoption-geometry-translate-arg-T">T</a>
+</li>
+      </ul></li>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.get_2d_plot_ax">get_2d_plot_ax() (in module plot_utils)</a>
 </li>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.get_3d_plot_ax">get_3d_plot_ax() (in module plot_utils)</a>
 </li>
       <li><a href="radarcoverage/class_utils.html#class_utils.get_all_parent_classes">get_all_parent_classes() (in module class_utils)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.get_centroid">get_centroid() (geometry.OrientedGeometry method)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.get_domain">get_domain() (geometry.OrientedGeometry method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon.get_matrix">get_matrix() (geometry.OrientedPolygon method)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon.get_normal">get_normal() (geometry.OrientedPolygon method)</a>
@@ -408,6 +426,8 @@
         <li><a href="scripts/modules.html#cmdoption-geometry-create-arg-I">geometry-create command line option</a>
 </li>
         <li><a href="scripts/modules.html#cmdoption-geometry-show-arg-I">geometry-show command line option</a>
+</li>
+        <li><a href="scripts/modules.html#cmdoption-geometry-translate-arg-I">geometry-translate command line option</a>
 </li>
       </ul></li>
   </ul></td>
@@ -484,9 +504,11 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radarcoverage/geometry.html#geometry.parse_3d_axis">parse_3d_axis() (in module geometry)</a>
 </li>
-      <li><a href="radarcoverage/geometry.html#geometry.OrientedPlace.plot2d">plot2d() (geometry.OrientedPlace method)</a>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.plot2d">plot2d() (geometry.OrientedGeometry method)</a>
 
       <ul>
+        <li><a href="radarcoverage/geometry.html#geometry.OrientedPlace.plot2d">(geometry.OrientedPlace method)</a>
+</li>
         <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon.plot2d">(geometry.OrientedPolygon method)</a>
 </li>
         <li><a href="radarcoverage/geometry.html#geometry.OrientedPolyhedron.plot2d">(geometry.OrientedPolyhedron method)</a>
@@ -494,9 +516,11 @@
         <li><a href="radarcoverage/geometry.html#geometry.OrientedSurface.plot2d">(geometry.OrientedSurface method)</a>
 </li>
       </ul></li>
-      <li><a href="radarcoverage/geometry.html#geometry.OrientedPlace.plot3d">plot3d() (geometry.OrientedPlace method)</a>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.plot3d">plot3d() (geometry.OrientedGeometry method)</a>
 
       <ul>
+        <li><a href="radarcoverage/geometry.html#geometry.OrientedPlace.plot3d">(geometry.OrientedPlace method)</a>
+</li>
         <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon.plot3d">(geometry.OrientedPolygon method)</a>
 </li>
         <li><a href="radarcoverage/geometry.html#geometry.OrientedPolyhedron.plot3d">(geometry.OrientedPolyhedron method)</a>
@@ -565,14 +589,18 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.save">save() (geometry.OrientedGeometry method)</a>
 </li>
+      <li><a href="radarcoverage/plot_utils.html#plot_utils.set_axes_label">set_axes_label() (in module plot_utils)</a>
+</li>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.set_cartesian_axes_label">set_cartesian_axes_label() (in module plot_utils)</a>
+</li>
+      <li><a href="radarcoverage/plot_utils.html#plot_utils.set_polar_axes_label">set_polar_axes_label() (in module plot_utils)</a>
 </li>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.set_spherical_axes_label">set_spherical_axes_label() (in module plot_utils)</a>
 </li>
-      <li><a href="radarcoverage/class_utils.html#class_utils.share_parent_class">share_parent_class() (in module class_utils)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="radarcoverage/class_utils.html#class_utils.share_parent_class">share_parent_class() (in module class_utils)</a>
+</li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.show_visibility_matrix_animation">show_visibility_matrix_animation() (geometry.OrientedGeometry method)</a>
 </li>
       <li><a href="radarcoverage/solvers.html#solvers.RadarCoveringProblem.solve">solve() (solvers.RadarCoveringProblem method)</a>
@@ -590,10 +618,17 @@
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.tight_3d_plot">tight_3d_plot() (geometry.OrientedGeometry method)</a>
+      <li>
+    T
+
+      <ul>
+        <li><a href="scripts/modules.html#cmdoption-geometry-translate-arg-T">geometry-translate command line option</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.tight_3d_plot">tight_3d_plot() (geometry.OrientedGeometry method)</a>
+</li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.translate">translate() (geometry.OrientedGeometry method)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.translate_points">translate_points() (in module geometry)</a>

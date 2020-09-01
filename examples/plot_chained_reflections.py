@@ -15,6 +15,10 @@ if __name__ == '__main__':
 
     cube = geom.Cube.by_point_and_side_length(A, 20)
 
+    polygons = cube.get_polygons_iter()
+    g = geom.polygons_sharp_edges_iter(polygons)
+    print(list(g))
+
     ax = cube.plot3d(ret=True, alpha=0)
     add_points_to_3d_ax(ax, A)
     add_text_at_point_3d_ax(ax, A, 'TX')
@@ -39,7 +43,7 @@ if __name__ == '__main__':
     for i in range(n):
         faces[i].plot3d(facecolor='r', alpha=0.3, ax=ax, edgecolor='r')
 
-    z = geom.reflexion_points_from_origin_destination_and_planes(A, B, param)
+    z, _ = geom.reflexion_points_from_origin_destination_and_planes(A, B, param)
 
     for point in z:
         X.append(point)

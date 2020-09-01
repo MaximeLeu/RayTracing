@@ -40,53 +40,188 @@ def get_3d_plot_ax(ax=None):
     return ax
 
 
-def set_cartesian_axes_label(ax):
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
+def set_axes_label(ax, labels):
+    """
+    Sets the axes labels.
+
+    :param ax: the axes
+    :type ax: matplotlib.axes.Axes or mpl_toolkits.mplot3d.Axes3D
+    :param labels: the labels to be set
+    :type labels: list *len=3*
+    """
+    ax.set_xlabel(labels[0])
+    ax.set_ylabel(labels[1])
     if isinstance(ax, mplot3d.Axes3D):
-        ax.set_zlabel('z')
+        ax.set_zlabel(labels[2])
+
+
+def set_cartesian_axes_label(ax):
+    """
+    Sets the axes labels to x, y and optionally z if 3D axes are passed.
+
+    :param ax: the axes
+    :type ax: matplotlib.axes.Axes or mpl_toolkits.mplot3d.Axes3D
+    """
+    set_axes_label(ax, ['x', 'y', 'z'])
+
+
+def set_polar_axes_label(ax):
+    """
+    Sets the axes labels to r and theta.
+
+    :param ax: the axes
+    :type ax: matplotlib.axes.Axes
+    """
+    set_axes_label(ax, ['r', r'\theta'])
 
 
 def set_spherical_axes_label(ax):
-    ax.set_xlabel('phi')
-    ax.set_ylabel('theta')
-    ax.set_zlabel('r')
+    """
+    Sets the axes labels to r, phi and theta.
+
+    :param ax: the axes
+    :type ax: mpl_toolkits.mplot3d.Axes3D
+    """
+    set_axes_label(ax, ['r', r'\phi', r'\theta'])
 
 
 def add_points_to_2d_ax(ax, points, *args, **kwargs):
-    points = points.reshape(-1, 3)
-    ax.scatter(points[:, 0], points[:, 1], *args, **kwargs)
+    """
+    Adds a set of points to 2D axes.
+
+    :param ax: the axes
+    :type ax: matplotlib.axes.Axes
+    :param points: the points
+    :type points: numpy.ndarray *shape=(N, M>=2)*
+    :param args: positional arguments passed to :func:`matplotlib.axes.Axes.scatter`
+    :type args: any
+    :param kwargs: keyword arguments passed to :func:`matplotlib.axes.Axes.scatter`
+    :type kwargs: any
+    :return: the path collection
+    :rtype: matplotlib.collections.PathCollection
+    """
+    return ax.scatter(points[:, 0], points[:, 1], *args, **kwargs)
 
 
 def add_points_to_3d_ax(ax, points, *args, **kwargs):
-    points = points.reshape(-1, 3)
-    ax.scatter(points[:, 0], points[:, 1], points[:, 2], *args, **kwargs)
+    """
+    Adds a set of points to 3D axes.
+
+    :param ax: the axes
+    :type ax: mpl_toolkits.mplot3d.Axes3D
+    :param points: the points
+    :type points: numpy.ndarray *shape=(N, M>=3)*
+    :param args: positional arguments passed to :func:`mpl_toolkits.mplot3d.Axes3D.scatter`
+    :type args: any
+    :param kwargs: keyword arguments passed to :func:`mpl_toolkits.mplot3d.Axes3D.scatter`
+    :type kwargs: any
+    :return: the path collection
+    :rtype: mpl_toolkits.mplot3d.art3d.Path3DCollection
+    """
+    return ax.scatter(points[:, 0], points[:, 1], points[:, 2], *args, **kwargs)
 
 
 def add_line_to_2d_ax(ax, points, *args, **kwargs):
+    """
+    Adds a line to 2D axes.
+
+    :param ax: the axes
+    :type ax: matplotlib.axes.Axes
+    :param points: the points
+    :type points: numpy.ndarray *shape=(N, M>=2)*
+    :param args: positional arguments passed to :func:`matplotlib.axes.Axes.plot`
+    :type args: any
+    :param kwargs: keyword arguments passed to :func:`matplotlib.axes.Axes.plot`
+    :type kwargs: any
+    :return: the lines
+    :rtype: List[matplotlib.lines.Line2D]
+    """
     x = points[:, 0]
     y = points[:, 1]
-    ax.plot(x, y, *args, **kwargs)
+    return ax.plot(x, y, *args, **kwargs)
 
 
 def add_line_to_3d_ax(ax, points, *args, **kwargs):
+    """
+    Adds a set of points to 3D axes.
+
+    :param ax: the axes
+    :type ax: mpl_toolkits.mplot3d.Axes3D
+    :param points: the points
+    :type points: numpy.ndarray *shape=(N, M>=3)*
+    :param args: positional arguments passed to :func:`mpl_toolkits.mplot3d.Axes3D.plot`
+    :type args: any
+    :param kwargs: keyword arguments passed to :func:`mpl_toolkits.mplot3d.Axes3D.plot`
+    :type kwargs: any
+    :return: the lines
+    :rtype: List[mpl_toolkits.mplot3d.art3d.Line3D]
+    """
     x = points[:, 0]
     y = points[:, 1]
     z = points[:, 2]
-    ax.plot(x, y, z, *args, **kwargs)
+    return ax.plot(x, y, z, *args, **kwargs)
 
 
 def add_text_at_point_2d_ax(ax, point, text, *args, **kwargs):
-    point = point.reshape(2)
-    ax.annotate(text, point)
+    """
+    Adds a text to 2D axes.
+
+    :param ax: the axes
+    :type ax: matplotlib.axes.Axes
+    :param point: the position of the text
+    :type point: numpy.ndarray *size=2*
+    :param text: the text to be displayed
+    :type text: str
+    :param args: positional arguments passed to :func:`matplotlib.axes.Axes.text`
+    :type args: any
+    :param kwargs: keyword arguments passed to :func:`matplotlib.axes.Axes.text`
+    :type kwargs: any
+    :return: the annotation
+    :rtype: matplotlib.text.Annotation
+    """
+    return ax.annotate(text, point, *args, **kwargs)
 
 
 def add_text_at_point_3d_ax(ax, point, text, *args, **kwargs):
-    point = point.reshape(3)
+    """
+    Adds a text to 3D axes.
+
+    :param ax: the axes
+    :type ax: mpl_toolkits.mplot3d.Axes3D
+    :param point: the position of the text
+    :type point: numpy.ndarray *size=3*
+    :param text: the text to be displayed
+    :type text: str
+    :param args: positional arguments passed to :func:`mpl_toolkits.mplot3d.Axes3D.text`
+    :type args: any
+    :param kwargs: keyword arguments passed to :func:`mpl_toolkits.mplot3d.Axes3D.text`
+    :type kwargs: any
+    """
+    point = point.flat
     ax.text(point[0], point[1], point[2], text, *args, **kwargs)
 
 
 def add_2d_text_at_point_3d_ax(ax, point, text, *args, **kwargs):
+    """
+    Adds a 2D text to 3D axes.
+
+    :param ax: the axes
+    :type ax: mpl_toolkits.mplot3d.Axes3D
+    :param point: the position of the text
+    :type point: numpy.ndarray *size=2*
+    :param text: the text to be displayed
+    :type text: str
+    :param args: positional arguments passed to :func:`mpl_toolkits.mplot3d.Axes3D.text2D`
+    :type args: any
+    :param kwargs: keyword arguments passed to :func:`mpl_toolkits.mplot3d.Axes3D.text2D`
+    :type kwargs: any
+
+    :Example:
+
+    >>> ax = get_3d_plot_ax()
+    >>> pos = np.array([0.05, 0.95])  # North-West position
+    >>> add_2d_text_at_point_3d_ax(ax, pos, 'Hello', *args, **kwargs)
+    """
     point = point.reshape(-1)
     ax.text2D(point[0], point[1], text, *args, transform=ax.transAxes, **kwargs)
 
@@ -103,10 +238,13 @@ def add_polygon_to_2d_ax(ax, points, *args, **kwargs):
     :type args: any
     :param kwargs: keyword arguments passed to :func:`matplotlib.patches.PathPatch`
     :type kwargs: any
+    :return: the polygon patch
+    :rtype: matplotlib.patches.PathPatch
     """
     path = patches.Path(points[:, :2])
     patch = patches.PathPatch(path, *args, **kwargs)
     ax.add_patch(patch)
+    return patch
 
 
 def add_polygon_to_3d_ax(ax, points, *args, **kwargs):
@@ -121,9 +259,12 @@ def add_polygon_to_3d_ax(ax, points, *args, **kwargs):
     :type args: any
     :param kwargs: keyword arguments passed to :func:`mpl_toolkits.mplot3d.art3d.Poly3DCollection`
     :type kwargs: any
+    :return: the line collection
+    :rtype: mpl_toolkits.mplot3d.art3d.Poly3DCollection
     """
     polygon = mplot3d.art3d.Poly3DCollection([points], *args, **kwargs)
     ax.add_collection3d(polygon)
+    return polygon
 
 
 def add_vector_to_2d_ax(ax, point, vector, *args, **kwargs):
@@ -140,10 +281,12 @@ def add_vector_to_2d_ax(ax, point, vector, *args, **kwargs):
     :type args: any
     :param kwargs: keyword arguments passed to :func:`matplotlib.pyplot.quiver`
     :type kwargs: any
+    :return: the line collection
+    :rtype: matplotlib.collections.LineCollection
     """
-    x, y = point[:2].T
-    u, v = vector[:2].T
-    ax.quiver(x, y, u, v, *args, **kwargs)
+    x, y = point[:2].flat
+    u, v = vector[:2].flat
+    return ax.quiver(x, y, u, v, *args, **kwargs)
 
 
 def add_vector_to_3d_ax(ax, point, vector, *args, **kwargs):
@@ -160,10 +303,12 @@ def add_vector_to_3d_ax(ax, point, vector, *args, **kwargs):
     :type args: any
     :param kwargs: keyword arguments passed to :func:`mpl_toolkits.mplot3d.Axes3D.quiver`
     :type kwargs: any
+    :return: the line collection
+    :rtype: mpl_toolkits.mplot3d.art3d.Line3DCollection
     """
-    x, y, z = point.T
-    u, v, w = vector.T
-    ax.quiver(x, y, z, u, v, w, *args, **kwargs)
+    x, y, z = point.flat
+    u, v, w = vector.flat
+    return ax.quiver(x, y, z, u, v, w, *args, **kwargs)
 
 
 def animate_3d_ax(ax, dt=0.01, func=None, *args, **kwargs):

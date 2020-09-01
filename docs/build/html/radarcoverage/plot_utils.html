@@ -165,27 +165,90 @@
 <dl class="py function">
 <dt id="plot_utils.add_2d_text_at_point_3d_ax">
 <code class="sig-prename descclassname">plot_utils.</code><code class="sig-name descname">add_2d_text_at_point_3d_ax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em>, <em class="sig-param"><span class="n">point</span></em>, <em class="sig-param"><span class="n">text</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#plot_utils.add_2d_text_at_point_3d_ax" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Adds a 2D text to 3D axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – the axes</p></li>
+<li><p><strong>point</strong> (numpy.ndarray <em>size=2</em>) – the position of the text</p></li>
+<li><p><strong>text</strong> (<em>str</em>) – the text to be displayed</p></li>
+<li><p><strong>args</strong> (<em>any</em>) – positional arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">mpl_toolkits.mplot3d.Axes3D.text2D()</span></code></p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – keyword arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">mpl_toolkits.mplot3d.Axes3D.text2D()</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Example</dt>
+<dd class="field-even"><p></p></dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ax</span> <span class="o">=</span> <span class="n">get_3d_plot_ax</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">])</span>  <span class="c1"># North-West position</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">add_2d_text_at_point_3d_ax</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="s1">&#39;Hello&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
 
 <dl class="py function">
 <dt id="plot_utils.add_line_to_2d_ax">
 <code class="sig-prename descclassname">plot_utils.</code><code class="sig-name descname">add_line_to_2d_ax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em>, <em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#plot_utils.add_line_to_2d_ax" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Adds a line to 2D axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – the axes</p></li>
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, M&gt;=2)</em>) – the points</p></li>
+<li><p><strong>args</strong> (<em>any</em>) – positional arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.axes.Axes.plot()</span></code></p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – keyword arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.axes.Axes.plot()</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="plot_utils.add_line_to_3d_ax">
 <code class="sig-prename descclassname">plot_utils.</code><code class="sig-name descname">add_line_to_3d_ax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em>, <em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#plot_utils.add_line_to_3d_ax" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Adds a set of points to 3D axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – the axes</p></li>
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, M&gt;=3)</em>) – the points</p></li>
+<li><p><strong>args</strong> (<em>any</em>) – positional arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">mpl_toolkits.mplot3d.Axes3D.plot()</span></code></p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – keyword arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">mpl_toolkits.mplot3d.Axes3D.plot()</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="plot_utils.add_points_to_2d_ax">
 <code class="sig-prename descclassname">plot_utils.</code><code class="sig-name descname">add_points_to_2d_ax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em>, <em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#plot_utils.add_points_to_2d_ax" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Adds a set of points to 2D axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – the axes</p></li>
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, M&gt;=2)</em>) – the points</p></li>
+<li><p><strong>args</strong> (<em>any</em>) – positional arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.axes.Axes.scatter()</span></code></p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – keyword arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.axes.Axes.scatter()</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="plot_utils.add_points_to_3d_ax">
 <code class="sig-prename descclassname">plot_utils.</code><code class="sig-name descname">add_points_to_3d_ax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em>, <em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#plot_utils.add_points_to_3d_ax" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Adds a set of points to 3D axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – the axes</p></li>
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, M&gt;=3)</em>) – the points</p></li>
+<li><p><strong>args</strong> (<em>any</em>) – positional arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">mpl_toolkits.mplot3d.Axes3D.scatter()</span></code></p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – keyword arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">mpl_toolkits.mplot3d.Axes3D.scatter()</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="plot_utils.add_polygon_to_2d_ax">
@@ -222,12 +285,36 @@
 <dl class="py function">
 <dt id="plot_utils.add_text_at_point_2d_ax">
 <code class="sig-prename descclassname">plot_utils.</code><code class="sig-name descname">add_text_at_point_2d_ax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em>, <em class="sig-param"><span class="n">point</span></em>, <em class="sig-param"><span class="n">text</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#plot_utils.add_text_at_point_2d_ax" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Adds a text to 2D axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – the axes</p></li>
+<li><p><strong>point</strong> (numpy.ndarray <em>size=2</em>) – the position of the text</p></li>
+<li><p><strong>text</strong> (<em>str</em>) – the text to be displayed</p></li>
+<li><p><strong>args</strong> (<em>any</em>) – positional arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.axes.Axes.text()</span></code></p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – keyword arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.axes.Axes.text()</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="plot_utils.add_text_at_point_3d_ax">
 <code class="sig-prename descclassname">plot_utils.</code><code class="sig-name descname">add_text_at_point_3d_ax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em>, <em class="sig-param"><span class="n">point</span></em>, <em class="sig-param"><span class="n">text</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#plot_utils.add_text_at_point_3d_ax" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Adds a text to 3D axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – the axes</p></li>
+<li><p><strong>point</strong> (numpy.ndarray <em>size=3</em>) – the position of the text</p></li>
+<li><p><strong>text</strong> (<em>str</em>) – the text to be displayed</p></li>
+<li><p><strong>args</strong> (<em>any</em>) – positional arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">mpl_toolkits.mplot3d.Axes3D.text()</span></code></p></li>
+<li><p><strong>kwargs</strong> (<em>any</em>) – keyword arguments passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">mpl_toolkits.mplot3d.Axes3D.text()</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="plot_utils.add_vector_to_2d_ax">
@@ -315,14 +402,51 @@
 </dd></dl>
 
 <dl class="py function">
+<dt id="plot_utils.set_axes_label">
+<code class="sig-prename descclassname">plot_utils.</code><code class="sig-name descname">set_axes_label</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em>, <em class="sig-param"><span class="n">labels</span></em><span class="sig-paren">)</span><a class="headerlink" href="#plot_utils.set_axes_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the axes labels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em><em> or </em><em>mpl_toolkits.mplot3d.Axes3D</em>) – the axes</p></li>
+<li><p><strong>labels</strong> (list <em>len=3</em>) – the labels to be set</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="plot_utils.set_cartesian_axes_label">
 <code class="sig-prename descclassname">plot_utils.</code><code class="sig-name descname">set_cartesian_axes_label</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em><span class="sig-paren">)</span><a class="headerlink" href="#plot_utils.set_cartesian_axes_label" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Sets the axes labels to x, y and optionally z if 3D axes are passed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em><em> or </em><em>mpl_toolkits.mplot3d.Axes3D</em>) – the axes</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="plot_utils.set_polar_axes_label">
+<code class="sig-prename descclassname">plot_utils.</code><code class="sig-name descname">set_polar_axes_label</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em><span class="sig-paren">)</span><a class="headerlink" href="#plot_utils.set_polar_axes_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the axes labels to r and theta.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – the axes</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="plot_utils.set_spherical_axes_label">
 <code class="sig-prename descclassname">plot_utils.</code><code class="sig-name descname">set_spherical_axes_label</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em><span class="sig-paren">)</span><a class="headerlink" href="#plot_utils.set_spherical_axes_label" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Sets the axes labels to r, phi and theta.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – the axes</p>
+</dd>
+</dl>
+</dd></dl>
 
 </div>
 
