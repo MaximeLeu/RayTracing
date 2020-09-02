@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>radarcoverage &mdash; Radar Coverage 2020 documentation</title>
+  <title>ray_tracing module &mdash; Radar Coverage 2020 documentation</title>
   
 
   
@@ -36,8 +36,8 @@
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="array_utils module" href="array_utils.html" />
-    <link rel="prev" title="Welcome to Radar Coverage’s documentation!" href="../index.html" /> 
+    <link rel="next" title="command-line tools" href="../scripts/modules.html" />
+    <link rel="prev" title="plot_utils module" href="plot_utils.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -84,13 +84,13 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">radarcoverage</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">radarcoverage</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="array_utils.html">array_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="class_utils.html">class_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="file_utils.html">file_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="geometry.html">geometry module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_utils.html">plot_utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ray_tracing.html">ray_tracing module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ray_tracing module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../scripts/modules.html">command-line tools</a></li>
@@ -140,13 +140,15 @@
     
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li>radarcoverage</li>
+          <li><a href="modules.html">radarcoverage</a> &raquo;</li>
+        
+      <li>ray_tracing module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/radarcoverage/modules.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/radarcoverage/ray_tracing.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -159,18 +161,34 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="radarcoverage">
-<h1>radarcoverage<a class="headerlink" href="#radarcoverage" title="Permalink to this headline">¶</a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="array_utils.html">array_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="class_utils.html">class_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="file_utils.html">file_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="geometry.html">geometry module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="plot_utils.html">plot_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ray_tracing.html">ray_tracing module</a></li>
-</ul>
-</div>
+  <div class="section" id="module-ray_tracing">
+<span id="ray-tracing-module"></span><h1>ray_tracing module<a class="headerlink" href="#module-ray_tracing" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="ray_tracing.RadarCoveringProblem">
+<em class="property">class </em><code class="sig-prename descclassname">ray_tracing.</code><code class="sig-name descname">RadarCoveringProblem</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">emitter</span></em>, <em class="sig-param"><span class="n">emitter_screen</span></em>, <em class="sig-param"><span class="n">place</span></em>, <em class="sig-param"><span class="n">receivers</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RadarCoveringProblem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="ray_tracing.RadarCoveringProblem.get_visible_polygons_indices">
+<code class="sig-name descname">get_visible_polygons_indices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">index</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RadarCoveringProblem.get_visible_polygons_indices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ray_tracing.RadarCoveringProblem.plot3d">
+<code class="sig-name descname">plot3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RadarCoveringProblem.plot3d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ray_tracing.RadarCoveringProblem.precompute">
+<code class="sig-name descname">precompute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RadarCoveringProblem.precompute" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ray_tracing.RadarCoveringProblem.solve">
+<code class="sig-name descname">solve</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">max_order</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RadarCoveringProblem.solve" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 
 
@@ -181,10 +199,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="array_utils.html" class="btn btn-neutral float-right" title="array_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../scripts/modules.html" class="btn btn-neutral float-right" title="command-line tools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="../index.html" class="btn btn-neutral float-left" title="Welcome to Radar Coverage’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="plot_utils.html" class="btn btn-neutral float-left" title="plot_utils module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

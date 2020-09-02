@@ -5,6 +5,7 @@ from radarcoverage import plot_utils
 import numpy as np
 from numpy.dual import norm
 from scipy.optimize import root
+from radarcoverage import array_utils
 
 # Geometry libraries
 from shapely.geometry import Polygon as shPolygon
@@ -16,6 +17,7 @@ import geopandas as gpd
 import itertools
 import pickle
 import uuid
+import json
 from radarcoverage import file_utils
 
 
@@ -100,6 +102,31 @@ def parse_3d_axis(axis):
     return axis
 
 
+def point_on_edge_(point, edge, tol=1e-8):
+    """
+    Returns whether a point is on a given edge within a tolerance.
+
+    :param point: the point
+    :type point: numpy.ndarray *size=3*
+    :param edge: the edge:
+    :type edge: numpy.ndarray *shape(2, 3)*
+    :param tol: the tolerance
+    :type tol: float
+    :return: True if point is on the edge
+    :rtype: bool
+    """
+    v = edge[1, :] - edge[0, :]
+    matrix = projection_matrix_from_vector(v).T
+    projected_edge = project_points(edge, matrix)
+    projected_point = project_points(point, matrix)
+    A = projected_edge[0, :]
+    B = projected_edge[1, :]
+
+    return A[0] - tol <= projected_point[0] <= A[0] + tol and \
+           A[1] - tol <= projected_point[1] <= A[1] + tol and \
+           A[2] - tol <= projected_point[2] <= B[2] + tol
+
+
 def polygons_sharp_edges_iter(polygons):
     """
     Returns all the sharp edges contained in the polygon.
@@ -166,10 +193,12 @@ def polygons_sharp_edges_iter(polygons):
 
             # Sort points in order to easily check if two edges are the same
             edges_A = [
-                np.sort(np.row_stack([points_A[k - 1, :], points_A[k, :]]), axis=0) for k in range(points_A.shape[0])
+                array_utils.sort_by_columns(np.row_stack([points_A[k - 1, :], points_A[k, :]]))
+                for k in range(points_A.shape[0])
             ]
             edges_B = [
-                np.sort(np.row_stack([points_B[m - 1, :], points_B[m, :]]), axis=0) for m in range(points_B.shape[0])
+                array_utils.sort_by_columns(np.row_stack([points_B[m - 1, :], points_B[m, :]]))
+                for m in range(points_B.shape[0])
             ]
             for k, m in itertools.product(range(points_A.shape[0]), range(points_B.shape[0])):
                 edge_A = edges_A[k]
@@ -234,7 +263,7 @@ def reflexion_points_from_origin_destination_and_planes(origin, destination, pla
     for i in range(1, n + 1):
         # First guess for solution
         points[i, :] = 0.5 * (
-                    points[i - 1, :] + B - 2 * (d[i - 1] + points[i - 1, :] @ normal[i - 1, :].T) * normal[i - 1, :])
+                points[i - 1, :] + B - 2 * (d[i - 1] + points[i - 1, :] @ normal[i - 1, :].T) * normal[i - 1, :])
 
     def gamma(v):
         norms = norm(v, axis=1)
@@ -725,6 +754,35 @@ def polygons_visibility_matrix(polygons, strict=False):
     return visibility_matrix
 
 
+class OrientedGeometryEncoder(json.JSONEncoder):
+    """
+    Subclass of json decoder made for the oriented geometries JSON encoding.
+    """
+
+    def default(self, obj):
+        if isinstance(obj, uuid.UUID):
+            return obj.hex
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return json.JSONEncoder.default(self, obj)
+
+
+class OrientedGeometryDecoder(json.JSONDecoder):
+    """
+    Subclass of json decoder made for the oriented geometries JSON decoding.
+    """
+
+    def decode(self, obj, w=None):
+        decoded = json.JSONDecoder().decode(obj)
+        for key in decoded:
+            if key == 'id':
+                decoded[key] = uuid.UUID(hex=decoded[key])
+            elif key == 'points':
+                decoded[key] = np.array(decoded[key])
+        return decoded
+
+
 class OrientedGeometry(object):
     """
     Disclaimer: this class and its subclasses are clearly inspired from the pakcage `pyny3d`. The main problem with this
@@ -814,7 +872,7 @@ class OrientedGeometry(object):
         )
 
         if filename is not None:
-            file_utils.json_save(filename, data)
+            file_utils.json_save(filename, data, cls=OrientedGeometryEncoder)
 
         return data
 
@@ -1115,24 +1173,22 @@ class OrientedGeometry(object):
         """
         Shows a 3D animation of the sharp edges by showing, for each edge, the two polygons making the edge.
         """
+        sharp_edges = self.get_sharp_edges()
         ax = self.plot3d(ret=True)
         self.center_3d_plot(ax)
         polys3d = ax.collections
-        sharp_edges = self.get_sharp_edges()
 
         n = len(sharp_edges)
         indices = itertools.cycle(itertools.chain.from_iterable(itertools.repeat(i, 30) for i in range(n)))
 
-        edge3d = None
-
-        def func(_, edge3d):
+        def func(_):
             i = next(indices)
-
-            if edge3d is not None:
-                edge3d.remove()
 
             for poly in polys3d:
                 poly.set_alpha(0)
+
+            for line in ax.get_lines():
+                line.remove()
 
             edge, j, k = sharp_edges[i]
             polys3d[j].set_facecolor('r')
@@ -1140,9 +1196,9 @@ class OrientedGeometry(object):
             polys3d[k].set_facecolor('r')
             polys3d[k].set_alpha(0.5)
 
-            edge3d = plot_utils.add_line_to_3d_ax(ax, edge, lw=4, color='y')
+            plot_utils.add_line_to_3d_ax(ax, edge, lw=2.5, color='g')
 
-        plot_utils.animate_3d_ax(ax, func=func, edge3d=edge3d)
+        plot_utils.animate_3d_ax(ax, func=func)
 
 
 class OrientedPolygon(OrientedGeometry):
@@ -1164,9 +1220,15 @@ class OrientedPolygon(OrientedGeometry):
         self.matrix = None
         self.shapely = None
 
+    def __len__(self):
+        return self.points.shape[0]
+
+    def __str__(self):
+        return f'Polygon({len(self)} points)'
+
     @staticmethod
     def from_json(data=None, filename=None):
-        data = data if data is not None else file_utils.json_load(filename)
+        data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
         geotype = data.pop('geotype')
         if geotype != 'polygon':
             raise ValueError(f'Cannot cast geotype {geotype} to polygon.')
@@ -1181,7 +1243,7 @@ class OrientedPolygon(OrientedGeometry):
         )
 
         if filename is not None:
-            file_utils.json_save(filename, data)
+            file_utils.json_save(filename, data, cls=OrientedGeometryEncoder)
 
         return data
 
@@ -1422,9 +1484,15 @@ class OrientedSurface(OrientedGeometry):
         else:
             raise ValueError('OrientedSurface needs a nump.ndarray or OrientedPolygon as input')
 
+    def __len__(self):
+        return len(self.polygons)
+
+    def __str__(self):
+        return f'Surface({len(self)} polygons)'
+
     @staticmethod
     def from_json(data=None, filename=None):
-        data = data if data is not None else file_utils.json_load(filename)
+        data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
         geotype = data.pop('geotype')
         if geotype != 'surface':
             raise ValueError(f'Cannot cast geotype {geotype} to surface.')
@@ -1441,7 +1509,7 @@ class OrientedSurface(OrientedGeometry):
         )
 
         if filename is not None:
-            file_utils.json_save(filename, data)
+            file_utils.json_save(filename, data, cls=OrientedGeometryEncoder)
 
         return data
 
@@ -1491,9 +1559,15 @@ class OrientedPolyhedron(OrientedGeometry):
         self.aux_surface = OrientedSurface(polygons)
         self.polygons = self.aux_surface.polygons
 
+    def __len__(self):
+        return len(self.polygons)
+
+    def __str__(self):
+        return f'Polyhedron({len(self)} polygons)'
+
     @staticmethod
     def from_json(data=None, filename=None):
-        data = data if data is not None else file_utils.json_load(filename)
+        data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
         geotype = data.pop('geotype')
         if geotype != 'polyhedron':
             raise ValueError(f'Cannot cast geotype {geotype} to polyhedron.')
@@ -1510,7 +1584,7 @@ class OrientedPolyhedron(OrientedGeometry):
         )
 
         if filename is not None:
-            file_utils.json_save(filename, data)
+            file_utils.json_save(filename, data, cls=OrientedGeometryEncoder)
 
         return data
 
@@ -1720,6 +1794,7 @@ class OrientedPlace(OrientedGeometry):
     :param attributes: attributes that will be stored with geometry
     :type attributes: any
     """
+
     def __init__(self, surface, polyhedra=None, set_of_points=np.empty((0, 3)), **attributes):
         super().__init__(**attributes)
 
@@ -1748,9 +1823,12 @@ class OrientedPlace(OrientedGeometry):
         else:
             raise ValueError('OrientedPlace has an invalid set_of_points as input')
 
+    def __str__(self):
+        return f'Place({len(self.polyhedra)} polyhedra, {self.set_of_points.shape[0]} points)'
+
     @staticmethod
     def from_json(data=None, filename=None):
-        data = data if data is not None else file_utils.json_load(filename)
+        data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
         geotype = data.pop('geotype')
         if geotype != 'place':
             raise ValueError(f'Cannot cast geotype {geotype} to place.')
@@ -1771,7 +1849,7 @@ class OrientedPlace(OrientedGeometry):
         )
 
         if filename is not None:
-            file_utils.json_save(filename, data)
+            file_utils.json_save(filename, data, cls=OrientedGeometryEncoder)
 
         return data
 

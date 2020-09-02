@@ -164,7 +164,7 @@
 <span id="geometry-module"></span><h1>geometry module<a class="headerlink" href="#module-geometry" title="Permalink to this headline">¶</a></h1>
 <dl class="py class">
 <dt id="geometry.Building">
-<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">Building</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Building" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">Building</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">attributes</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Building" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#geometry.OrientedPolyhedron" title="geometry.OrientedPolyhedron"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedPolyhedron</span></code></a></p>
 <p>A building is an oriented polyhedron constructed by extruding a polygon in the z direction.
 It consists in 2 flat faces, one for ground and one for rooftop, and as many other vertical faces as there
@@ -217,7 +217,7 @@ are vertices in the original polygon.</p>
 
 <dl class="py class">
 <dt id="geometry.Cube">
-<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">Cube</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Cube" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">Cube</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">attributes</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Cube" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#geometry.OrientedPolyhedron" title="geometry.OrientedPolyhedron"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedPolyhedron</span></code></a></p>
 <p>A cube is an oriented polyhedron that can be fully described by its center and one of its 6 faces.</p>
 <dl class="py method">
@@ -244,7 +244,7 @@ are vertices in the original polygon.</p>
 
 <dl class="py class">
 <dt id="geometry.OrientedGeometry">
-<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedGeometry</code><a class="headerlink" href="#geometry.OrientedGeometry" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedGeometry</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">attributes</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Disclaimer: this class and its subclasses are clearly inspired from the pakcage <cite>pyny3d</cite>. The main problem with this
 package is the lack of modularity and ability to subclass objects with ease; this is why no inheritance from this
@@ -257,6 +257,11 @@ should be pointing outward. Watching the polygon from the outside, the loop pass
 ccw (counter-clock-wise).”</p>
 </div></blockquote>
 <p>Oriented geometry constructors assume that their inputs are already oriented.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>attributes</strong> (<em>any</em>) – attributes that will be stored with geometry</p>
+</dd>
+</dl>
 <dl class="py method">
 <dt id="geometry.OrientedGeometry.apply_on_points">
 <code class="sig-name descname">apply_on_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.apply_on_points" title="Permalink to this definition">¶</a></dt>
@@ -297,6 +302,26 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – the axes</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.from_json">
+<em class="property">static </em><code class="sig-name descname">from_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">filename</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a dictionary or a json file into a geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>dict</em>) – the dictionary of data, see <a class="reference internal" href="#geometry.OrientedGeometry.to_json" title="geometry.OrientedGeometry.to_json"><code class="xref py py-func docutils literal notranslate"><span class="pre">to_json()</span></code></a></p></li>
+<li><p><strong>filename</strong> (<em>str</em>) – if not None, will load the geometry from a json file</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the geometry</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -416,6 +441,27 @@ The function must take as first argument a polygon.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="geometry.OrientedGeometry.get_sharp_edges">
+<code class="sig-name descname">get_sharp_edges</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.get_sharp_edges" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the symmetric visibility matrix for the polygons in this geometry.
+See <a class="reference internal" href="#geometry.polygons_visibility_matrix" title="geometry.polygons_visibility_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">polygons_visibility_matrix()</span></code></a>’s documentation for more information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>strict</strong> (<em>bool</em>) – if True, will choose strict approach</p></li>
+<li><p><strong>force</strong> (<em>bool</em>) – if True, will force to (re)compute value (only necessary if geometry has changed)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the visibility matrix</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray <em>dtype=bool, shape=(N, N)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="geometry.OrientedGeometry.get_visibility_matrix">
 <code class="sig-name descname">get_visibility_matrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">strict</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.get_visibility_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the symmetric visibility matrix for the polygons in this geometry.
@@ -435,11 +481,6 @@ See <a class="reference internal" href="#geometry.polygons_visibility_matrix" ti
 </dd>
 </dl>
 </dd></dl>
-
-<dl class="py attribute">
-<dt id="geometry.OrientedGeometry.id">
-<code class="sig-name descname">id</code><em class="property"> = 0</em><a class="headerlink" href="#geometry.OrientedGeometry.id" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="py method">
 <dt id="geometry.OrientedGeometry.load">
@@ -560,6 +601,12 @@ The screen on which the points are projected is at a given distance from the ori
 </dd></dl>
 
 <dl class="py method">
+<dt id="geometry.OrientedGeometry.show_sharp_edges_animation">
+<code class="sig-name descname">show_sharp_edges_animation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.show_sharp_edges_animation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shows a 3D animation of the sharp edges by showing, for each edge, the two polygons making the edge.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="geometry.OrientedGeometry.show_visibility_matrix_animation">
 <code class="sig-name descname">show_visibility_matrix_animation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">strict</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.show_visibility_matrix_animation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Shows a 3D animation of the visibility matrix by showing, for each polygon, the polygon face “observing” is blue
@@ -578,6 +625,23 @@ and and the polygon faces that are visible to it in red.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>ax</strong> (<em>mpl_toolkits.mplot3d.Axes3D</em>) – the axes</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedGeometry.to_json">
+<code class="sig-name descname">to_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary in a json format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – if not None, will save the geometry in a json file</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the geometry in a json format</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dict</p>
 </dd>
 </dl>
 </dd></dl>
@@ -605,9 +669,62 @@ and and the polygon faces that are visible to it in red.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt id="geometry.OrientedGeometryDecoder">
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedGeometryDecoder</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">object_hook</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parse_float</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parse_int</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parse_constant</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">strict</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">object_pairs_hook</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometryDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">json.decoder.JSONDecoder</span></code></p>
+<p>Subclass of json decoder made for the oriented geometries JSON decoding.</p>
+<dl class="py method">
+<dt id="geometry.OrientedGeometryDecoder.decode">
+<code class="sig-name descname">decode</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span></em>, <em class="sig-param"><span class="n">w</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometryDecoder.decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the Python representation of <code class="docutils literal notranslate"><span class="pre">s</span></code> (a <code class="docutils literal notranslate"><span class="pre">str</span></code> instance
+containing a JSON document).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="geometry.OrientedGeometryEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedGeometryEncoder</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">skipkeys</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ensure_ascii</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">check_circular</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">allow_nan</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">sort_keys</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">indent</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">separators</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">default</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometryEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">json.encoder.JSONEncoder</span></code></p>
+<p>Subclass of json decoder made for the oriented geometries JSON encoding.</p>
+<dl class="py method">
+<dt id="geometry.OrientedGeometryEncoder.default">
+<code class="sig-name descname">default</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometryEncoder.default" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implement this method in a subclass such that it returns
+a serializable object for <code class="docutils literal notranslate"><span class="pre">o</span></code>, or calls the base implementation
+(to raise a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code>).</p>
+<p>For example, to support arbitrary iterators, you could
+implement default like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">iterable</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
+    <span class="c1"># Let the base class default method raise the TypeError</span>
+    <span class="k">return</span> <span class="n">JSONEncoder</span><span class="o">.</span><span class="n">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="geometry.OrientedPlace">
-<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedPlace</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">surface</span></em>, <em class="sig-param"><span class="n">polyhedra</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">set_of_points</span><span class="o">=</span><span class="default_value">array([], shape=0, 3, dtype=float64)</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedPlace</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">surface</span></em>, <em class="sig-param"><span class="n">polyhedra</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">set_of_points</span><span class="o">=</span><span class="default_value">array([], shape=0, 3, dtype=float64)</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">attributes</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedGeometry</span></code></a></p>
+<p>An oriented place consists of a surface, usually the ground, and a set of polyhedra and points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>surface</strong> (<a class="reference internal" href="#geometry.OrientedSurface" title="geometry.OrientedSurface"><em>OrientedSurface</em></a><em> or </em><em>numpy.ndarray</em><em> (</em><em>points</em><em>)</em>) – the surface</p></li>
+<li><p><strong>polyhedra</strong> (<a class="reference internal" href="#geometry.OrientedPolyhedron" title="geometry.OrientedPolyhedron"><em>OrientedPolyhedron</em></a><em> or </em><em>List</em><em>[</em><a class="reference internal" href="#geometry.OrientedPolyhedron" title="geometry.OrientedPolyhedron"><em>OrientedPolyhedron</em></a><em>]</em>) – the polyhedra</p></li>
+<li><p><strong>set_of_points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points</p></li>
+<li><p><strong>attributes</strong> (<em>any</em>) – attributes that will be stored with geometry</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="py method">
 <dt id="geometry.OrientedPlace.add_set_of_points">
 <code class="sig-name descname">add_set_of_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace.add_set_of_points" title="Permalink to this definition">¶</a></dt>
@@ -634,6 +751,26 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the new geometry</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPlace.from_json">
+<em class="property">static </em><code class="sig-name descname">from_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">filename</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a dictionary or a json file into a geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>dict</em>) – the dictionary of data, see <a class="reference internal" href="#geometry.OrientedPlace.to_json" title="geometry.OrientedPlace.to_json"><code class="xref py py-func docutils literal notranslate"><span class="pre">to_json()</span></code></a></p></li>
+<li><p><strong>filename</strong> (<em>str</em>) – if not None, will load the geometry from a json file</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the geometry</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
@@ -716,17 +853,37 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt id="geometry.OrientedPlace.to_json">
+<code class="sig-name descname">to_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPlace.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary in a json format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – if not None, will save the geometry in a json file</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the geometry in a json format</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt id="geometry.OrientedPolygon">
-<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedPolygon</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedPolygon</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">attributes</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedGeometry</span></code></a></p>
 <p>An oriented polygon is the simplest oriented geometry: it consists in an array of points, connected between their
 direct neighbours.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points</p></li>
+<li><p><strong>attributes</strong> (<em>any</em>) – attributes that will be stored with geometry</p></li>
+</ul>
 </dd>
 </dl>
 <dl class="py method">
@@ -786,6 +943,26 @@ polygon. If needed, can first check this condition.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.from_json">
+<em class="property">static </em><code class="sig-name descname">from_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">filename</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a dictionary or a json file into a geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>dict</em>) – the dictionary of data, see <a class="reference internal" href="#geometry.OrientedPolygon.to_json" title="geometry.OrientedPolygon.to_json"><code class="xref py py-func docutils literal notranslate"><span class="pre">to_json()</span></code></a></p></li>
+<li><p><strong>filename</strong> (<em>str</em>) – if not None, will load the geometry from a json file</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the geometry</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -948,15 +1125,40 @@ this factor</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt id="geometry.OrientedPolygon.to_json">
+<code class="sig-name descname">to_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolygon.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary in a json format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – if not None, will save the geometry in a json file</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the geometry in a json format</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt id="geometry.OrientedPolyhedron">
-<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedPolyhedron</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolyhedron" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedPolyhedron</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">attributes</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolyhedron" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedGeometry</span></code></a></p>
 <p>An oriented polyhedron is a polyhedron with an “inside” and an “outside”.
 It is composed with oriented polygons.
 Surfaces are oriented ccw where watched from the outside. Normal vectors are pointing outward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>polygons</strong> (<em>a list of</em><em> (or </em><em>an instance of</em><em>) </em><em>numpy.ndarray</em><em> (</em><em>points</em><em>) or </em><em>OrientedPolygons</em>) – the polygons in the polyhedron</p></li>
+<li><p><strong>attributes</strong> (<em>any</em>) – attributes that will be stored with geometry</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="py method">
 <dt id="geometry.OrientedPolyhedron.apply_on_points">
 <code class="sig-name descname">apply_on_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolyhedron.apply_on_points" title="Permalink to this definition">¶</a></dt>
@@ -972,6 +1174,26 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the new geometry</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedPolyhedron.from_json">
+<em class="property">static </em><code class="sig-name descname">from_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">filename</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolyhedron.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a dictionary or a json file into a geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>dict</em>) – the dictionary of data, see <a class="reference internal" href="#geometry.OrientedPolyhedron.to_json" title="geometry.OrientedPolyhedron.to_json"><code class="xref py py-func docutils literal notranslate"><span class="pre">to_json()</span></code></a></p></li>
+<li><p><strong>filename</strong> (<em>str</em>) – if not None, will load the geometry from a json file</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the geometry</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
@@ -1037,16 +1259,36 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt id="geometry.OrientedPolyhedron.to_json">
+<code class="sig-name descname">to_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedPolyhedron.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary in a json format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – if not None, will save the geometry in a json file</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the geometry in a json format</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt id="geometry.OrientedSurface">
-<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedSurface</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedSurface" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">OrientedSurface</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">attributes</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedSurface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedGeometry</span></code></a></p>
 <p>An oriented surface is a combination of oriented polygons.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>polygons</strong> (<em>a list of</em><em> (or </em><em>an instance of</em><em>) </em><em>numpy.ndarray</em><em> (</em><em>points</em><em>) or </em><em>OrientedPolygons</em>) – the polygons</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>polygons</strong> (<em>a list of</em><em> (or </em><em>an instance of</em><em>) </em><em>numpy.ndarray</em><em> (</em><em>points</em><em>) or </em><em>OrientedPolygons</em>) – the polygons</p></li>
+<li><p><strong>attributes</strong> (<em>any</em>) – attributes that will be stored with geometry</p></li>
+</ul>
 </dd>
 </dl>
 <dl class="py method">
@@ -1064,6 +1306,26 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the new geometry</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="geometry.OrientedSurface.from_json">
+<em class="property">static </em><code class="sig-name descname">from_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">filename</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedSurface.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a dictionary or a json file into a geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>dict</em>) – the dictionary of data, see <a class="reference internal" href="#geometry.OrientedSurface.to_json" title="geometry.OrientedSurface.to_json"><code class="xref py py-func docutils literal notranslate"><span class="pre">to_json()</span></code></a></p></li>
+<li><p><strong>filename</strong> (<em>str</em>) – if not None, will load the geometry from a json file</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the geometry</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference internal" href="#geometry.OrientedGeometry" title="geometry.OrientedGeometry">OrientedGeometry</a></p>
@@ -1129,11 +1391,28 @@ The function must take as first argument the points, as an numpy.ndarray with (N
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt id="geometry.OrientedSurface.to_json">
+<code class="sig-name descname">to_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedSurface.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary in a json format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – if not None, will save the geometry in a json file</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the geometry in a json format</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt id="geometry.Pyramid">
-<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">Pyramid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Pyramid" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">Pyramid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">attributes</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.Pyramid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#geometry.OrientedPolyhedron" title="geometry.OrientedPolyhedron"><code class="xref py py-class docutils literal notranslate"><span class="pre">geometry.OrientedPolyhedron</span></code></a></p>
 <p>A pyramid is an oriented polyhedron described by a base polygon and an isolated point.</p>
 <dl class="py method">
@@ -1285,6 +1564,26 @@ If results is negative, it means that the curve orientation is ccw.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="geometry.intersection_of_2d_lines">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">intersection_of_2d_lines</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points_A</span></em>, <em class="sig-param"><span class="n">points_B</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.intersection_of_2d_lines" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the intersection point of two lines.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points_A</strong> (numpy.ndarray <em>size=2</em>) – the points of the first line</p></li>
+<li><p><strong>points_B</strong> (numpy.ndarray <em>size=2</em>) – the points of the second line</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the intersection point</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray <em>shape=(2)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="geometry.is_ccw">
 <code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">is_ccw</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.is_ccw" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns if the curve described by the points is oriented ccw or not.
@@ -1375,6 +1674,27 @@ face could intercept an other polygon[i].</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="geometry.polygons_sharp_edges_iter">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">polygons_sharp_edges_iter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.polygons_sharp_edges_iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the sharp edges contained in the polygon.</p>
+<p>For an edge to be sharp, there are two conditions:
+1. it must belong to 2 different polygons
+2. the 2 polygons must make a convex polyhedron when joined by common edge</p>
+<p>Also, two polygons can only share 1 edge.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>polygons</strong> (<em>Iterable</em><em>[</em><a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon"><em>OrientedPolygon</em></a><em>]</em>) – the polygon</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>an iterable of (edge, i, j) and i and j are indices relating to polygons</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Iterable[Tuple[numpy.ndarray, int, int]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="geometry.polygons_visibility_matrix">
 <code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">polygons_visibility_matrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="n">strict</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.polygons_visibility_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the visibility matrix for N given polygons.
@@ -1453,6 +1773,24 @@ given line. The last axis is the axis with the same direction as the line.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>points</strong> (numpy.ndarray <em>shape=(2, 3)</em>) – two points describing line path</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a matrix</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray <em>shape=(3, 3)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.projection_matrix_from_vector">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">projection_matrix_from_vector</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vector</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.projection_matrix_from_vector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an orthogonal matrix which can be used to project any set of points in a coordinates system aligned with
+given vector. The last axis is the axis with the same direction as the vector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>vector</strong> (numpy.ndarray <em>s=(3)</em>) – the vector</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>a matrix</p>

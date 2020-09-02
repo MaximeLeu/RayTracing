@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>radarcoverage &mdash; Radar Coverage 2020 documentation</title>
+  <title>array_utils module &mdash; Radar Coverage 2020 documentation</title>
   
 
   
@@ -35,9 +35,7 @@
 
     
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="array_utils module" href="array_utils.html" />
-    <link rel="prev" title="Welcome to Radar Coverage’s documentation!" href="../index.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -83,16 +81,8 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">radarcoverage</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="array_utils.html">array_utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="class_utils.html">class_utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="file_utils.html">file_utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="geometry.html">geometry module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="plot_utils.html">plot_utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ray_tracing.html">ray_tracing module</a></li>
-</ul>
-</li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">radarcoverage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../scripts/modules.html">command-line tools</a></li>
 </ul>
 
@@ -140,13 +130,13 @@
     
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li>radarcoverage</li>
+      <li>array_utils module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/radarcoverage/modules.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/radarcoverage/array_utils.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -159,18 +149,31 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="radarcoverage">
-<h1>radarcoverage<a class="headerlink" href="#radarcoverage" title="Permalink to this headline">¶</a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="array_utils.html">array_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="class_utils.html">class_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="file_utils.html">file_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="geometry.html">geometry module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="plot_utils.html">plot_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ray_tracing.html">ray_tracing module</a></li>
+  <div class="section" id="module-array_utils">
+<span id="array-utils-module"></span><h1>array_utils module<a class="headerlink" href="#module-array_utils" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="array_utils.sort_by_columns">
+<code class="sig-prename descclassname">array_utils.</code><code class="sig-name descname">sort_by_columns</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">array</span></em>, <em class="sig-param"><span class="n">columns</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">axis</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#array_utils.sort_by_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sorts an array by columns (or any other axis specified) in a given order.
+By default, will sort by columns, with first columns being the most decisive and the last column being the least
+one. This function’s behavior is similar to the one of <code class="xref py py-func docutils literal notranslate"><span class="pre">pandas.DataFrame.sort_values()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>array</strong> (<em>numpy.ndarray</em>) – the array to be sorted</p></li>
+<li><p><strong>columns</strong> (<em>Iterable</em><em>[</em><em>int</em><em>]</em>) – the indices to sort by</p></li>
+<li><p><strong>axis</strong> (<em>int</em>) – the axis to sort by</p></li>
 </ul>
-</div>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the sorted array</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 
@@ -178,15 +181,6 @@
            
           </div>
           <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="array_utils.html" class="btn btn-neutral float-right" title="array_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="../index.html" class="btn btn-neutral float-left" title="Welcome to Radar Coverage’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
-    </div>
   
 
   <hr/>

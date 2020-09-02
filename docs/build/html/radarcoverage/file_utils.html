@@ -181,6 +181,44 @@
 </div>
 </dd></dl>
 
+<dl class="py function">
+<dt id="file_utils.json_load">
+<code class="sig-prename descclassname">file_utils.</code><code class="sig-name descname">json_load</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#file_utils.json_load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a dictionary from a json format file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>str</em>) – the filepath</p></li>
+<li><p><strong>args</strong> (<em>any</em>) – positional arguments to be passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">json.load()</span></code></p></li>
+<li><p><strong>kwargs</strong> – keyword arguments to be passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">json.load()</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the dictionary</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="file_utils.json_save">
+<code class="sig-prename descclassname">file_utils.</code><code class="sig-name descname">json_save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">indent</span><span class="o">=</span><span class="default_value">4</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#file_utils.json_save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes a dictionary into a json format file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>str</em>) – the filepath</p></li>
+<li><p><strong>data</strong> (<em>dict</em>) – the dictionary</p></li>
+<li><p><strong>args</strong> (<em>any</em>) – positional arguments to be passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">json.dump()</span></code></p></li>
+<li><p><strong>indent</strong> (<em>int</em>) – indentation size</p></li>
+<li><p><strong>kwargs</strong> – keyword arguments to be passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">json.dump()</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 

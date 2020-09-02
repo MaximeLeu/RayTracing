@@ -160,6 +160,7 @@
  | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#I"><strong>I</strong></a>
+ | <a href="#J"><strong>J</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#O"><strong>O</strong></a>
@@ -221,10 +222,10 @@
 </li>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.add_text_at_point_3d_ax">add_text_at_point_3d_ax() (in module plot_utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.add_vector_to_2d_ax">add_vector_to_2d_ax() (in module plot_utils)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.add_vector_to_3d_ax">add_vector_to_3d_ax() (in module plot_utils)</a>
 </li>
       <li><a href="radarcoverage/plot_utils.html#plot_utils.animate_3d_ax">animate_3d_ax() (in module plot_utils)</a>
@@ -245,6 +246,13 @@
         <li><a href="radarcoverage/geometry.html#geometry.OrientedPolyhedron.apply_on_points">(geometry.OrientedPolyhedron method)</a>
 </li>
         <li><a href="radarcoverage/geometry.html#geometry.OrientedSurface.apply_on_points">(geometry.OrientedSurface method)</a>
+</li>
+      </ul></li>
+      <li>
+    array_utils
+
+      <ul>
+        <li><a href="radarcoverage/array_utils.html#module-array_utils">module</a>
 </li>
       </ul></li>
   </ul></td>
@@ -296,10 +304,14 @@
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="radarcoverage/geometry.html#geometry.diffraction_point_from_origin_destination_and_edge">diffraction_point_from_origin_destination_and_edge() (in module geometry)</a>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometryDecoder.decode">decode() (geometry.OrientedGeometryDecoder method)</a>
+</li>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometryEncoder.default">default() (geometry.OrientedGeometryEncoder method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="radarcoverage/geometry.html#geometry.diffraction_point_from_origin_destination_and_edge">diffraction_point_from_origin_destination_and_edge() (in module geometry)</a>
+</li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon.distance_to_point">distance_to_point() (geometry.OrientedPolygon method)</a>
 </li>
   </ul></td>
@@ -321,6 +333,18 @@
 
       <ul>
         <li><a href="radarcoverage/file_utils.html#module-file_utils">module</a>
+</li>
+      </ul></li>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.from_json">from_json() (geometry.OrientedGeometry static method)</a>
+
+      <ul>
+        <li><a href="radarcoverage/geometry.html#geometry.OrientedPlace.from_json">(geometry.OrientedPlace static method)</a>
+</li>
+        <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon.from_json">(geometry.OrientedPolygon static method)</a>
+</li>
+        <li><a href="radarcoverage/geometry.html#geometry.OrientedPolyhedron.from_json">(geometry.OrientedPolyhedron static method)</a>
+</li>
+        <li><a href="radarcoverage/geometry.html#geometry.OrientedSurface.from_json">(geometry.OrientedSurface static method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -409,9 +433,11 @@
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon.get_shapely">get_shapely() (geometry.OrientedPolygon method)</a>
 </li>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.get_sharp_edges">get_sharp_edges() (geometry.OrientedGeometry method)</a>
+</li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.get_visibility_matrix">get_visibility_matrix() (geometry.OrientedGeometry method)</a>
 </li>
-      <li><a href="radarcoverage/solvers.html#solvers.RadarCoveringProblem.get_visible_polygons_indices">get_visible_polygons_indices() (solvers.RadarCoveringProblem method)</a>
+      <li><a href="radarcoverage/ray_tracing.html#ray_tracing.RadarCoveringProblem.get_visible_polygons_indices">get_visible_polygons_indices() (ray_tracing.RadarCoveringProblem method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -432,9 +458,21 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.id">id (geometry.OrientedGeometry attribute)</a>
+      <li><a href="radarcoverage/geometry.html#geometry.intersection_of_2d_lines">intersection_of_2d_lines() (in module geometry)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.is_ccw">is_ccw() (in module geometry)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="J">J</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="radarcoverage/file_utils.html#file_utils.json_load">json_load() (in module file_utils)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="radarcoverage/file_utils.html#file_utils.json_save">json_save() (in module file_utils)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -458,6 +496,8 @@
     module
 
       <ul>
+        <li><a href="radarcoverage/array_utils.html#module-array_utils">array_utils</a>
+</li>
         <li><a href="radarcoverage/class_utils.html#module-class_utils">class_utils</a>
 </li>
         <li><a href="radarcoverage/file_utils.html#module-file_utils">file_utils</a>
@@ -466,7 +506,7 @@
 </li>
         <li><a href="radarcoverage/plot_utils.html#module-plot_utils">plot_utils</a>
 </li>
-        <li><a href="radarcoverage/solvers.html#module-solvers">solvers</a>
+        <li><a href="radarcoverage/ray_tracing.html#module-ray_tracing">ray_tracing</a>
 </li>
       </ul></li>
   </ul></td>
@@ -486,8 +526,12 @@
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry">OrientedGeometry (class in geometry)</a>
 </li>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometryDecoder">OrientedGeometryDecoder (class in geometry)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometryEncoder">OrientedGeometryEncoder (class in geometry)</a>
+</li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPlace">OrientedPlace (class in geometry)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon">OrientedPolygon (class in geometry)</a>
@@ -527,7 +571,7 @@
 </li>
         <li><a href="radarcoverage/geometry.html#geometry.OrientedSurface.plot3d">(geometry.OrientedSurface method)</a>
 </li>
-        <li><a href="radarcoverage/solvers.html#solvers.RadarCoveringProblem.plot3d">(solvers.RadarCoveringProblem method)</a>
+        <li><a href="radarcoverage/ray_tracing.html#ray_tracing.RadarCoveringProblem.plot3d">(ray_tracing.RadarCoveringProblem method)</a>
 </li>
       </ul></li>
       <li>
@@ -543,9 +587,11 @@
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.polygons_obstruct_line_path">polygons_obstruct_line_path() (in module geometry)</a>
 </li>
+      <li><a href="radarcoverage/geometry.html#geometry.polygons_sharp_edges_iter">polygons_sharp_edges_iter() (in module geometry)</a>
+</li>
       <li><a href="radarcoverage/geometry.html#geometry.polygons_visibility_matrix">polygons_visibility_matrix() (in module geometry)</a>
 </li>
-      <li><a href="radarcoverage/solvers.html#solvers.RadarCoveringProblem.precompute">precompute() (solvers.RadarCoveringProblem method)</a>
+      <li><a href="radarcoverage/ray_tracing.html#ray_tracing.RadarCoveringProblem.precompute">precompute() (ray_tracing.RadarCoveringProblem method)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.project">project() (geometry.OrientedGeometry method)</a>
 </li>
@@ -561,6 +607,8 @@
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.projection_matrix_from_line_path">projection_matrix_from_line_path() (in module geometry)</a>
 </li>
+      <li><a href="radarcoverage/geometry.html#geometry.projection_matrix_from_vector">projection_matrix_from_vector() (in module geometry)</a>
+</li>
       <li><a href="radarcoverage/geometry.html#geometry.Pyramid">Pyramid (class in geometry)</a>
 </li>
   </ul></td>
@@ -569,12 +617,19 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="radarcoverage/solvers.html#solvers.RadarCoveringProblem">RadarCoveringProblem (class in solvers)</a>
+      <li><a href="radarcoverage/ray_tracing.html#ray_tracing.RadarCoveringProblem">RadarCoveringProblem (class in ray_tracing)</a>
 </li>
-      <li><a href="radarcoverage/geometry.html#geometry.reflexion_on_plane">reflexion_on_plane() (in module geometry)</a>
+      <li>
+    ray_tracing
+
+      <ul>
+        <li><a href="radarcoverage/ray_tracing.html#module-ray_tracing">module</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="radarcoverage/geometry.html#geometry.reflexion_on_plane">reflexion_on_plane() (in module geometry)</a>
+</li>
       <li><a href="radarcoverage/geometry.html#geometry.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge">reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge() (in module geometry)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.reflexion_points_from_origin_destination_and_planes">reflexion_points_from_origin_destination_and_planes() (in module geometry)</a>
@@ -601,17 +656,14 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radarcoverage/class_utils.html#class_utils.share_parent_class">share_parent_class() (in module class_utils)</a>
 </li>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.show_sharp_edges_animation">show_sharp_edges_animation() (geometry.OrientedGeometry method)</a>
+</li>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.show_visibility_matrix_animation">show_visibility_matrix_animation() (geometry.OrientedGeometry method)</a>
 </li>
-      <li><a href="radarcoverage/solvers.html#solvers.RadarCoveringProblem.solve">solve() (solvers.RadarCoveringProblem method)</a>
+      <li><a href="radarcoverage/ray_tracing.html#ray_tracing.RadarCoveringProblem.solve">solve() (ray_tracing.RadarCoveringProblem method)</a>
 </li>
-      <li>
-    solvers
-
-      <ul>
-        <li><a href="radarcoverage/solvers.html#module-solvers">module</a>
+      <li><a href="radarcoverage/array_utils.html#array_utils.sort_by_columns">sort_by_columns() (in module array_utils)</a>
 </li>
-      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -625,10 +677,22 @@
         <li><a href="scripts/modules.html#cmdoption-geometry-translate-arg-T">geometry-translate command line option</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.tight_3d_plot">tight_3d_plot() (geometry.OrientedGeometry method)</a>
 </li>
+      <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.to_json">to_json() (geometry.OrientedGeometry method)</a>
+
+      <ul>
+        <li><a href="radarcoverage/geometry.html#geometry.OrientedPlace.to_json">(geometry.OrientedPlace method)</a>
+</li>
+        <li><a href="radarcoverage/geometry.html#geometry.OrientedPolygon.to_json">(geometry.OrientedPolygon method)</a>
+</li>
+        <li><a href="radarcoverage/geometry.html#geometry.OrientedPolyhedron.to_json">(geometry.OrientedPolyhedron method)</a>
+</li>
+        <li><a href="radarcoverage/geometry.html#geometry.OrientedSurface.to_json">(geometry.OrientedSurface method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="radarcoverage/geometry.html#geometry.OrientedGeometry.translate">translate() (geometry.OrientedGeometry method)</a>
 </li>
       <li><a href="radarcoverage/geometry.html#geometry.translate_points">translate_points() (in module geometry)</a>
