@@ -188,6 +188,7 @@ if __name__ == '__main__':
         [35, -5, 5],
         [10, -3, -5]
         ])
+    #rx = rx[1, :]
     tx = tx.reshape(-1, 3)
     rx = rx.reshape(-1, 3)
 

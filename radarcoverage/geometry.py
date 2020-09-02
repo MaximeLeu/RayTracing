@@ -206,7 +206,7 @@ def polygons_sharp_edges_iter(polygons):
 
                 if np.allclose(edge_A, edge_B):  # Edges are the same
                     yield edge_A, i, j
-                    break
+                    break  # No more than one edge possible
 
 
 def reflexion_on_plane(incidents, normal, normalized=False):
@@ -620,7 +620,7 @@ def polygons_obstruct_line_path(polygons, points):
     projected_points = project_points(points, matrix)
     pA = projected_points[0, :]
     pB = projected_points[1, :]
-    line = shLine([pA, pB])
+    point = shPoint(pA)
     z_min = pA[2]
     z_max = pB[2]
 
@@ -631,12 +631,14 @@ def polygons_obstruct_line_path(polygons, points):
         domain = projected_polygon.get_domain()
 
         if domain[1, 2] > z_min and domain[0, 2] < z_max:
-            if projected_polygon.get_shapely().intersects(line):  # Projection of line is intersected by polygon
+            if projected_polygon.get_shapely().intersects(point):  # Projection of line is intersected by polygon
                 normal = polygon.get_normal()
                 d = polygon.get_parametric()[3]
                 t = - (d + np.dot(A, normal)) / np.dot(V, normal)
+
                 if tol < t < 1 - tol:  # Is the polygon between A and B ?
                     return True
+
     return False
 
 
@@ -927,6 +929,14 @@ class OrientedGeometry(object):
                 if func(polygon, *func_args, **kwargs):
                     yield polygon
 
+    def propagate_attributes_on_polygons(self):
+        """
+        Propagates current attributes to all the polygons contained in this geometry.
+        """
+        attributes = self.attributes
+        for polygon in self.get_polygons_iter():
+            polygon.attributes.update(attributes)
+
     def apply_on_points(self, func, *args, **kwargs):
         """
         Applies a function recursively on all the geometries contained in this one.
@@ -945,8 +955,6 @@ class OrientedGeometry(object):
         """
         Translates geometry using a vector as displacement.
 
-        :param points: the points to translate
-        :type points: numpy.ndarray *shape=(N, 3)*
         :param vector: the displacement vector
         :type vector: numpy.ndarray *size=3*
         :return: the new geometry
