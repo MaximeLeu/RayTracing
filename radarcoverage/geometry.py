@@ -984,7 +984,7 @@ class OrientedGeometry(object):
     def apply_on_points(self, func, *args, **kwargs):
         """
         Applies a function recursively on all the geometries contained in this one.
-        The function must take as first argument the points, as an numpy.ndarray with (N, 3) shape.
+        The function must take as first argument the points, as a numpy.ndarray with (N, 3) shape.
 
         :param func: the function
         :type func: function
