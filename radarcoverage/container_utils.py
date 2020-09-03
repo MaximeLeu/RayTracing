@@ -8,10 +8,10 @@ class ManyToOneDict(dict):
     >>> d[5] = 4
     >>> d[4] = 1
     >>> d[1] = 0
-    >>> d[4, 5,...]  # Match any key containing 4 or 5
-    [((5,), 4), ((4,), 1)]
-    >>> d[4, 5,...] = 4
-    >>> d[4, 5,...]
+    >>> d[4, 5, ...]  # Match any key containing 4 or 5
+    [((5,), 4), ((4,), 1)
+    >>> d[4, 5, ...] = 4
+    >>> d[4, 5, ...]
     [((5,), 4), ((4,), 4)]
     >>> d[5, 1] = 0
     >>> d[5]  # Will always return a list of tuples

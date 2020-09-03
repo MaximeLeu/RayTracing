@@ -703,46 +703,57 @@ def polygon_visibility_vector(polygon_A, polygons, out=None, strict=False):
     projected_polygons = [(i, polygon.translate(-centroid_A).project(matrix_A))
                           for i, polygon in enumerate(polygons) if polygon != polygon_A]
 
-    # First filter: by z coordinate and vector analysis
-    filtered_polygons = list()
-    for i, projected_polygon_B in projected_polygons:
-        if projected_polygon_B.get_domain()[1, 2] > tol_dz:
-            centroid_B = polygons[i].get_centroid()
+    # First filter: by z coordinate
+    filtered_polygons = (
+        (i, projected_polygon) for i, projected_polygon in projected_polygons if projected_polygon.get_domain()[1, 2] > tol_dz
+    )
 
-            # For each point in polygon A, we check if any can produce a rays bouncing on polygon B
-            for point in polygon_A.points:
-                vector = point - centroid_B
-                vector /= norm(vector)
-                if np.dot(vector, polygons[i].get_normal()) > tol_dot:
-                    if strict:
-                        visibility_vector[i] = True
-                    filtered_polygons.append((i, projected_polygon_B.project_on_spherical_coordinates()))
-                    break
+    # Second filter: by polygon masking
 
-    if strict:
-        return visibility_vector
+    if not strict:
 
-    def func(polygon):
-        domain = polygon.get_domain()[0]
-        return domain[2], norm(polygon.get_centroid())
+        spherical_polygons = (
+            (i, projected_polygon.project_on_spherical_coordinates()) for i, projected_polygon in filtered_polygons
+        )
 
-    polygons_filtered = sorted(filtered_polygons, key=lambda x: func(x[1]))
+        def func(polygon):
+            domain = polygon.get_domain()[0]
+            return domain[2], norm(polygon.get_centroid())
 
-    screen = polygon_A.project_on_spherical_coordinates().get_shapely()
+        spherical_polygons = sorted(spherical_polygons, key=lambda x: func(x[1]))
 
-    canvas = shPolygon()
-    for i, projected_polygon_B in polygons_filtered:
-        shapely_polygon_B = projected_polygon_B.project_with_perspective_mapping().get_shapely()
-        if not shapely_polygon_B.is_valid:
-            continue
-        try:
-            polygon_B_in_screen = shapely_polygon_B
-        except:
-            continue
-        difference = polygon_B_in_screen.difference(canvas)
-        if not difference.is_empty:
-            canvas = canvas.union(polygon_B_in_screen)
-            visibility_vector[i] = True
+        canvas = shPolygon()
+
+        filtered_polygons = list()
+
+        for i, spherical_polygon_B in spherical_polygons:
+            shapely_polygon_B = spherical_polygon_B.get_shapely()
+            if not shapely_polygon_B.is_valid:
+                continue
+            try:
+                polygon_B_in_screen = shapely_polygon_B
+            except:
+                continue
+            difference = polygon_B_in_screen.difference(canvas)
+            if not difference.is_empty:
+                canvas = canvas.union(polygon_B_in_screen)
+                filtered_polygons.append((i, spherical_polygon_B))
+
+    # Last filter: by normal vector analysis
+    filtered_polygons = (
+        i for i, _ in filtered_polygons if any(
+            np.dot(array_utils.normalize(
+                    point - polygons[i].get_centroid()
+                ),
+                    polygons[i].get_normal()
+                )
+            >
+            tol_dot for point in polygon_A.points
+        )
+    )
+
+    for i in filtered_polygons:
+        visibility_vector[i] = True
 
     return visibility_vector
 
@@ -770,7 +781,8 @@ def polygons_visibility_matrix(polygons, strict=False):
         polygon_visibility_vector(polygon_A, polygons, out=visibility_matrix[i, :], strict=strict)
 
     # Symmetric matrix
-    # visibility_matrix = visibility_matrix | visibility_matrix.T
+    # Can fix bugs such as for the ground surface (spherical projection blocks a lot a potential polygons)
+    visibility_matrix = visibility_matrix | visibility_matrix.T
 
     return visibility_matrix
 
@@ -1219,7 +1231,7 @@ class OrientedGeometry(object):
         """
         Shows a 3D animation of the sharp edges by showing, for each edge, the two polygons making the edge.
         """
-        sharp_edges = self.get_sharp_edges()
+        sharp_edges = list(self.get_sharp_edges().items())
         ax = self.plot3d(ret=True)
         self.center_3d_plot(ax)
         polys3d = ax.collections
@@ -1236,7 +1248,7 @@ class OrientedGeometry(object):
             for line in ax.get_lines():
                 line.remove()
 
-            edge, j, k = sharp_edges[i]
+            (j, k), edge = sharp_edges[i]
             polys3d[j].set_facecolor('r')
             polys3d[j].set_alpha(0.5)
             polys3d[k].set_facecolor('r')
@@ -1397,7 +1409,7 @@ class OrientedPolygon(OrientedGeometry):
         """
         return self.get_parametric()[:3]
 
-    def contains_point(self, point, check_in_plane=False, plane_tol=1e-9):
+    def contains_point(self, point, check_in_plane=False, plane_tol=1e-8):
         """
         Returns true if point belongs to polygon. By default it assumes that the point lies in the same plane as this
         polygon. If needed, can first check this condition.
@@ -1415,7 +1427,7 @@ class OrientedPolygon(OrientedGeometry):
         if check_in_plane:
             d = self.get_parametric()[3]
             normal = self.get_normal()
-            if not np.allclose(np.dot(normal, point), -d, rtol=plane_tol):
+            if not np.allclose(np.dot(normal, point), -d, atol=plane_tol):
                 return False
 
         matrix = self.get_matrix().T

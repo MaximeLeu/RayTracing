@@ -12,6 +12,7 @@ Welcome to Radar Coverage's documentation!
 
    radarcoverage/modules
    scripts/modules
+   tutorials/index
 
 
 

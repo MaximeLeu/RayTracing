@@ -1,4 +1,9 @@
 import numpy as np
+from numpy.dual import norm
+
+
+def normalize(array, axis=None):
+    return array / norm(array, axis=axis)
 
 
 def sort_by_columns(array, columns=None, axis=1):

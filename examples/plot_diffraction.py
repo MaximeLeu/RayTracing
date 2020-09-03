@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     screen = face.translate(np.array([0, -5, 0]))
 
-    ax = cube.plot3d(ret=True, alpha=0)
+    ax = cube.plot3d(ret=True, alpha=0.1)
     screen.plot3d(ax=ax)
     plot_utils.add_points_to_3d_ax(ax, A)
     plot_utils.add_text_at_point_3d_ax(ax, A, 'TX')

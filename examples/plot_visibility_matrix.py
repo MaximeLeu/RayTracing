@@ -9,4 +9,4 @@ if __name__ == '__main__':
 
     place = geom.generate_place_from_rooftops_file('../data/small.geojson')
 
-    place.show_visibility_matrix_animation(strict=True)
+    place.show_visibility_matrix_animation(strict=False)
