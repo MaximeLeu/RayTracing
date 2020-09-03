@@ -71,7 +71,6 @@ class RayTracingProblem:
         return np.where(indices)[0]
 
     def check_reflections(self, lines, polygons_indices):
-
         for i, index in enumerate(polygons_indices):
             if not self.polygons[index].contains_point(lines[i + 1:i + 2, :], check_in_plane=True):
                 return False
@@ -86,7 +85,6 @@ class RayTracingProblem:
         return True
 
     def check_reflections_and_diffraction(self, lines, polygons_indices, edge):
-        #print(lines)
         return self.check_reflections(lines, polygons_indices) and \
                geom.point_on_edge_(lines[-2, :], edge) and \
                not geom.polygons_obstruct_line_path(self.polygons, lines[-2:, :])
@@ -124,7 +122,7 @@ class RayTracingProblem:
             recursive_reflections([index], 1)
 
         # Reflections and 1 diffraction
-        for edge, i, j in self.sharp_edges:
+        for (i, j), edge in self.sharp_edges.items():
             if self.emitter_visibility[i] or self.emitter_visibility[j]:
                 for receiver in receivers:
                     points, sol = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(emitter, receiver, [], edge)
@@ -210,7 +208,7 @@ if __name__ == '__main__':
     print(f'Took {time()-t:.4f} seconds to initialize and precompute problem.')
 
     t = time()
-    problem.solve(1)
+    problem.solve(2)
     print(f'Took {time()-t:.4f} seconds to solve problem.')
     problem.plot3d()
 

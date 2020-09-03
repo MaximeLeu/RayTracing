@@ -19,6 +19,7 @@ import pickle
 import uuid
 import json
 from radarcoverage import file_utils
+from radarcoverage import container_utils
 
 
 def intersection_of_2d_lines(points_A, points_B):
@@ -42,6 +43,20 @@ def intersection_of_2d_lines(points_A, points_B):
         return np.full(2, np.nan)
     else:
         return np.array([x / z, y / z])
+
+
+def path_length(points):
+    """
+    Returns the length of a given path of N-1 line segments.
+
+    :param points: the points of the path
+    :type points: numpy.ndarray *shape(N, M)*
+    :return: the total path length
+    :rtype: float
+    """
+    vectors = np.diff(points, axis=0)
+    lengths = norm(vectors, axis=1)
+    return np.sum(lengths)
 
 
 def enclosed_area(points):
@@ -127,7 +142,7 @@ def point_on_edge_(point, edge, tol=1e-8):
            A[2] - tol <= projected_point[2] <= B[2] + tol
 
 
-def polygons_sharp_edges_iter(polygons):
+def polygons_sharp_edges_iter(polygons, min_angle=10.0):
     """
     Returns all the sharp edges contained in the polygon.
 
@@ -139,11 +154,15 @@ def polygons_sharp_edges_iter(polygons):
 
     :param polygons: the polygon
     :type polygons: Iterable[OrientedPolygon]
+    :param min_angle: minimum angle (in degrees) for an edge to be considered sharp
+    :param min_angle: float
     :return: an iterable of (edge, i, j) and i and j are indices relating to polygons
     :rtype: Iterable[Tuple[numpy.ndarray, int, int]]
     """
     polygons = list(polygons)
     indices = np.arange(len(polygons), dtype=int)
+
+    max_cos = np.cos(np.deg2rad(min_angle))
 
     comb_indices = itertools.combinations(indices, 2)
 
@@ -164,7 +183,7 @@ def polygons_sharp_edges_iter(polygons):
         ):  # Check that polygons are close enough to possibly touch
             continue
 
-        if abs(np.dot(normal_A, normal_B)) == 1:  # Check that planes are not parallel
+        if abs(np.dot(normal_A, normal_B)) >= max_cos:  # Check that planes have minimal angle
             continue
 
         x = np.cross(normal_A, normal_B)
@@ -756,6 +775,19 @@ def polygons_visibility_matrix(polygons, strict=False):
     return visibility_matrix
 
 
+def sharp_edges_visibility_dict(sharp_edges):
+    """
+    Parses a sharp edges iterator into a dictionary with multiple keys (polygons) attached to same value (edge).
+
+    :return: a dictionary
+    :rtype: container_utils.ManyToOneDict
+    """
+    d = container_utils.ManyToOneDict()
+    for edge, i, j in sharp_edges:
+        d[i, j] = edge
+    return d
+
+
 class OrientedGeometryEncoder(json.JSONEncoder):
     """
     Subclass of json decoder made for the oriented geometries JSON encoding.
@@ -1128,21 +1160,27 @@ class OrientedGeometry(object):
 
         return self.visibility_matrix
 
-    def get_sharp_edges(self, force=False):
+    def get_sharp_edges(self, min_angle=10.0, force=False):
         """
-        Returns the symmetric visibility matrix for the polygons in this geometry.
-        See :func:`polygons_visibility_matrix`'s documentation for more information.
+        Returns all the sharp edges contained in the polygon.
 
+        For an edge to be sharp, there are two conditions:
+        1. it must belong to 2 different polygons
+        2. the 2 polygons must make a convex polyhedron when joined by common edge
 
-        :param strict: if True, will choose strict approach
-        :type strict: bool
+        Also, two polygons can only share 1 edge.
+
+        :param min_angle: minimum angle (in degrees) for an edge to be considered sharp
+        :param min_angle: float
         :param force: if True, will force to (re)compute value (only necessary if geometry has changed)
         :type force: bool
-        :return: the visibility matrix
-        :rtype: numpy.ndarray *dtype=bool, shape=(N, N)*
+        :return: a dictionary
+        :rtype: container_utils.ManyToOneDict
         """
         if force or self.sharp_edges is None:
-            self.sharp_edges = list(polygons_sharp_edges_iter(self.get_polygons_iter()))
+            self.sharp_edges = sharp_edges_visibility_dict(
+                polygons_sharp_edges_iter(self.get_polygons_iter(), min_angle=min_angle)
+            )
 
         return self.sharp_edges
 

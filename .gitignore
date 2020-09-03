@@ -15,3 +15,5 @@ radarcoverage/__pycache__/plot_utils.cpython-36.pyc
 radarcoverage.egg-info/
 
 radarcoverage/scripts/__pycache__/
+
+radarcoverage/__pycache__/
