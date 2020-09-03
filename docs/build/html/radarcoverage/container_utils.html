@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>radarcoverage &mdash; Radar Coverage 2020 documentation</title>
+  <title>container_utils module &mdash; Radar Coverage 2020 documentation</title>
   
 
   
@@ -36,8 +36,8 @@
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="array_utils module" href="array_utils.html" />
-    <link rel="prev" title="Welcome to Radar Coverage’s documentation!" href="../index.html" /> 
+    <link rel="next" title="file_utils module" href="file_utils.html" />
+    <link rel="prev" title="class_utils module" href="class_utils.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -84,10 +84,10 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">radarcoverage</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">radarcoverage</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="array_utils.html">array_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="class_utils.html">class_utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="container_utils.html">container_utils module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">container_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="file_utils.html">file_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="geometry.html">geometry module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_utils.html">plot_utils module</a></li>
@@ -141,13 +141,15 @@
     
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li>radarcoverage</li>
+          <li><a href="modules.html">radarcoverage</a> &raquo;</li>
+        
+      <li>container_utils module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/radarcoverage/modules.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/radarcoverage/container_utils.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -160,19 +162,35 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="radarcoverage">
-<h1>radarcoverage<a class="headerlink" href="#radarcoverage" title="Permalink to this headline">¶</a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="array_utils.html">array_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="class_utils.html">class_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="container_utils.html">container_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="file_utils.html">file_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="geometry.html">geometry module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="plot_utils.html">plot_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ray_tracing.html">ray_tracing module</a></li>
-</ul>
+  <div class="section" id="module-container_utils">
+<span id="container-utils-module"></span><h1>container_utils module<a class="headerlink" href="#module-container_utils" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="container_utils.ManyToOneDict">
+<em class="property">class </em><code class="sig-prename descclassname">container_utils.</code><code class="sig-name descname">ManyToOneDict</code><a class="headerlink" href="#container_utils.ManyToOneDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></p>
+<p>Subclass of dict providing multiple keys access to identical values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Example</dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="n">ManyToOneDict</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>  <span class="c1"># Match any key containing 4 or 5</span>
+<span class="go">[((5,), 4), ((4,), 1)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+<span class="go">[((5,), 4), ((4,), 4)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span><span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>  <span class="c1"># Will always return a list of tuples</span>
+<span class="go">[((5,), 4), ((5, 1), 0)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span><span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>  <span class="c1"># Will always return a tuple</span>
+<span class="go">((5, 1), 0)</span>
+</pre></div>
 </div>
+</dd></dl>
+
 </div>
 
 
@@ -183,10 +201,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="array_utils.html" class="btn btn-neutral float-right" title="array_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="file_utils.html" class="btn btn-neutral float-right" title="file_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="../index.html" class="btn btn-neutral float-left" title="Welcome to Radar Coverage’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="class_utils.html" class="btn btn-neutral float-left" title="class_utils module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

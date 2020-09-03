@@ -87,6 +87,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">radarcoverage</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="array_utils.html">array_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="class_utils.html">class_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="container_utils.html">container_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="file_utils.html">file_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="geometry.html">geometry module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_utils.html">plot_utils module</a></li>
@@ -164,27 +165,37 @@
   <div class="section" id="module-ray_tracing">
 <span id="ray-tracing-module"></span><h1>ray_tracing module<a class="headerlink" href="#module-ray_tracing" title="Permalink to this headline">¶</a></h1>
 <dl class="py class">
-<dt id="ray_tracing.RadarCoveringProblem">
-<em class="property">class </em><code class="sig-prename descclassname">ray_tracing.</code><code class="sig-name descname">RadarCoveringProblem</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">emitter</span></em>, <em class="sig-param"><span class="n">emitter_screen</span></em>, <em class="sig-param"><span class="n">place</span></em>, <em class="sig-param"><span class="n">receivers</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RadarCoveringProblem" title="Permalink to this definition">¶</a></dt>
+<dt id="ray_tracing.RayTracingProblem">
+<em class="property">class </em><code class="sig-prename descclassname">ray_tracing.</code><code class="sig-name descname">RayTracingProblem</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">emitter</span></em>, <em class="sig-param"><span class="n">emitter_screen</span></em>, <em class="sig-param"><span class="n">place</span></em>, <em class="sig-param"><span class="n">receivers</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RayTracingProblem" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
-<dt id="ray_tracing.RadarCoveringProblem.get_visible_polygons_indices">
-<code class="sig-name descname">get_visible_polygons_indices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">index</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RadarCoveringProblem.get_visible_polygons_indices" title="Permalink to this definition">¶</a></dt>
+<dt id="ray_tracing.RayTracingProblem.check_reflections">
+<code class="sig-name descname">check_reflections</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span></em>, <em class="sig-param"><span class="n">polygons_indices</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RayTracingProblem.check_reflections" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="ray_tracing.RadarCoveringProblem.plot3d">
-<code class="sig-name descname">plot3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RadarCoveringProblem.plot3d" title="Permalink to this definition">¶</a></dt>
+<dt id="ray_tracing.RayTracingProblem.check_reflections_and_diffraction">
+<code class="sig-name descname">check_reflections_and_diffraction</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span></em>, <em class="sig-param"><span class="n">polygons_indices</span></em>, <em class="sig-param"><span class="n">edge</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RayTracingProblem.check_reflections_and_diffraction" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="ray_tracing.RadarCoveringProblem.precompute">
-<code class="sig-name descname">precompute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RadarCoveringProblem.precompute" title="Permalink to this definition">¶</a></dt>
+<dt id="ray_tracing.RayTracingProblem.get_visible_polygons_indices">
+<code class="sig-name descname">get_visible_polygons_indices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">index</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RayTracingProblem.get_visible_polygons_indices" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="ray_tracing.RadarCoveringProblem.solve">
-<code class="sig-name descname">solve</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">max_order</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RadarCoveringProblem.solve" title="Permalink to this definition">¶</a></dt>
+<dt id="ray_tracing.RayTracingProblem.plot3d">
+<code class="sig-name descname">plot3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ret</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RayTracingProblem.plot3d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ray_tracing.RayTracingProblem.precompute">
+<code class="sig-name descname">precompute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RayTracingProblem.precompute" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ray_tracing.RayTracingProblem.solve">
+<code class="sig-name descname">solve</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">max_order</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ray_tracing.RayTracingProblem.solve" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

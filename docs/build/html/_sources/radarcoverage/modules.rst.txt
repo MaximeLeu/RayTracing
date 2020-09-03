@@ -6,6 +6,7 @@ radarcoverage
 
    array_utils
    class_utils
+   container_utils
    file_utils
    geometry
    plot_utils

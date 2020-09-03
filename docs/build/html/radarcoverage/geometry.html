@@ -85,11 +85,13 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">radarcoverage</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="array_utils.html">array_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="class_utils.html">class_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="container_utils.html">container_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="file_utils.html">file_utils module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">geometry module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plot_utils.html">plot_utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="solvers.html">solvers module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ray_tracing.html">ray_tracing module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../scripts/modules.html">command-line tools</a></li>
@@ -442,21 +444,25 @@ The function must take as first argument a polygon.</p>
 
 <dl class="py method">
 <dt id="geometry.OrientedGeometry.get_sharp_edges">
-<code class="sig-name descname">get_sharp_edges</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.get_sharp_edges" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the symmetric visibility matrix for the polygons in this geometry.
-See <a class="reference internal" href="#geometry.polygons_visibility_matrix" title="geometry.polygons_visibility_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">polygons_visibility_matrix()</span></code></a>’s documentation for more information.</p>
+<code class="sig-name descname">get_sharp_edges</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">min_angle</span><span class="o">=</span><span class="default_value">10.0</span></em>, <em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.get_sharp_edges" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the sharp edges contained in the polygon.</p>
+<p>For an edge to be sharp, there are two conditions:
+1. it must belong to 2 different polygons
+2. the 2 polygons must make a convex polyhedron when joined by common edge</p>
+<p>Also, two polygons can only share 1 edge.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>strict</strong> (<em>bool</em>) – if True, will choose strict approach</p></li>
+<li><p><strong>min_angle</strong> – minimum angle (in degrees) for an edge to be considered sharp</p></li>
+<li><p><strong>min_angle</strong> – float</p></li>
 <li><p><strong>force</strong> (<em>bool</em>) – if True, will force to (re)compute value (only necessary if geometry has changed)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>the visibility matrix</p>
+<dd class="field-even"><p>a dictionary</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>numpy.ndarray <em>dtype=bool, shape=(N, N)</em></p>
+<dd class="field-odd"><p><a class="reference internal" href="container_utils.html#container_utils.ManyToOneDict" title="container_utils.ManyToOneDict">container_utils.ManyToOneDict</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -590,6 +596,12 @@ The screen on which the points are projected is at a given distance from the ori
 </dd></dl>
 
 <dl class="py method">
+<dt id="geometry.OrientedGeometry.propagate_attributes_on_polygons">
+<code class="sig-name descname">propagate_attributes_on_polygons</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.propagate_attributes_on_polygons" title="Permalink to this definition">¶</a></dt>
+<dd><p>Propagates current attributes to all the polygons contained in this geometry.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="geometry.OrientedGeometry.save">
 <code class="sig-name descname">save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.OrientedGeometry.save" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves an oriented geometry object into a .ogeom file.</p>
@@ -652,10 +664,7 @@ and and the polygon faces that are visible to it in red.</p>
 <dd><p>Translates geometry using a vector as displacement.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>points</strong> (numpy.ndarray <em>shape=(N, 3)</em>) – the points to translate</p></li>
-<li><p><strong>vector</strong> (numpy.ndarray <em>size=3</em>) – the displacement vector</p></li>
-</ul>
+<dd class="field-odd"><p><strong>vector</strong> (numpy.ndarray <em>size=3</em>) – the displacement vector</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>the new geometry</p>
@@ -1619,6 +1628,44 @@ The curve is projected on the z=0 plane.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="geometry.path_length">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">path_length</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.path_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the length of a given path of N-1 line segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>points</strong> (numpy.ndarray <em>shape(N, M)</em>) – the points of the path</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the total path length</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.point_on_edge_">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">point_on_edge_</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">point</span></em>, <em class="sig-param"><span class="n">edge</span></em>, <em class="sig-param"><span class="n">tol</span><span class="o">=</span><span class="default_value">1e-08</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.point_on_edge_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether a point is on a given edge within a tolerance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>point</strong> (numpy.ndarray <em>size=3</em>) – the point</p></li>
+<li><p><strong>edge</strong> (numpy.ndarray <em>shape(2, 3)</em>) – the edge:</p></li>
+<li><p><strong>tol</strong> (<em>float</em>) – the tolerance</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if point is on the edge</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="geometry.polygon_visibility_vector">
 <code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">polygon_visibility_vector</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygon_A</span></em>, <em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="n">out</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">strict</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.polygon_visibility_vector" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the visibility vector for a polygon facing N given polygons.
@@ -1675,7 +1722,7 @@ face could intercept an other polygon[i].</p>
 
 <dl class="py function">
 <dt id="geometry.polygons_sharp_edges_iter">
-<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">polygons_sharp_edges_iter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.polygons_sharp_edges_iter" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">polygons_sharp_edges_iter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">polygons</span></em>, <em class="sig-param"><span class="n">min_angle</span><span class="o">=</span><span class="default_value">10.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.polygons_sharp_edges_iter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns all the sharp edges contained in the polygon.</p>
 <p>For an edge to be sharp, there are two conditions:
 1. it must belong to 2 different polygons
@@ -1683,7 +1730,11 @@ face could intercept an other polygon[i].</p>
 <p>Also, two polygons can only share 1 edge.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>polygons</strong> (<em>Iterable</em><em>[</em><a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon"><em>OrientedPolygon</em></a><em>]</em>) – the polygon</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>polygons</strong> (<em>Iterable</em><em>[</em><a class="reference internal" href="#geometry.OrientedPolygon" title="geometry.OrientedPolygon"><em>OrientedPolygon</em></a><em>]</em>) – the polygon</p></li>
+<li><p><strong>min_angle</strong> – minimum angle (in degrees) for an edge to be considered sharp</p></li>
+<li><p><strong>min_angle</strong> – float</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>an iterable of (edge, i, j) and i and j are indices relating to polygons</p>
@@ -1868,6 +1919,20 @@ The parametric equation of the plane should contained the normal vector in a nor
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>numpy.ndarray <em>shape=(N, 3)</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="geometry.sharp_edges_visibility_dict">
+<code class="sig-prename descclassname">geometry.</code><code class="sig-name descname">sharp_edges_visibility_dict</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sharp_edges</span></em><span class="sig-paren">)</span><a class="headerlink" href="#geometry.sharp_edges_visibility_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a sharp edges iterator into a dictionary with multiple keys (polygons) attached to same value (edge).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a dictionary</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="container_utils.html#container_utils.ManyToOneDict" title="container_utils.ManyToOneDict">container_utils.ManyToOneDict</a></p>
 </dd>
 </dl>
 </dd></dl>
