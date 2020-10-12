@@ -10,6 +10,8 @@ radarcoverage/__pycache__/geometry.cpython-36.pyc
 
 radarcoverage/__pycache__/plot_utils.cpython-36.pyc
 
+docs/build/
+
 *.ogeom
 
 radarcoverage.egg-info/

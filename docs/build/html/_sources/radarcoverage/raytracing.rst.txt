@@ -1,7 +1,0 @@
-raytracing module
-=================
-
-.. automodule:: raytracing
-   :members:
-   :undoc-members:
-   :show-inheritance:
