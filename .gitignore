@@ -21,3 +21,7 @@ radarcoverage/scripts/__pycache__/
 radarcoverage/__pycache__/
 
 *.pyc
+
+*.so
+
+*.o

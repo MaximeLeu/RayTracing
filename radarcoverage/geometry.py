@@ -24,7 +24,7 @@ from radarcoverage import file_utils
 from radarcoverage import container_utils
 
 
-@numba.njit
+@numba.njit(cache=True)
 def cartesian_to_spherical(points):
     x, y, z = points.T
     hxy = np.hypot(x, y)
@@ -48,7 +48,7 @@ def normalize_path(points):
     return vectors / n.reshape(-1, 1), n
 
 
-@numba.njit
+@numba.njit(cache=True)
 def intersection_of_2d_lines(points_A, points_B):
     """
     Returns the intersection point of two lines.
@@ -87,7 +87,7 @@ def path_length(points):
     return np.sum(lengths)
 
 
-@numba.njit(float64(float64[:, :]))
+@numba.njit(float64(float64[:, :]), cache=True)
 def enclosed_area(points):
     """
     Returns the enclosed area of the polygon described by the points.
@@ -108,7 +108,7 @@ def enclosed_area(points):
     return s / 2
 
 
-@numba.njit(boolean(float64[:, :]))
+@numba.njit(boolean(float64[:, :]), cache=True)
 def is_ccw(points):
     """
     Returns if the curve described by the points is oriented ccw or not.
@@ -122,7 +122,7 @@ def is_ccw(points):
     return enclosed_area(points) < 0
 
 
-@numba.njit(int64(string))
+@numba.njit(int64(string), cache=True)
 def __parse_3d_char_axis(axis):
     if axis == 'x' or axis == 'X':
         return 0
@@ -134,12 +134,12 @@ def __parse_3d_char_axis(axis):
         raise ValueError('Cannot parse input axis to a valid axis.')
 
 
-@numba.njit(int64(int64))
+@numba.njit(int64(int64), cache=True)
 def __parse_3d_int_axis(axis):
     return (axis + 3) % 3
 
 
-@numba.generated_jit(nopython=True)
+@numba.generated_jit(nopython=True, cache=True)
 def parse_3d_axis(axis):
     """
     Parses an axis to a valid axis in 3D geometry, i.e. 0, 1 or 2 (resp. to x, y, or z).
@@ -174,35 +174,35 @@ def translate_points(points, vector):
     return points.reshape(-1, 3) + vector.reshape(1, 3)
 
 
-@numba.generated_jit(nopython=True)
+@numba.generated_jit(nopython=True, cache=True)
 def __project__(points, matrix):
     if matrix.is_c_contig:
-        @numba.njit(float64[:, ::1](float64[:, ::1], float64[:, ::1]))
+        @numba.njit(float64[:, ::1](float64[:, ::1], float64[:, ::1]), cache=True)
         def __impl__(points, matrix):
             return points @ matrix.T
 
         return __impl__
 
     elif matrix.is_f_contig:
-        @numba.njit(float64[:, ::1](float64[:, ::1], float64[:, ::-1]))
+        @numba.njit(float64[:, ::1](float64[:, ::1], float64[:, ::-1]), cache=True)
         def __impl__(points, matrix):
             return points @ np.ascontiguousarray(matrix.T)
 
         return __impl__
     else:
-        @numba.njit(float64[:, ::1](float64[:, ::1], float64[:, :]))
+        @numba.njit(float64[:, ::1](float64[:, ::1], float64[:, :]), cache=True)
         def __impl__(points, matrix):
             return points @ np.ascontiguousarray(matrix.T)
 
         return __impl__
 
 
-@numba.njit(float64[:, :](float64[:, :], float64[:, :], float64[:, :]))
+@numba.njit(float64[:, :](float64[:, :], float64[:, :], float64[:, :]), cache=True)
 def __project_around_point__(points, matrix, around_point):
     return __project__(points - around_point, matrix) + around_point
 
 
-@numba.njit
+@numba.njit(cache=True)
 def project_points(points, matrix, around_point=None):
     """
     Projects points on different axes given by matrix columns.
@@ -341,7 +341,7 @@ def any_point_between(points, a, b, axis=2):
     return np.any(a <= points[:, axis] <= b)
 
 
-@numba.njit(float64[:, :](float64[:]))
+@numba.njit(float64[:, :](float64[:]), cache=True)
 def projection_matrix_from_vector(vector):
     """
     Returns an orthogonal matrix which can be used to project any set of points in a coordinates system aligned with
@@ -365,7 +365,7 @@ def projection_matrix_from_vector(vector):
     return matrix
 
 
-@numba.njit(numba.float64[:, :](numba.float64[:, :]))
+@numba.njit(numba.float64[:, :](numba.float64[:, :]), cache=True)
 def projection_matrix_from_line_path(points):
     """
     Returns an orthogonal matrix which can be used to project any set of points in a coordinates system aligned with
@@ -383,7 +383,7 @@ def projection_matrix_from_line_path(points):
 
 
 #@numba.njit(boolean(float64[:], float64[:, ::1], float64))
-@numba.njit
+@numba.njit(cache=True)
 def point_on_edge_(point, edge, tol=1e-8):
     """
     Returns whether a point is on a given edge within a tolerance.
@@ -519,7 +519,7 @@ def reflexion_on_plane(incidents, normal, normalized=False):
     return incidents - (incidents @ normal.T) @ ((2 / den) * normal)  # Order of operation minimizes the # of op.
 
 
-@numba.njit(numba.float64[:, :](numba.float64[:, :]))
+@numba.njit(numba.float64[:, :](numba.float64[:, :]), cache=True)
 def __gamma__(v):
     n = v.shape[0]
     norms = np.empty(n)
@@ -535,7 +535,8 @@ def __gamma__(v):
     return gamma
 
 
-@numba.njit(UniTuple(float64[:, :], 3)(float64[:, :], float64[:, :], float64[:, :]))
+@numba.njit(UniTuple(float64[:, :], 3)(float64[:, :], float64[:, :], float64[:, :]),
+            cache=True)
 def __generate__(origin, destination, planes_parametric):
     n = len(planes_parametric)
     normal = np.empty((n, 3))
@@ -561,7 +562,9 @@ def __generate__(origin, destination, planes_parametric):
     return normal, d, points
 
 
-@numba.njit(float64[::1](float64[::1], float64[:, ::1], float64[:, ::1], float64[:, ::1]))
+@numba.njit(float64[::1](float64[::1], float64[:, ::1],
+                         float64[:, ::1], float64[:, ::1]),
+            cache=True)
 def __reflexion_zero_func__(x, normal, d, points):
     n = d.size
 
@@ -616,7 +619,8 @@ def reflexion_points_from_origin_destination_and_planes(origin, destination, pla
 
 @numba.njit(UniTuple(float64[:], 2)(float64[:],
                                     float64[:], float64[:],
-                                    float64[:], float64[:]))
+                                    float64[:], float64[:]),
+            cache=True)
 def __diffraction_zero_func__(x,
                               ze, Xe,
                               projected_A, projected_B):
@@ -677,7 +681,8 @@ def diffraction_point_from_origin_destination_and_edge(origin, destination, edge
 @numba.njit(float64[::1](float64[::1],
                          float64[:, ::1], float64[:, ::1],
                          float64[:, ::1], float64[:, :],
-                         float64[:], float64[:], float64[:]))
+                         float64[:], float64[:], float64[:]),
+            cache=True)
 def __reflexion_and_diffraction_zero_func__(x,
                                             normal, d,
                                             points, matrix,

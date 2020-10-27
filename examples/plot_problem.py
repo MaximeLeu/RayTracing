@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     # 1. Load data
 
-    geometry = 'small'
+    geometry = 'dummy'
 
     if geometry == 'small':
         place = geom.generate_place_from_rooftops_file('../data/small.geojson')
