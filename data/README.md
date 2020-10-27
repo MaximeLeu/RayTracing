@@ -15,26 +15,26 @@ A way to get data for free is to use OpenStreetMap's data.
 
 After arriving on the website, you will be able to select the area of your interest using the window as the delimiting box.
 
-<p align="center">
+<div align="center">
   <img src = "../images/overpass-turbo/overpass_choosing_location.png" />
-</p>
+</div>
 
 Once the location is chosen, click on *Run*. After, all the buildings will by highlighted and you can obtain their information by clicking on them.
 
-<p align="center">
+<div align="center">
   <img src = "../images/overpass-turbo/overpass_data_view.png" />
-</p>
+</div>
 
 Data may differ from place to place and not all buildings have information about their height. If this is the case, you will be able to fix it manually after.
 
 After, click on *Export* and choose *download as GeoJSON*.
 
-<p align="center">
+<div align="center">
   <img src = "../images/overpass-turbo/overpass_data_export.png" />
-</p>
+</div>
 
 Once its done, you should have a file with a content similar to what is shown hereunder. If the height attribute is missing, you can enter it manually for each polygon.
 
-<p align="center">
+<div align="center">
   <img src = "../images/overpass-turbo/geo_json.png" />
-</p>
+</div>
