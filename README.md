@@ -9,7 +9,7 @@ This project's main objective is to provide intuitive tools in order to compute 
 Radar coverage
 │   README.md
 └───radarcoverage - code
-└───examples - visual exampes
+└───examples - visual examples
 └───docs - documentation sources and builds
     │   README.MD
 └───tests - tests used for C.I.
