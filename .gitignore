@@ -19,3 +19,5 @@ radarcoverage.egg-info/
 radarcoverage/scripts/__pycache__/
 
 radarcoverage/__pycache__/
+
+*.pyc

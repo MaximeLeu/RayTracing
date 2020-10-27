@@ -6,6 +6,8 @@ import numpy as np
 from numpy.dual import norm
 from scipy.optimize import root
 from radarcoverage import array_utils
+import numba
+from numba.types import UniTuple, float64, int64, string, boolean
 
 # Geometry libraries
 from shapely.geometry import Polygon as shPolygon
@@ -22,20 +24,46 @@ from radarcoverage import file_utils
 from radarcoverage import container_utils
 
 
+@numba.njit
+def cartesian_to_spherical(points):
+    x, y, z = points.T
+    hxy = np.hypot(x, y)
+    r = np.hypot(hxy, z)
+    el = np.arctan2(z, hxy)
+    az = np.arctan2(y, x)
+    return az, el, r
+
+
+def normalize_path(points):
+    """
+    Returns the normalized vectors from a path of points, as well the norm of each vector.
+
+    :param points: the points
+    :type points: numpy.ndarray *shape=(N, M)*
+    :return: the normalized vectors and the length of each vector before normalization
+    :rtype: Tuple[numpy.ndarray *shape(N-1, M)*, numpy.ndarray *shape(N-1, M)*]
+    """
+    vectors = np.diff(points, axis=0)
+    n = norm(vectors, axis=1)
+    return vectors / n.reshape(-1, 1), n
+
+
+@numba.njit
 def intersection_of_2d_lines(points_A, points_B):
     """
     Returns the intersection point of two lines.
 
     :param points_A: the points of the first line
-    :type points_A: numpy.ndarray *size=2*
+    :type points_A: numpy.ndarray *shape=(2, 2)*
     :param points_B: the points of the second line
-    :type points_B: numpy.ndarray *size=2*
+    :type points_B: numpy.ndarray *shape=(2, 2)*
     :return: the intersection point
     :rtype: numpy.ndarray *shape=(2)*
     """
     # https://stackoverflow.com/questions/3252194/numpy-and-line-intersections
-    s = np.vstack([points_A, points_B])
-    h = np.hstack([s, np.ones((4, 1))])
+    h = np.ones((4, 3))
+    h[:2, :2] = points_A
+    h[2:, :2] = points_B
     l1 = np.cross(h[0], h[1])
     l2 = np.cross(h[2], h[3])
     x, y, z = np.cross(l1, l2)
@@ -59,6 +87,7 @@ def path_length(points):
     return np.sum(lengths)
 
 
+@numba.njit(float64(float64[:, :]))
 def enclosed_area(points):
     """
     Returns the enclosed area of the polygon described by the points.
@@ -79,6 +108,7 @@ def enclosed_area(points):
     return s / 2
 
 
+@numba.njit(boolean(float64[:, :]))
 def is_ccw(points):
     """
     Returns if the curve described by the points is oriented ccw or not.
@@ -92,6 +122,24 @@ def is_ccw(points):
     return enclosed_area(points) < 0
 
 
+@numba.njit(int64(string))
+def __parse_3d_char_axis(axis):
+    if axis == 'x' or axis == 'X':
+        return 0
+    elif axis == 'y' or axis == 'Y':
+        return 1
+    elif axis == 'z' or axis == 'Z':
+        return 2
+    else:
+        raise ValueError('Cannot parse input axis to a valid axis.')
+
+
+@numba.njit(int64(int64))
+def __parse_3d_int_axis(axis):
+    return (axis + 3) % 3
+
+
+@numba.generated_jit(nopython=True)
 def parse_3d_axis(axis):
     """
     Parses an axis to a valid axis in 3D geometry, i.e. 0, 1 or 2 (resp. to x, y, or z).
@@ -101,339 +149,15 @@ def parse_3d_axis(axis):
     :return: the axis
     :rtype: int
     """
-    if isinstance(axis, str):
-        axis = axis.lower()
-        if axis == 'x':
-            axis = 0
-        elif axis == 'y':
-            axis = 1
-        elif axis == 'z':
-            axis = 2
-        else:
-            raise ValueError(f'Cannot parse {axis} to a valid axis.')
+    if isinstance(axis, numba.types.Integer):
+        return __parse_3d_int_axis
+    elif isinstance(axis, numba.types.UnicodeType):
+        return __parse_3d_char_axis
     else:
-        axis = (int(axis) + 3) % 3
+        def __impl__(axis):
+            raise ValueError('Cannot parse input type as axis.')
 
-    return axis
-
-
-def point_on_edge_(point, edge, tol=1e-8):
-    """
-    Returns whether a point is on a given edge within a tolerance.
-
-    :param point: the point
-    :type point: numpy.ndarray *size=3*
-    :param edge: the edge:
-    :type edge: numpy.ndarray *shape(2, 3)*
-    :param tol: the tolerance
-    :type tol: float
-    :return: True if point is on the edge
-    :rtype: bool
-    """
-    v = edge[1, :] - edge[0, :]
-    matrix = projection_matrix_from_vector(v).T
-    projected_edge = project_points(edge, matrix)
-    projected_point = project_points(point, matrix)
-    A = projected_edge[0, :]
-    B = projected_edge[1, :]
-
-    return A[0] - tol <= projected_point[0] <= A[0] + tol and \
-           A[1] - tol <= projected_point[1] <= A[1] + tol and \
-           A[2] - tol <= projected_point[2] <= B[2] + tol
-
-
-def polygons_sharp_edges_iter(polygons, min_angle=10.0):
-    """
-    Returns all the sharp edges contained in the polygon.
-
-    For an edge to be sharp, there are two conditions:
-    1. it must belong to 2 different polygons
-    2. the 2 polygons must make a convex polyhedron when joined by common edge
-
-    Also, two polygons can only share 1 edge.
-
-    :param polygons: the polygon
-    :type polygons: Iterable[OrientedPolygon]
-    :param min_angle: minimum angle (in degrees) for an edge to be considered sharp
-    :param min_angle: float
-    :return: an iterable of (edge, i, j) and i and j are indices relating to polygons
-    :rtype: Iterable[Tuple[numpy.ndarray, int, int]]
-    """
-    polygons = list(polygons)
-    indices = np.arange(len(polygons), dtype=int)
-
-    max_cos = np.cos(np.deg2rad(min_angle))
-
-    comb_indices = itertools.combinations(indices, 2)
-
-    for i, j in comb_indices:
-        polygon_A = polygons[i]
-        normal_A = polygon_A.get_normal()
-        centroid_A = polygon_A.get_centroid()
-        domain_A = polygon_A.get_domain()
-        line_A = np.row_stack([centroid_A, centroid_A + normal_A])
-        polygon_B = polygons[j]
-        normal_B = polygon_B.get_normal()
-        centroid_B = polygon_B.get_centroid()
-        domain_B = polygon_B.get_domain()
-        line_B = np.row_stack([centroid_B, centroid_B + normal_B])
-
-        if np.any(
-                np.abs(centroid_A - centroid_B) > np.diff(domain_A, axis=0) + np.diff(domain_B, axis=0)
-        ):  # Check that polygons are close enough to possibly touch
-            continue
-
-        if abs(np.dot(normal_A, normal_B)) >= max_cos:  # Check that planes have minimal angle
-            continue
-
-        x = np.cross(normal_A, normal_B)
-        matrix = projection_matrix_from_vector(x)
-        projected_line_A = project_points(line_A, matrix.T)
-        projected_line_B = project_points(line_B, matrix.T)
-
-        intersection_point = intersection_of_2d_lines(projected_line_A[:, :2], projected_line_B[:, :2])
-
-        if np.any(np.isnan(intersection_point)):  # No line intersection = planes are parallel
-            continue
-
-        # X = A + V * t
-        A = projected_line_A[0, :2]
-        V = projected_line_A[1, :2] - A
-        if V[0] != 0:
-            t = (intersection_point[0] - A[0]) / V[0]
-        elif V[1] != 0:
-            t = (intersection_point[1] - A[1]) / V[1]
-        else:
-            continue
-
-        if t < 0:  # If two polygons make a convex form => t < 0 (because normals intercept inside the polyhedron)
-            points_A = polygon_A.points
-            points_B = polygon_B.points
-
-            # Sort points in order to easily check if two edges are the same
-            edges_A = [
-                array_utils.sort_by_columns(np.row_stack([points_A[k - 1, :], points_A[k, :]]))
-                for k in range(points_A.shape[0])
-            ]
-            edges_B = [
-                array_utils.sort_by_columns(np.row_stack([points_B[m - 1, :], points_B[m, :]]))
-                for m in range(points_B.shape[0])
-            ]
-            for k, m in itertools.product(range(points_A.shape[0]), range(points_B.shape[0])):
-                edge_A = edges_A[k]
-                edge_B = edges_B[m]
-
-                if np.allclose(edge_A, edge_B):  # Edges are the same
-                    yield edge_A, i, j
-                    break  # No more than one edge possible
-
-
-def reflexion_on_plane(incidents, normal, normalized=False):
-    """
-    Return the reflexion of incident vector on a plane with given normal.
-    See details: https://en.wikipedia.org/wiki/Reflection_(mathematics)
-
-    :param incidents: incident vectors
-    :type incidents: numpy.ndarray *shape=(N, 3)*
-    :param normal: normal vector to the plane
-    :type normal: numpy.ndarray *size=3*
-    :param normalized: if True, assume normal vector is a unit vector (accelerates computation)
-    :type normalized: bool
-    :return: the reflected vector(s)
-    :rtype: numpy.ndarray *shape(N, 3)*
-    """
-    normal = normal.reshape((1, 3))
-    incidents = incidents.reshape((-1, 3))
-    if normalized:
-        den = 1
-    else:
-        den = normal @ normal.T
-    return incidents - (incidents @ normal.T) @ ((2 / den) * normal)  # Order of operation minimizes the # of op.
-
-
-def reflexion_points_from_origin_destination_and_planes(origin, destination, planes_parametric, **kwargs):
-    """
-    Returns the reflection point on each plane such that a path between origin and destination is possible.
-    The parametric equation of the plane should contained the normal vector in a normalized form.
-
-    :param origin: the origin point
-    :type origin: numpy.ndarray *size=3*
-    :param destination: the destination point
-    :type destination: numpy.ndarray *size=3*
-    :param planes_parametric: the coefficients of the parametric equation of each plane
-    :type planes_parametric: list of numpy.ndarray *shape=(4)*
-    :param kwargs: keyword parameters passed to :func:`scipy.optimize.fsolve`
-    :type kwargs: any
-    :return: the reflection point on each of the planes and the solution
-    :rtype: numpy.array *shape(1, 3)*, scipy.optimize.OptimizeResult
-    """
-    A = origin.reshape(1, 3)
-    B = destination.reshape(1, 3)
-    parametric = np.vstack(planes_parametric)
-    normal = parametric[:, :3]
-    d = parametric[:, 3].reshape(-1, 1)
-
-    n = parametric.shape[0]
-
-    points = np.empty((n + 2, 3), dtype=float)
-    points[0, :] = A
-    points[-1, :] = B
-
-    for i in range(1, n + 1):
-        # First guess for solution
-        points[i, :] = 0.5 * (
-                points[i - 1, :] + B - 2 * (d[i - 1] + points[i - 1, :] @ normal[i - 1, :].T) * normal[i - 1, :])
-
-    def gamma(v):
-        norms = norm(v, axis=1)
-        return norms[:-1] / norms[1:]
-
-    def func(x):
-        points[1:n + 1, :] = x.reshape(-1, 3)
-        v = np.diff(points, axis=0)
-        g = gamma(v).reshape(-1, 1)
-
-        dot_product = np.einsum('ij,ij->i', points[:n, :], normal).reshape(-1, 1)
-
-        return (g * v[1:, :] - v[:-1, :] - 2 * (d + dot_product) * normal).reshape(-1)
-
-    sol = root(func, x0=points[1:n + 1, :].reshape(-1), **kwargs)
-
-    x = sol.x.reshape(-1, 3)
-
-    return x, sol
-
-
-def diffraction_point_from_origin_destination_and_edge(origin, destination, edge, **kwargs):
-    """
-    Returns the diffraction point on a edge such that a path between origin and destination is possible.
-
-    :param origin: the origin point
-    :type origin: numpy.ndarray *size=3*
-    :param destination: the destination point
-    :type destination: numpy.ndarray *size=3*
-    :param edge: the edge in which reflexion is done
-    :type edge: numpy.ndarray *shape=(2, 3)*
-    :param kwargs: keyword parameters passed to :func:`scipy.optimize.root`
-    :type kwargs: any
-    :return: the diffraction point on the edge and the solution
-    :rtype: numpy.array *shape(1, 3)*, scipy.optimize.OptimizeResult
-    """
-    A = origin.reshape(1, 3)
-    B = destination.reshape(1, 3)
-
-    matrix = projection_matrix_from_line_path(edge).T
-
-    projected_A = project_points(A, matrix)[0, :]
-    projected_B = project_points(B, matrix)[0, :]
-    projected_edge = project_points(edge, matrix)
-    Xe = projected_edge[0, :]
-    ze = Xe[2]
-
-    def func(x):
-        t = x - ze
-        x = np.copy(Xe)
-        x[2] += t
-        i = x - projected_A
-        d = projected_B - x
-
-        num1 = (ze - projected_A[2] + t)
-        num2 = (projected_B[2] - ze - t)
-        den1 = norm(i)
-        den2 = norm(d)
-
-        f = num1 / den1 - num2 / den2
-
-        den1_prime = num1 / den1
-        den2_prime = - num2 / den2
-
-        jac = (-num1 - den1_prime) / (den1 * den1) - (num2 - den2_prime) / (den2 * den2)
-
-        return f, jac
-
-    sol = root(func, x0=ze, jac=True, **kwargs)
-    Xe[2] = sol.x
-
-    return project_points(Xe, matrix.T), sol
-
-
-def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(origin, destination,
-                                                                                   planes_parametric, edge, **kwargs):
-    if len(planes_parametric) == 0:
-        return diffraction_point_from_origin_destination_and_edge(origin, destination, edge, **kwargs)
-    elif edge is None:
-        return reflexion_points_from_origin_destination_and_planes(origin, destination, planes_parametric, **kwargs)
-
-    A = origin.reshape(1, 3)
-    B = destination.reshape(1, 3)
-
-    # Reflection
-    parametric = np.vstack(planes_parametric)
-    normal = parametric[:, :3]
-    d = parametric[:, 3].reshape(-1, 1)
-    n = parametric.shape[0]
-
-    # Diffraction
-    matrix = projection_matrix_from_line_path(edge).T
-
-    projected_B = project_points(B, matrix)[0, :]
-    projected_edge = project_points(edge, matrix)
-    Xe = projected_edge[0, :]
-    ze = Xe[2]
-
-    points = np.empty((n + 2, 3), dtype=float)
-    points[0, :] = A
-    points[-1, :] = edge[0, :]
-
-    for i in range(1, n + 1):
-        # First guess for solution
-        points[i, :] = 0.5 * (
-                points[i - 1, :] + B - 2 * (d[i - 1] + points[i - 1, :] @ normal[i - 1, :].T) * normal[i - 1, :])
-
-    def gamma(v):
-        norms = norm(v, axis=1)
-        gamma = norms[:-1] / norms[1:]
-        return gamma
-
-    def func(x):
-        r = np.empty_like(x)
-        # Reflection
-        points[1:n + 1, :] = x[:-1].reshape(-1, 3)
-        points[-1, :] = project_points(np.array([Xe[0], Xe[1], x[-1]]), matrix.T)
-
-        v = np.diff(points, axis=0)
-        g = gamma(v).reshape(-1, 1)
-
-        dot_product = np.einsum('ij,ij->i', points[:n, :], normal).reshape(-1, 1)
-
-        projected_A = project_points(points[-2, :], matrix)
-
-        r[:-1] = (g * v[1:, :] - v[:-1, :] - 2 * (d + dot_product) * normal).reshape(-1)
-
-        # Diffraction
-        t = x[-1] - ze
-        xn = np.copy(Xe)
-        xn[2] += t
-        i_ = xn - projected_A
-        d_ = projected_B - xn
-
-        num1 = (ze - projected_A[2] + t)
-        num2 = (projected_B[2] - ze - t)
-        den1 = norm(i_)
-        den2 = norm(d_)
-
-        r[-1] = num1 / den1 - num2 / den2
-
-        return r
-
-    sol = root(func, x0=points[1:, :].flat[:-2], **kwargs)
-
-    x = sol.x
-
-    points[1:n + 1, :] = x[:-1].reshape(-1, 3)
-    points[-1, :] = project_points(np.array([Xe[0], Xe[1], x[-1]]), matrix.T)
-
-    return points[1:, :], sol
+        return __impl__
 
 
 def translate_points(points, vector):
@@ -450,6 +174,35 @@ def translate_points(points, vector):
     return points.reshape(-1, 3) + vector.reshape(1, 3)
 
 
+@numba.generated_jit(nopython=True)
+def __project__(points, matrix):
+    if matrix.is_c_contig:
+        @numba.njit(float64[:, ::1](float64[:, ::1], float64[:, ::1]))
+        def __impl__(points, matrix):
+            return points @ matrix.T
+
+        return __impl__
+
+    elif matrix.is_f_contig:
+        @numba.njit(float64[:, ::1](float64[:, ::1], float64[:, ::-1]))
+        def __impl__(points, matrix):
+            return points @ np.ascontiguousarray(matrix.T)
+
+        return __impl__
+    else:
+        @numba.njit(float64[:, ::1](float64[:, ::1], float64[:, :]))
+        def __impl__(points, matrix):
+            return points @ np.ascontiguousarray(matrix.T)
+
+        return __impl__
+
+
+@numba.njit(float64[:, :](float64[:, :], float64[:, :], float64[:, :]))
+def __project_around_point__(points, matrix, around_point):
+    return __project__(points - around_point, matrix) + around_point
+
+
+@numba.njit
 def project_points(points, matrix, around_point=None):
     """
     Projects points on different axes given by matrix columns.
@@ -459,21 +212,23 @@ def project_points(points, matrix, around_point=None):
     :param matrix: the matrix to project all the geometry
     :type matrix: numpy.ndarray *shape=(3, 3)*
     :param around_point: if present, will apply the projection around this point
-    :type around_point: numpy.ndarray *size=3*
+    :type around_point: numpy.ndarray *shape=(1, 3)*
     :return: the projected points
     :rtype: numpy.ndarray *shape=(N, 3)*
     """
+    points = np.atleast_2d(points)
+
     if around_point is not None:
-        around_point = around_point.reshape(1, 3)
-        return ((points - around_point) @ matrix.T) + around_point
+        around_point = np.atleast_2d(points)
+        return __project_around_point__(points, matrix, around_point)
     else:
-        return points @ matrix.T
+        return __project__(points, matrix)
 
 
 def project_points_on_spherical_coordinates(points, r_axis=2):
     r_axis = parse_3d_axis(r_axis)
     p = np.array(points, ndmin=2)  # Copy
-    spherical_points = np.empty(p.shape, dtype=float)
+    spherical_points = np.empty(p.shape, dtype=np.float)
     spherical_points[:, 0] = norm(p, axis=1)
     spherical_points[:, 1] = np.arctan2(p[:, 1], p[:, 0])
     spherical_points[:, 2] = np.arccos(p[:, 2] / spherical_points[:, 0])
@@ -586,24 +341,31 @@ def any_point_between(points, a, b, axis=2):
     return np.any(a <= points[:, axis] <= b)
 
 
+@numba.njit(float64[:, :](float64[:]))
 def projection_matrix_from_vector(vector):
     """
     Returns an orthogonal matrix which can be used to project any set of points in a coordinates system aligned with
     given vector. The last axis is the axis with the same direction as the vector.
 
     :param vector: the vector
-    :type vector: numpy.ndarray *s=(3)*
+    :type vector: numpy.ndarray *size=(3)*
     :return: a matrix
     :rtype: numpy.ndarray *shape=(3, 3)*
     """
     z = vector / norm(vector)
-    y = np.array([0, 1, 0], dtype=float)  # Arbitrary
+    y = np.ones_like(z)  # Arbitrary
     y -= y.dot(z) * z
     y /= norm(y)
     x = np.cross(y, z)
-    return np.row_stack([x, y, z]).T
+    matrix = np.empty((3, 3))
+    matrix[:, 0] = x
+    matrix[:, 1] = y
+    matrix[:, 2] = z
+    # return np.row_stack([x, y, z]).T
+    return matrix
 
 
+@numba.njit(numba.float64[:, :](numba.float64[:, :]))
 def projection_matrix_from_line_path(points):
     """
     Returns an orthogonal matrix which can be used to project any set of points in a coordinates system aligned with
@@ -618,6 +380,382 @@ def projection_matrix_from_line_path(points):
     B = points[1, :]
     V = B - A
     return projection_matrix_from_vector(V)
+
+
+#@numba.njit(boolean(float64[:], float64[:, ::1], float64))
+@numba.njit
+def point_on_edge_(point, edge, tol=1e-8):
+    """
+    Returns whether a point is on a given edge within a tolerance.
+
+    :param point: the point
+    :type point: numpy.ndarray *size=3*
+    :param edge: the edge:
+    :type edge: numpy.ndarray *shape(2, 3)*
+    :param tol: the tolerance
+    :type tol: float
+    :return: True if point is on the edge
+    :rtype: bool
+    """
+    v = edge[1, :] - edge[0, :]
+    matrix = projection_matrix_from_vector(v).T
+    projected_edge = project_points(edge, matrix)
+    projected_point = project_points(point, matrix).flat
+    A = projected_edge[0, :].flat
+    B = projected_edge[1, :].flat
+
+    return A[0] - tol <= projected_point[0] <= A[0] + tol and \
+           A[1] - tol <= projected_point[1] <= A[1] + tol and \
+           A[2] - tol <= projected_point[2] <= B[2] + tol
+
+
+def polygons_sharp_edges_iter(polygons, min_angle=10.0):
+    """
+    Returns all the sharp edges contained in the polygon.
+
+    For an edge to be sharp, there are two conditions:
+    1. it must belong to 2 different polygons
+    2. the 2 polygons must make a convex polyhedron when joined by common edge
+
+    Also, two polygons can only share 1 edge.
+
+    :param polygons: the polygon
+    :type polygons: Iterable[OrientedPolygon]
+    :param min_angle: minimum angle (in degrees) for an edge to be considered sharp
+    :param min_angle: float
+    :return: an iterable of (edge, i, j) and i and j are indices relating to polygons
+    :rtype: Iterable[Tuple[numpy.ndarray, int, int]]
+    """
+    polygons = list(polygons)
+    indices = np.arange(len(polygons), dtype=int)
+
+    max_cos = np.cos(np.deg2rad(min_angle))
+
+    comb_indices = itertools.combinations(indices, 2)
+
+    for i, j in comb_indices:
+        polygon_A = polygons[i]
+        normal_A = polygon_A.get_normal()
+        centroid_A = polygon_A.get_centroid()
+        domain_A = polygon_A.get_domain()
+        line_A = np.row_stack([centroid_A, centroid_A + normal_A])
+        polygon_B = polygons[j]
+        normal_B = polygon_B.get_normal()
+        centroid_B = polygon_B.get_centroid()
+        domain_B = polygon_B.get_domain()
+        line_B = np.row_stack([centroid_B, centroid_B + normal_B])
+
+        if np.any(
+                np.abs(centroid_A - centroid_B) > np.diff(domain_A, axis=0) + np.diff(domain_B, axis=0)
+        ):  # Check that polygons are close enough to possibly touch
+            continue
+
+        if abs(np.dot(normal_A, normal_B)) >= max_cos:  # Check that planes have minimal angle
+            continue
+
+        x = np.cross(normal_A, normal_B)
+        matrix = projection_matrix_from_vector(x)
+        projected_line_A = project_points(line_A, matrix.T)
+        projected_line_B = project_points(line_B, matrix.T)
+
+        intersection_point = intersection_of_2d_lines(projected_line_A[:, :2], projected_line_B[:, :2])
+
+        if np.any(np.isnan(intersection_point)):  # No line intersection = planes are parallel
+            continue
+
+        # X = A + V * t
+        A = projected_line_A[0, :2]
+        V = projected_line_A[1, :2] - A
+        if V[0] != 0:
+            t = (intersection_point[0] - A[0]) / V[0]
+        elif V[1] != 0:
+            t = (intersection_point[1] - A[1]) / V[1]
+        else:
+            continue
+
+        if t < 0:  # If two polygons make a convex form => t < 0 (because normals intercept inside the polyhedron)
+            points_A = polygon_A.points
+            points_B = polygon_B.points
+
+            # Sort points in order to easily check if two edges are the same
+            edges_A = [
+                array_utils.sort_by_columns(np.row_stack([points_A[k - 1, :], points_A[k, :]]))
+                for k in range(points_A.shape[0])
+            ]
+            edges_B = [
+                array_utils.sort_by_columns(np.row_stack([points_B[m - 1, :], points_B[m, :]]))
+                for m in range(points_B.shape[0])
+            ]
+            for k, m in itertools.product(range(points_A.shape[0]), range(points_B.shape[0])):
+                edge_A = edges_A[k]
+                edge_B = edges_B[m]
+
+                if np.allclose(edge_A, edge_B):  # Edges are the same
+                    yield edge_A, i, j
+                    break  # No more than one edge possible
+
+
+# @numba.njit(...)
+def reflexion_on_plane(incidents, normal, normalized=False):
+    """
+    Return the reflexion of incident vector on a plane with given normal.
+    See details: https://en.wikipedia.org/wiki/Reflection_(mathematics)
+
+    :param incidents: incident vectors
+    :type incidents: numpy.ndarray *shape=(N, 3)*
+    :param normal: normal vector to the plane
+    :type normal: numpy.ndarray *size=3*
+    :param normalized: if True, assume normal vector is a unit vector (accelerates computation)
+    :type normalized: bool
+    :return: the reflected vector(s)
+    :rtype: numpy.ndarray *shape(N, 3)*
+    """
+    normal = normal.reshape((1, 3))
+    incidents = incidents.reshape((-1, 3))
+    if normalized:
+        den = 1
+    else:
+        den = normal @ normal.T
+    return incidents - (incidents @ normal.T) @ ((2 / den) * normal)  # Order of operation minimizes the # of op.
+
+
+@numba.njit(numba.float64[:, :](numba.float64[:, :]))
+def __gamma__(v):
+    n = v.shape[0]
+    norms = np.empty(n)
+
+    for i in range(n):
+        norms[i] = norm(v[i, :])
+
+    gamma = np.empty((n - 1, 1))
+
+    for i in range(n - 1):
+        gamma[i, 0] = norms[i] / norms[i + 1]
+
+    return gamma
+
+
+@numba.njit(UniTuple(float64[:, :], 3)(float64[:, :], float64[:, :], float64[:, :]))
+def __generate__(origin, destination, planes_parametric):
+    n = len(planes_parametric)
+    normal = np.empty((n, 3))
+    d = np.empty((n, 1))
+
+    points = np.empty((n + 2, 3))
+    points[0, :] = origin.ravel()
+    points[-1, :] = destination.ravel()
+    for i in range(n):
+        normal[i, 0] = planes_parametric[i, 0]
+        normal[i, 1] = planes_parametric[i, 1]
+        normal[i, 2] = planes_parametric[i, 2]
+        d[i, 0] = planes_parametric[i][3]
+
+        # First guess for solution
+        new_point = 0.5 * (
+                points[i, :] + destination
+                - 2 * (d[i, 0] + np.dot(points[i, :], normal[i, :])) * normal[i, :]
+        )
+        for j in range(3):
+            points[i + 1, j] = new_point.flat[j]
+
+    return normal, d, points
+
+
+@numba.njit(float64[::1](float64[::1], float64[:, ::1], float64[:, ::1], float64[:, ::1]))
+def __reflexion_zero_func__(x, normal, d, points):
+    n = d.size
+
+    for i in range(1, n + 1):
+        j = 3 * (i - 1)
+        points[i, 0] = x[j]
+        points[i, 1] = x[j + 1]
+        points[i, 2] = x[j + 2]
+
+    v = points[1:, :] - points[:-1, :]
+    g = __gamma__(v)
+
+    dot_product = np.empty((n, 1))
+
+    # Equiv. to:
+    # dot_product = np.einsum('ij,ij->i', points[:n, :], normal).reshape(-1, 1)
+    for i in range(n):
+        dot_product[i, 0] = np.dot(points[i, :], normal[i, :])
+
+    return (g * v[1:, :] - v[:-1, :] - 2 * (d + dot_product) * normal).reshape(-1)
+
+
+def reflexion_points_from_origin_destination_and_planes(origin, destination, planes_parametric, **kwargs):
+    """
+    Returns the reflection point on each plane such that a path between origin and destination is possible.
+    The parametric equation of the plane should contained the normal vector in a normalized form.
+
+    :param origin: the origin point
+    :type origin: numpy.ndarray *size=3*
+    :param destination: the destination point
+    :type destination: numpy.ndarray *size=3*
+    :param planes_parametric: the coefficients of the parametric equation of each plane
+    :type planes_parametric: list of numpy.ndarray *shape=(4)*
+    :param kwargs: keyword parameters passed to :func:`scipy.optimize.fsolve`
+    :type kwargs: any
+    :return: the reflection point on each of the planes and the solution
+    :rtype: numpy.array *shape(1, 3)*, scipy.optimize.OptimizeResult
+    """
+    A = origin.reshape(1, 3).astype(float)
+    B = destination.reshape(1, 3).astype(float)
+    normal, d, points = __generate__(A, B, np.asarray(planes_parametric))
+
+    n = d.size
+
+    sol = root(__reflexion_zero_func__, x0=points[1:n + 1, :].reshape(-1),
+               args=(normal, d, points), **kwargs)
+
+    x = sol.x.reshape(-1, 3)
+
+    return x, sol
+
+
+@numba.njit(UniTuple(float64[:], 2)(float64[:],
+                                    float64[:], float64[:],
+                                    float64[:], float64[:]))
+def __diffraction_zero_func__(x,
+                              ze, Xe,
+                              projected_A, projected_B):
+    t = x - ze
+    x = np.copy(Xe)
+    x[2] += t[0]
+    i = x - projected_A
+    d = projected_B - x
+
+    num1 = (ze - projected_A[2] + t)
+    num2 = (projected_B[2] - ze - t)
+    den1 = norm(i)
+    den2 = norm(d)
+
+    f = num1 / den1 - num2 / den2
+
+    den1_prime = num1 / den1
+    den2_prime = - num2 / den2
+
+    jac = (-num1 - den1_prime) / (den1 * den1) - (num2 - den2_prime) / (den2 * den2)
+
+    return f, jac
+
+
+def diffraction_point_from_origin_destination_and_edge(origin, destination, edge, **kwargs):
+    """
+    Returns the diffraction point on a edge such that a path between origin and destination is possible.
+
+    :param origin: the origin point
+    :type origin: numpy.ndarray *size=3*
+    :param destination: the destination point
+    :type destination: numpy.ndarray *size=3*
+    :param edge: the edge in which reflexion is done
+    :type edge: numpy.ndarray *shape=(2, 3)*
+    :param kwargs: keyword parameters passed to :func:`scipy.optimize.root`
+    :type kwargs: any
+    :return: the diffraction point on the edge and the solution
+    :rtype: numpy.array *shape(1, 3)*, scipy.optimize.OptimizeResult
+    """
+    A = origin.reshape(1, 3).astype(float)
+    B = destination.reshape(1, 3).astype(float)
+
+    matrix = projection_matrix_from_line_path(edge).T
+
+    projected_A = project_points(A, matrix)[0, :]
+    projected_B = project_points(B, matrix)[0, :]
+    projected_edge = project_points(edge, matrix)
+    Xe = projected_edge[0, :]
+    ze = np.atleast_1d(Xe[2])
+
+    sol = root(__diffraction_zero_func__, x0=ze, jac=True,
+               args=(ze, Xe, projected_A, projected_B), **kwargs)
+    Xe[2] = sol.x
+
+    return project_points(Xe, matrix.T), sol
+
+
+@numba.njit(float64[::1](float64[::1],
+                         float64[:, ::1], float64[:, ::1],
+                         float64[:, ::1], float64[:, :],
+                         float64[:], float64[:], float64[:]))
+def __reflexion_and_diffraction_zero_func__(x,
+                                            normal, d,
+                                            points, matrix,
+                                            ze, Xe, projected_B):
+    n = d.size
+
+    for i in range(1, n + 1):
+        j = 3 * (i - 1)
+        points[i, 0] = x[j]
+        points[i, 1] = x[j + 1]
+        points[i, 2] = x[j + 2]
+
+    r = np.empty_like(x)
+
+    v = points[1:, :] - points[:-1, :]
+    g = __gamma__(v)
+
+    dot_product = np.empty((n, 1))
+
+    # Equiv. to:
+    # dot_product = np.einsum('ij,ij->i', points[:n, :], normal).reshape(-1, 1)
+    for i in range(n):
+        dot_product[i] = np.dot(points[i, :], normal[i, :])
+
+    projected_A = project_points(points[-2, :], matrix).ravel()
+    r[:-1] = (g * v[1:, :] - v[:-1, :] - 2 * (d + dot_product) * normal).reshape(-1)
+
+    # Diffraction
+    t = x[-1] - ze
+    xn = np.copy(Xe)
+    xn[2] += t[0]
+    i_ = xn - projected_A
+    d_ = projected_B - xn
+
+    num1 = (ze - projected_A[2] + t)
+    num2 = (projected_B[2] - ze - t)
+    den1 = norm(i_)
+    den2 = norm(d_)
+
+    r[-1] = (num1 / den1 - num2 / den2)[0]
+
+    return r
+
+
+def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(origin, destination,
+                                                                                   planes_parametric, edge, **kwargs):
+    if len(planes_parametric) == 0:
+        return diffraction_point_from_origin_destination_and_edge(origin, destination, edge, **kwargs)
+    elif edge is None:
+        return reflexion_points_from_origin_destination_and_planes(origin, destination, planes_parametric, **kwargs)
+
+    A = origin.reshape(1, 3).astype(float)
+    B = destination.reshape(1, 3).astype(float)
+    normal, d, points = __generate__(A, B, np.asarray(planes_parametric))
+
+    n = len(planes_parametric)
+
+    # Diffraction
+    matrix = projection_matrix_from_line_path(edge).T
+
+    projected_B = project_points(B, matrix)[0, :]
+    projected_edge = project_points(edge, matrix)
+    Xe = projected_edge[0, :]
+    ze = np.atleast_1d(Xe[2])
+
+    points[-1, :] = edge[0, :]
+
+    sol = root(__reflexion_and_diffraction_zero_func__,
+               x0=points[1:, :].flat[:-2],
+               args=(normal, d, points, matrix, ze, Xe, projected_B),
+               **kwargs)
+
+    x = sol.x
+
+    points[1:n + 1, :] = x[:-1].reshape(-1, 3)
+    points[-1, :] = project_points(np.array([Xe[0], Xe[1], x[-1]]), matrix.T)
+
+    return points[1:, :], sol
 
 
 def polygons_obstruct_line_path(polygons, points):
@@ -705,7 +843,8 @@ def polygon_visibility_vector(polygon_A, polygons, out=None, strict=False):
 
     # First filter: by z coordinate
     filtered_polygons = (
-        (i, projected_polygon) for i, projected_polygon in projected_polygons if projected_polygon.get_domain()[1, 2] > tol_dz
+        (i, projected_polygon) for i, projected_polygon in projected_polygons if
+        projected_polygon.get_domain()[1, 2] > tol_dz
     )
 
     # Second filter: by polygon masking
@@ -742,14 +881,14 @@ def polygon_visibility_vector(polygon_A, polygons, out=None, strict=False):
     # Last filter: by normal vector analysis
     filtered_polygons = (
         i for i, _ in filtered_polygons if any(
-            np.dot(array_utils.normalize(
-                    point - polygons[i].get_centroid()
-                ),
-                    polygons[i].get_normal()
-                )
-            >
-            tol_dot for point in polygon_A.points
+        np.dot(array_utils.normalize(
+            point - polygons[i].get_centroid()
+        ),
+            polygons[i].get_normal()
         )
+        >
+        tol_dot for point in polygon_A.points
+    )
     )
 
     for i in filtered_polygons:
@@ -810,6 +949,8 @@ class OrientedGeometryEncoder(json.JSONEncoder):
             return obj.hex
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
+        elif isinstance(obj, np.int64):
+            return int(obj)
         else:
             return json.JSONEncoder.default(self, obj)
 
@@ -860,6 +1001,9 @@ class OrientedGeometry(object):
 
     def __eq__(self, other):
         return self.id == other.id
+
+    def __getitem__(self, item):
+        return self.attributes[item]
 
     def save(self, filename):
         """
@@ -1013,7 +1157,7 @@ class OrientedGeometry(object):
         :param matrix: the matrix to project all the geometry
         :type matrix: numpy.ndarray *shape=(3, 3)*
         :param around_point: if present, will apply the project around this point
-        :type around_point: numpy.ndarray *size=3*
+        :type around_point: numpy.ndarray *shape=(1, 3)*
         :return: the new geometry
         :rtype: OrientedGeometry
         """
@@ -1460,7 +1604,7 @@ class OrientedPolygon(OrientedGeometry):
         A = points[0, :]
         B = points[1, :]
         normal = self.get_normal()
-        matrix = np.empty((3, 3), dtype=float)
+        matrix = np.empty((3, 3), dtype=np.float)
         matrix[0, :] = B - A
         matrix[1, :] = np.cross(normal, matrix[0, :])
         matrix[2, :] = normal  # Already normalized
@@ -1516,6 +1660,19 @@ class OrientedPolygon(OrientedGeometry):
 
         if ret:
             return ax
+
+
+class Square(OrientedPolygon):
+
+    @staticmethod
+    def by_2_corner_points(points):
+        points = array_utils.sort_by_columns(points)
+        p = np.empty((4, 3), dtype=float)
+        p[:-2, :] = points[0, :]
+        p[1, 0] = points[1, 0]
+        p[2:, :] = points[1, :]
+        p[-1, 0] = points[0, 0]
+        return Square(p)
 
 
 class OrientedSurface(OrientedGeometry):
@@ -1575,9 +1732,9 @@ class OrientedSurface(OrientedGeometry):
         return iter(self.polygons)
 
     def apply_on_points(self, func, *args, **kwargs):
-        projected_polygons = [polygon.apply_on_points(func, *args, **kwargs)
-                              for polygon in self.polygons]
-        return OrientedSurface(projected_polygons)
+        polygons = [polygon.apply_on_points(func, *args, **kwargs)
+                    for polygon in self.polygons]
+        return OrientedSurface(polygons)
 
     def plot2d(self, *args, ret=False, ax=None, **kwargs):
 
@@ -1789,13 +1946,13 @@ class Building(OrientedPolyhedron):
         """
 
         if isinstance(polygon, OrientedPolygon):
-            x, y = polygon.points[:, :-1]
+            x, y = polygon.points[:, :-1].T
         elif isinstance(polygon, shPolygon):
             x, y = polygon.exterior.coords.xy
             x = x[:-1]
             y = y[:-1]
         elif isinstance(polygon, np.ndarray):
-            x, y = polygon[:, :-1]
+            x, y = polygon[:, :-1].T
         else:
             raise ValueError(f'Type {type(polygon)} is not supported for polygon !')
 
@@ -1903,7 +2060,7 @@ class OrientedPlace(OrientedGeometry):
             polyhedra=[
                 polyhedron.to_json() for polyhedron in self.polyhedra
             ],
-            points=self.points
+            points=self.set_of_points
         )
 
         if filename is not None:

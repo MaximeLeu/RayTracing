@@ -17,7 +17,6 @@ if __name__ == '__main__':
 
     polygons = cube.get_polygons_iter()
     g = geom.polygons_sharp_edges_iter(polygons)
-    print(list(g))
 
     ax = cube.plot3d(ret=True, alpha=0)
     add_points_to_3d_ax(ax, A)

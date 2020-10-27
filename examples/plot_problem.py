@@ -2,7 +2,8 @@ import radarcoverage.geometry as geom
 from radarcoverage import file_utils
 import matplotlib.pyplot as plt
 import numpy as np
-import radarcoverage.plot_utils as plot_utils
+from time import time
+from radarcoverage.ray_tracing import RayTracingProblem
 
 
 if __name__ == '__main__':
@@ -11,119 +12,71 @@ if __name__ == '__main__':
 
     # 1. Load data
 
-    place = geom.generate_place_from_rooftops_file('../data/small.geojson')
+    geometry = 'small'
 
+    if geometry == 'small':
+        place = geom.generate_place_from_rooftops_file('../data/small.geojson')
 
-    # 2. Create TX and RX
+        # 2. Create TX and RX
 
-    domain = place.get_domain()
-    ground_center = place.get_centroid()
+        domain = place.get_domain()
+        ground_center = place.get_centroid()
 
-    tx = ground_center + [-50, 5, 1]
-    rx = ground_center + [35, 5, 5]
-    tx = tx.reshape(1, 3)
-    rx = rx.reshape(1, 3)
+        tx = ground_center + [-50, 5, 1]
+        rx = ground_center + np.array([
+            [35, 5, 5],
+            [35, -5, 5],
+            [10, -3, -5]
+        ])
+        rx = rx[2, :]
+        tx = tx.reshape(-1, 3)
+        rx = rx.reshape(-1, 3)
 
-    # 2.1 Create a cube around TX
+        # 2.1 Create a cube around TX
 
-    distance = 5
-    cube = geom.Cube.by_point_and_side_length(tx, 2 * distance)
+        distance = 5
+        cube = geom.Cube.by_point_and_side_length(tx, 2 * distance)
+        # 2.1.1 Rotate this cube around its center
+        from scipy.spatial.transform import Rotation as R
 
-    # 2.1.1 Rotate this cube around its center
-    from scipy.spatial.transform import Rotation as R
+        rot2 = R.from_euler('xyz', [0, 10, -10], degrees=True).as_matrix()
 
-    rot2 = R.from_euler('xyz', [0, 10, -10], degrees=True).as_matrix()
+        cube = cube.project(rot2, around_point=tx)
+        screen = cube.polygons[2]
+    elif geometry == 'dummy':
+        tx = np.array([5., 12., 5.]).reshape(1, 3)
+        rx = np.array([65., 12., 5.]).reshape(1, 3)
 
-    cube = cube.project(rot2, around_point=tx)
+        square_1 = geom.Square.by_2_corner_points(np.array([[13, 22, 0], [17, 24, 0]]))
+        building_1 = geom.Building.by_polygon_and_height(square_1, 10)
+        square_2 = geom.Square.by_2_corner_points(np.array([[33, 0, 0], [37, 2, 0]]))
+        building_2 = geom.Building.by_polygon_and_height(square_2, 10)
+        square_3 = geom.Square.by_2_corner_points(np.array([[53, 22, 0], [57, 24, 0]]))
+        building_3 = geom.Building.by_polygon_and_height(square_3, 10)
 
-    # 2.2 Place TX and RX in the 'place'
-    #place.add_set_of_points(tx)
-    place.add_set_of_points(rx)
+        ground = geom.Square.by_2_corner_points(np.array([[0, 0, 0], [70, 24, 0]]))
 
-    # 2.3 Translate the geometry around TX
+        place = geom.OrientedPlace(geom.OrientedSurface(ground), [building_1, building_2, building_3])
 
-    place = place.translate(-tx)
-    cube = cube.translate(-tx)
-    polygons = place.get_polygons_list()
+        cube = geom.Cube.by_point_and_side_length(tx, 5)
+        screen = cube.polygons[2]
 
-    print(place.get_visibility_matrix()[0, :])
-    # 3. Plot the whole geometry
-    ax1 = place.plot3d(ret=True)
-    cube.plot3d(ax=ax1)
+    # place.show_visibility_matrix_animation(True)
 
-    rx -= tx
-    tx -= tx
-    plot_utils.add_vector_to_3d_ax(ax1, tx, rx - tx)
+    t = time()
+    problem = RayTracingProblem(tx, screen, place, rx)
+    print(f'Took {time() - t:.4f} seconds to initialize and precompute problem.')
 
-    points = np.row_stack([tx, rx])
+    t = time()
+    problem.solve(3)
+    print(f'Took {time() - t:.4f} seconds to solve problem.')
+    problem.plot3d()
 
-    print('Place intersects line:', place.obstructs_line_path(points))
+    problem.save('../data/problem.json')
 
-    place.center_3d_plot(ax1)
+    from radarcoverage.electromagnetism import compute_field_from_solution
 
-    # 3.1 Picking one face of the cube as the screen and coloring it
-    screen = cube.polygons[2]
-
-    screen.plot3d(facecolor='g', alpha=0.5, ax=ax1, orientation=True, normal=True)
-    # 4. Create the screen on which geometry will be projected
-
-    # 5. First, changing geometry coordinates to match screen's orientation
-    matrix = screen.get_matrix().T
-
-    projected_place = place.project(matrix)
-    screen = screen.project(matrix)
-
-    ax2 = projected_place.plot3d(ret=True)
-    cube.plot3d(ax=ax2)
-    screen.plot3d(facecolor='g', ax=ax2)
-
-    projected_place.center_3d_plot(ax2)
-
-
-    def filter_func(polygon):
-        return np.dot(polygon.get_normal(), screen.get_normal()) < np.arccos(np.pi/4) and\
-               geom.any_point_above(polygon.points, 0, axis=2)
-
-    poly_matching = projected_place.get_polygons_matching(filter_func, polygons)
-
-    screen2d = screen.get_shapely()
-
-    print('Screen in 2D:', screen2d)
-
-    visible_polygons = list()
-
-    for poly_changed, poly_original in poly_matching:
-        poly_changed = poly_changed.project_with_perspective_mapping(focal_distance=distance)
-        shp = poly_changed.get_shapely()
-        if shp.intersects(screen2d):
-            parametric = poly_original.get_parametric()
-            point = geom.reflexion_points_from_origin_destination_and_planes(tx, rx, [parametric])
-
-            if poly_original.contains_point(point[0]):
-
-                i1 = np.row_stack([tx, point[0]])
-                if not place.obstructs_line_path(i1):
-                    i2 = np.row_stack([point[0], rx])
-                    if not place.obstructs_line_path(i2):
-
-                        plot_utils.add_points_to_3d_ax(ax1, point)
-
-                        line = np.row_stack([tx, point[0], rx])
-
-                        plot_utils.add_line_to_3d_ax(ax1, line)
-
-
-    #print(len(list(poly)))
-    # 6. Perspective mapping on z direction
-    projected_place = projected_place.project_with_perspective_mapping(focal_distance=distance)
-
-    screen = screen.project_with_perspective_mapping(focal_distance=distance)
-
-    rot = R.from_euler('xyz', [0, 0, -90], degrees=True).as_matrix()
-
-    ax3 = projected_place.project(rot).plot2d(ret=True, poly_kwargs=dict(alpha=0.5))
-
-    screen.project(rot).plot2d(ax=ax3, facecolor='g', alpha=0.4)
-    plt.axis('equal')
+    compute_field_from_solution(problem)
 
     plt.show()
+

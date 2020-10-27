@@ -1,11 +1,14 @@
 from radarcoverage import geometry as geom
 from radarcoverage import plot_utils
+from radarcoverage import file_utils
 
 from time import time
 
 import numpy as np
 
 from collections import defaultdict
+from tqdm import tqdm
+import itertools
 
 
 class RayTracingProblem:
@@ -39,9 +42,19 @@ class RayTracingProblem:
         self.distance_to_screen = None
         self.emitter_visibility = None
         self.sharp_edges = None
-        self.los = list()  # Line of sight
-        self.reflections = defaultdict(list)
-        self.diffractions = defaultdict(list)
+        n = self.receivers.shape[0]
+        self.los = {
+            r: list()  # Lines of sight
+            for r in range(n)
+        }
+        self.reflections = {
+            r: defaultdict(list)
+            for r in range(n)
+        }
+        self.diffractions = {
+            r: defaultdict(list)
+            for r in range(n)
+        }
         self.precompute()
 
     def precompute(self):
@@ -76,7 +89,7 @@ class RayTracingProblem:
 
         visible_polygons = self.polygons[self.emitter_visibility]
 
-        for receiver in self.receivers:
+        for r, receiver in enumerate(self.receivers):
             projected_receiver = geom.project_points(receiver - self.emitter, screen_matrix)
             projected_with_perspective_receiver = geom.project_points_with_perspective_mapping(
                 projected_receiver,
@@ -86,7 +99,7 @@ class RayTracingProblem:
             if screen_shapely.intersects(point):
                 line = np.row_stack([self.emitter, receiver])
                 if not geom.polygons_obstruct_line_path(visible_polygons, line):
-                    self.los.append(line)
+                    self.los[r].append(line)
 
     def get_visible_polygons_indices(self, index):
         indices = self.visibility_matrix[index, :]
@@ -128,7 +141,7 @@ class RayTracingProblem:
         def recursive_reflections(polygons_indices, order):
             planes_parametric = [self.polygons[index].get_parametric() for index in polygons_indices]
 
-            for receiver in receivers:
+            for r, receiver in enumerate(receivers):
                 points, sol = geom.reflexion_points_from_origin_destination_and_planes(emitter, receiver, planes_parametric)
 
                 if not sol.success:
@@ -136,7 +149,7 @@ class RayTracingProblem:
 
                 lines = np.row_stack([emitter, points, receiver])
                 if self.check_reflections(lines, polygons_indices):
-                    self.reflections[order].append(lines)
+                    self.reflections[r][order].append((lines, polygons_indices))
 
             if order == max_order:
                 return
@@ -147,16 +160,18 @@ class RayTracingProblem:
                     recursive_reflections(polygons_indices + [i], order=order + 1)
 
         if max_order >= 1:
-            for index in indices:
+            print('Iterating through all n reflect.')
+            for index in tqdm(indices):
                 recursive_reflections([index], 1)
 
         if max_order < 1:
             return
 
         # Reflections and 1 diffraction
-        for (i, j), edge in self.sharp_edges.items():
+        print('Iterating through all 1 diff.')
+        for (i, j), edge in tqdm(self.sharp_edges.items()):
             if self.emitter_visibility[i] or self.emitter_visibility[j]:
-                for receiver in receivers:
+                for r, receiver in enumerate(receivers):
                     points, sol = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(
                         emitter, receiver, [], edge
                     )
@@ -166,7 +181,7 @@ class RayTracingProblem:
 
                     lines = np.row_stack([emitter, points, receiver])
                     if self.check_reflections_and_diffraction(lines, [], edge):
-                        self.diffractions[1].append(lines)
+                        self.diffractions[r][1].append((lines, [], (i, j), edge))
 
         if max_order < 2:
             return
@@ -178,8 +193,8 @@ class RayTracingProblem:
 
             visible_polygons_indices = self.get_visible_polygons_indices(last_index)
 
-            for _, edge in self.sharp_edges[(*visible_polygons_indices, ...)]:
-                for receiver in receivers:
+            for edge_polygons, edge in self.sharp_edges[(*visible_polygons_indices, ...)]:
+                for r, receiver in enumerate(receivers):
                     points, sol = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(emitter, receiver, planes_parametric, edge)
 
                     if not sol.success:
@@ -187,7 +202,7 @@ class RayTracingProblem:
 
                     lines = np.row_stack([emitter, points, receiver])
                     if self.check_reflections_and_diffraction(lines, polygons_indices, edge):
-                        self.diffractions[order].append(lines)
+                        self.diffractions[r][order].append((lines, polygons_indices, edge_polygons, edge))
 
             if order == max_order:
                 return
@@ -197,8 +212,20 @@ class RayTracingProblem:
                 for i in indices:
                     recursive_reflections_and_diffraction(polygons_indices + [i], order=order + 1)
 
-        for index in indices:
+        print('Iterating through all n-1 reflect. and 1 diff.')
+        for index in tqdm(indices):
             recursive_reflections_and_diffraction([index], 2)
+
+    def save(self, filename):
+        data = {
+            'place': self.place.to_json(),
+            'emitter': self.emitter,
+            'los': self.los,
+            'reflections': self.reflections,
+            'diffractions': self.diffractions
+        }
+
+        file_utils.json_save(filename, data, cls=geom.OrientedGeometryEncoder)
 
     def plot3d(self, ax=None, ret=False):
         ax = plot_utils.get_3d_plot_ax(ax)
@@ -213,111 +240,48 @@ class RayTracingProblem:
         handles = []
         labels = []
 
-        for line in self.los:
-            line3D, = plot_utils.add_line_to_3d_ax(ax, line, color='b')
-            if first:
-                handles.append(line3D)
-                labels.append('LOS')
-                first = False
+        for r, _ in enumerate(self.receivers):
 
-        colors = {
-            1: 'g',
-            2: 'm',
-            3: 'y',
-            4: 'o'
-        }
-
-        for order, lines in self.reflections.items():
-            first = True
-            color = colors[order]
-            for line in lines:
-                line3D, = plot_utils.add_line_to_3d_ax(ax, line, color=color)
-                plot_utils.add_points_to_3d_ax(ax, line[1:order+1, :], color=color)
-
+            for line in self.los[r]:
+                line3D, = plot_utils.add_line_to_3d_ax(ax, line, color='b')
                 if first:
                     handles.append(line3D)
-                    labels.append(f'{order} reflect.')
+                    labels.append('LOS')
                     first = False
 
-        for order, lines in self.diffractions.items():
-            first = True
-            color = colors[order]
-            for line in lines:
-                line3D, = plot_utils.add_line_to_3d_ax(ax, line, color=color, linestyle='--')
-                plot_utils.add_points_to_3d_ax(ax, line[1:order+1, :], color=color)
+            colors = {
+                1: 'g',
+                2: 'm',
+                3: 'y',
+                4: 'r'
+            }
 
-                if first:
-                    handles.append(line3D)
-                    labels.append(f'{order-1} reflect. and 1 diff.')
-                    first = False
+            for order, lines in self.reflections[r].items():
+                first = True
+                color = colors[order]
+                for line, _ in lines:
+                    line3D, = plot_utils.add_line_to_3d_ax(ax, line, color=color)
+                    plot_utils.add_points_to_3d_ax(ax, line[1:order+1, :], color=color)
+
+                    if first:
+                        handles.append(line3D)
+                        labels.append(f'{order} reflect.')
+                        first = False
+
+            for order, lines in self.diffractions[r].items():
+                first = True
+                color = colors[order]
+                for line, _, _, _ in lines:
+                    line3D, = plot_utils.add_line_to_3d_ax(ax, line, color=color, linestyle='--')
+                    plot_utils.add_points_to_3d_ax(ax, line[1:order+1, :], color=color)
+
+                    if first:
+                        handles.append(line3D)
+                        labels.append(f'{order-1} reflect. and 1 diff.')
+                        first = False
 
         self.place.center_3d_plot(ax)
         ax.legend(handles, labels)
 
         if ret:
             return ax
-
-
-if __name__ == '__main__':
-
-    import matplotlib.pyplot as plt
-
-    geometry = 0
-
-    if geometry == 0:
-        place = geom.generate_place_from_rooftops_file('../data/small.geojson')
-
-        # 2. Create TX and RX
-
-        domain = place.get_domain()
-        ground_center = place.get_centroid()
-
-        tx = ground_center + [-50, 5, 1]
-        rx = ground_center + np.array([
-                [35, 5, 5],
-                [35, -5, 5],
-                [10, -3, -5]
-            ])
-        rx = rx[2, :]
-        tx = tx.reshape(-1, 3)
-        rx = rx.reshape(-1, 3)
-
-        # 2.1 Create a cube around TX
-
-        distance = 5
-        cube = geom.Cube.by_point_and_side_length(tx, 2 * distance)
-        # 2.1.1 Rotate this cube around its center
-        from scipy.spatial.transform import Rotation as R
-
-        rot2 = R.from_euler('xyz', [0, 10, -10], degrees=True).as_matrix()
-
-        cube = cube.project(rot2, around_point=tx)
-        screen = cube.polygons[2]
-    elif geometry == 1:
-        tx = np.array([-0.5, -5, -1]).reshape(1, 3)
-        rx = np.array([-2.5, -5, 1]).reshape(1, 3)
-
-        cube = geom.Cube.by_point_and_side_length(0 * tx, 5)
-
-        face = cube.polygons[5]
-
-        screen = face.translate(np.array([0, -5, 0]))
-        screen.parametric = -screen.get_parametric()
-
-        place = geom.OrientedPlace(geom.OrientedSurface(screen), [cube])
-
-        cube = geom.Cube.by_point_and_side_length(tx, 0.5)
-        screen = cube.polygons[4]
-
-    #place.show_visibility_matrix_animation(True)
-
-    t = time()
-    problem = RayTracingProblem(tx, screen, place, rx)
-    print(f'Took {time()-t:.4f} seconds to initialize and precompute problem.')
-
-    t = time()
-    problem.solve(2)
-    print(f'Took {time()-t:.4f} seconds to solve problem.')
-    problem.plot3d()
-
-    plt.show()
