@@ -1,8 +1,8 @@
-import radarcoverage.geometry as geom
-from radarcoverage import file_utils
+import raytracing.geometry as geom
+from raytracing import file_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from radarcoverage import plot_utils
+from raytracing import plot_utils
 if __name__ == '__main__':
 
     file_utils.chdir_to_file_dir(__file__)

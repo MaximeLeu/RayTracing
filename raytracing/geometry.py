@@ -1,17 +1,16 @@
 # Plotting libraries
-from radarcoverage import plot_utils
+from raytracing import plot_utils
 
 # Numerical libraries
 import numpy as np
 from numpy.dual import norm
 from scipy.optimize import root
-from radarcoverage import array_utils
+from raytracing import array_utils
 import numba
 from numba.types import UniTuple, float64, int64, string, boolean
 
 # Geometry libraries
 from shapely.geometry import Polygon as shPolygon
-from shapely.geometry import LineString as shLine
 from shapely.geometry import Point as shPoint
 import geopandas as gpd
 
@@ -20,8 +19,8 @@ import itertools
 import pickle
 import uuid
 import json
-from radarcoverage import file_utils
-from radarcoverage import container_utils
+from raytracing import file_utils
+from raytracing import container_utils
 
 
 @numba.njit(cache=True)

@@ -1,5 +1,5 @@
-import radarcoverage.geometry as geom
-from radarcoverage import file_utils
+import raytracing.geometry as geom
+from raytracing import file_utils
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':

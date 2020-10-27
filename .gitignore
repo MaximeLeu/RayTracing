@@ -29,3 +29,6 @@ radarcoverage/__pycache__/
 build/
 
 .pytest_cache/
+/raytracing.egg-info/
+
+raytracing/__pycache__/

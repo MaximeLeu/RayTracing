@@ -1,7 +1,7 @@
 import click
 from click_repl import register_repl
-from radarcoverage import geometry as geom
-from radarcoverage import plot_utils
+from raytracing import geometry as geom
+from raytracing import plot_utils
 import matplotlib.pyplot as plt
 import numpy as np
 

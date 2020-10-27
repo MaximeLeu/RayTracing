@@ -50,6 +50,6 @@ def chdir_to_file_dir(filename):
     '/pathto/RadarCoverage'
     >>> chdir_to_file_dir(__file__)
     >>> os.getcwd()
-    '/pathto/RadarCoverage/radarcoverage'
+    '/pathto/RadarCoverage/raytracing'
     """
     os.chdir(os.path.dirname(os.path.realpath(filename)))

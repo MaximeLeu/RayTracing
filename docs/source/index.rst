@@ -3,14 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Radar Coverage's documentation!
+Welcome to Ray Tracing's documentation!
 ==========================================
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   radarcoverage/modules
+   raytracing/modules
    scripts/modules
    tutorials/index
 

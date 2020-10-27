@@ -1,9 +1,8 @@
-import radarcoverage.geometry as geom
-from radarcoverage import file_utils
-import matplotlib.pyplot as plt
+import raytracing.geometry as geom
+from raytracing import file_utils
 import numpy as np
 from time import time
-from radarcoverage.ray_tracing import RayTracingProblem
+from raytracing.ray_tracing import RayTracingProblem
 
 
 if __name__ == '__main__':
@@ -74,7 +73,7 @@ if __name__ == '__main__':
 
     problem.save('../data/problem.json')
 
-    from radarcoverage.electromagnetism import compute_field_from_solution
+    from raytracing.electromagnetism import compute_field_from_solution
 
     compute_field_from_solution(problem)
 

@@ -1,5 +1,5 @@
-radarcoverage
-=============
+raytracing
+==========
 
 .. toctree::
    :maxdepth: 4

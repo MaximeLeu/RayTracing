@@ -1,14 +1,11 @@
-from radarcoverage import geometry as geom
-from radarcoverage import plot_utils
-from radarcoverage import file_utils
-
-from time import time
+from raytracing import geometry as geom
+from raytracing import plot_utils
+from raytracing import file_utils
 
 import numpy as np
 
 from collections import defaultdict
 from tqdm import tqdm
-import itertools
 
 
 class RayTracingProblem:
@@ -21,9 +18,9 @@ class RayTracingProblem:
     :param emitter: the emitter point
     :type emitter: numpy.array *size=(3)*
     :param emitter_screen: the polygon screen, as all the emitted rays must intersect this screen
-    :type emitter_screen: radarcoverage.OrientedPolygon
+    :type emitter_screen: raytracing.OrientedPolygon
     :param place: the place of the problem, which should contain buildings and a ground surface
-    :type place: radarcoverage.OrientedPlace
+    :type place: raytracing.OrientedPlace
     :param receivers: the receiver points but will also take the points contained in the place as receivers
     :type receivers: numpy.array *shape=(N, 3)*
     """

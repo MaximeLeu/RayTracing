@@ -1,8 +1,8 @@
-import radarcoverage.geometry as geom
-from radarcoverage import plot_utils
+import raytracing.geometry as geom
+from raytracing import plot_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from radarcoverage.plot_utils import add_points_to_3d_ax, add_text_at_point_3d_ax, add_2d_text_at_point_3d_ax
+from raytracing.plot_utils import add_points_to_3d_ax, add_text_at_point_3d_ax, add_2d_text_at_point_3d_ax
 import random
 
 

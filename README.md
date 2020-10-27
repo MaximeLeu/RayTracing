@@ -1,6 +1,6 @@
-# Radar coverage
+# Ray Tracing
 
-This project's main objective is to provide intuitive tools in order to compute radar coverage in cities. It takes into account multiple orders of reflections and/or refraction for a given signal path. When possible, analytical solutions are provided, but numerical solutions are also used in order to reduce the complexity of the software.
+This project's main objective is to provide intuitive tools in order to compute ray tracing in cities. It takes into account multiple orders of reflections and/or refraction for a given signal path. When possible, analytical solutions are provided, but numerical solutions are also used in order to reduce the complexity of the software.
 
 ## Project structure
 
@@ -8,7 +8,7 @@ This project's main objective is to provide intuitive tools in order to compute 
 ```
 Radar coverage
 │   README.md
-└───radarcoverage - code
+└───raytracing - code
 └───examples - visual examples
 └───docs - documentation sources and builds
     │   README.MD
@@ -54,3 +54,9 @@ pytest
 ## Documentation
 
 The documentation of this project is generated using *Sphinx*. More information about how to proceed in the [**docs/README**](/docs/README.md).
+
+
+## Known issues
+
+1. If you renamed one of the project folders, you may encounter an error because old *cached data* (e.g. from Numba)
+does not match new paths. To solve this, delete all the `__pycache__` folders.

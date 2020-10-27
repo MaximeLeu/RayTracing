@@ -14,7 +14,7 @@ pip3 install sphinx-rtd-theme
 ## Add files to documentation
 If you created a new file which has not been documented yet, you need to include it in the source directory:
 ```
-sphinx-apidoc -o source/radarcoverage ../radarcoverage
+sphinx-apidoc -o source/raytracing ../raytracing
 ```
 
 ## Build

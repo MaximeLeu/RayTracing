@@ -1,5 +1,5 @@
-from radarcoverage import array_utils
-from radarcoverage import geometry as geom
+from raytracing import array_utils
+from raytracing import geometry as geom
 import numpy as np
 from numpy.dual import norm
 

@@ -1,4 +1,4 @@
-import radarcoverage.geometry as geom
+import raytracing.geometry as geom
 import numpy as np
 
 

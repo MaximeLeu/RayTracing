@@ -13,18 +13,18 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../../radarcoverage/scripts'))
-sys.path.insert(0, os.path.abspath('../../radarcoverage'))
+sys.path.insert(0, os.path.abspath('../../raytracing/scripts'))
+sys.path.insert(0, os.path.abspath('../../raytracing'))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'Radar Coverage'
-copyright = '2020, Jérome Eertmans'
+project = 'Ray Tracing'
+copyright = '2020, Jérome Eertmans @ UCLouvain for Pr. Claude Oestges'
 author = 'Jérome Eertmans'
 
 # The full version, including alpha/beta/rc tags
-release = '2020'
+release = '2020.0.1'
 
 
 # -- General configuration ---------------------------------------------------
