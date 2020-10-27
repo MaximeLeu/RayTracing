@@ -3,6 +3,7 @@ from raytracing import file_utils
 import numpy as np
 from time import time
 from raytracing.ray_tracing import RayTracingProblem
+import matplotlib.pyplot as plt
 
 
 if __name__ == '__main__':
