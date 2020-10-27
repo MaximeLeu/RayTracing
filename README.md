@@ -49,6 +49,7 @@ pytest
 - [] add material information (reflection coefficient, etc.)
 - [] validate power calculation
 - [] validate diffraction E.M. calculation
+- [] use Numba's ahead of time compiler to remove overhead time for each compilation, [see here](https://numba.pydata.org/numba-doc/dev/user/pycc.html)
 
 ## Documentation
 
