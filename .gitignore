@@ -25,3 +25,7 @@ radarcoverage/__pycache__/
 *.so
 
 *.o
+
+build/
+
+.pytest_cache/
