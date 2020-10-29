@@ -25,10 +25,7 @@ def f(r):
     place = geom.OrientedPlace(geom.OrientedSurface(ground),
                                [building_1, building_2, building_3])
 
-    cube = geom.Cube.by_point_and_side_length(tx, 5)
-    screen = cube.polygons[2]
-
-    problem = RayTracingProblem(tx, screen, place, rx)
+    problem = RayTracingProblem(tx, place, rx)
     problem.solve(r)
 
     compute_field_from_solution(problem)
@@ -39,7 +36,7 @@ if __name__ == '__main__':
     file_utils.chdir_to_file_dir(__file__)
     n = 10
 
-    for r in range(5, 8):
+    for r in range(0, 3):
 
         old = sys.stdout
         sys.stdout = None

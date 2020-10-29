@@ -31,18 +31,6 @@ if __name__ == '__main__':
         rx = rx[2, :]
         tx = tx.reshape(-1, 3)
         rx = rx.reshape(-1, 3)
-
-        # 2.1 Create a cube around TX
-
-        distance = 5
-        cube = geom.Cube.by_point_and_side_length(tx, 2 * distance)
-        # 2.1.1 Rotate this cube around its center
-        from scipy.spatial.transform import Rotation as R
-
-        rot2 = R.from_euler('xyz', [0, 10, -10], degrees=True).as_matrix()
-
-        cube = cube.project(rot2, around_point=tx)
-        screen = cube.polygons[2]
     elif geometry == 'dummy':
         tx = np.array([5., 12., 5.]).reshape(1, 3)
         rx = np.array([65., 12., 5.]).reshape(1, 3)
@@ -58,13 +46,11 @@ if __name__ == '__main__':
 
         place = geom.OrientedPlace(geom.OrientedSurface(ground), [building_1, building_2, building_3])
 
-        cube = geom.Cube.by_point_and_side_length(tx, 5)
-        screen = cube.polygons[2]
 
     # place.show_visibility_matrix_animation(True)
 
     t = time()
-    problem = RayTracingProblem(tx, screen, place, rx)
+    problem = RayTracingProblem(tx, place, receivers=rx)
     print(f'Took {time() - t:.4f} seconds to initialize and precompute problem.')
 
     t = time()

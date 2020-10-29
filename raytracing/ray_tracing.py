@@ -17,16 +17,21 @@ class RayTracingProblem:
 
     :param emitter: the emitter point
     :type emitter: numpy.array *size=(3)*
-    :param emitter_screen: the polygon screen, as all the emitted rays must intersect this screen
-    :type emitter_screen: raytracing.OrientedPolygon
     :param place: the place of the problem, which should contain buildings and a ground surface
     :type place: raytracing.OrientedPlace
     :param receivers: the receiver points but will also take the points contained in the place as receivers
     :type receivers: numpy.array *shape=(N, 3)*
+    :param n_screens: the number of screens through which the emitter will emit rays,
+        by default takes all the screens / faces (6) of the cube encapsulating the emitter
+        but if n_screens < 6, then will take the n_screens screens witch see the most
+        polygons (i.e.: through each screen, the emitter can see a given amount of polygons
+        and the goal is to avoid losing any possible polygon on which reflection is possible)
+    :type n_screens: int, 0 < n_screens <= 6
     """
-    def __init__(self, emitter, emitter_screen, place, receivers=None):
+    def __init__(self, emitter, place, receivers=None, n_screens=6):
+        assert 0 < n_screens <= 6
         self.emitter = emitter
-        self.emitter_screen = emitter_screen
+        self.n_screens = n_screens
         self.place = place
         self.polygons = np.array(place.get_polygons_list())
 
@@ -62,41 +67,34 @@ class RayTracingProblem:
         - lines of sight (a.k.a. direct paths)
         """
         self.visibility_matrix = self.place.get_visibility_matrix(strict=False)
-        self.distance_to_screen = self.emitter_screen.distance_to_point(self.emitter)
-        self.emitter_visibility = geom.polygon_visibility_vector(
-            self.emitter_screen, self.polygons, strict=False
-        )
+        cube = geom.Cube.by_point_and_side_length(self.emitter, 2 * 0.1)
+
+        self.distance_to_screen = cube.polygons[0].distance_to_point(self.emitter)
+
+        emitter_visibilities = list()
+
+        for i in range(self.n_screens):
+            emitter_visibility = geom.polygon_visibility_vector(
+                cube.polygons[i], self.polygons, strict=False
+            )
+            visibility = np.sum(emitter_visibility)
+            emitter_visibilities.append((visibility, emitter_visibility))
+
+        emitter_visibilities.sort(key=lambda x: x[0], reverse=True)
+
+        self.emitter_visibility = emitter_visibilities[0][1]
+
+        for _, emitter_visibility in emitter_visibilities[1:self.n_screens]:
+            self.emitter_visibility |= emitter_visibility
+
         self.sharp_edges = self.place.get_sharp_edges()
-
-        screen_matrix = self.emitter_screen.get_matrix().T
-
-        projected_screen = self.emitter_screen.translate(-self.emitter).project(screen_matrix)
-        screen_shapely = projected_screen.get_shapely()
-
-        """
-        for i, is_visible in enumerate(self.emitter_visibility):
-            if is_visible:
-                projected_polygon = self.polygons[i].translate(-self.emitter).project(screen_matrix)
-                projected_with_perspective_polygon = projected_polygon.project_with_perspective_mapping(
-                    focal_distance=self.distance_to_screen
-                )
-                if not screen_shapely.intersects(projected_with_perspective_polygon.get_shapely()):
-                    self.emitter_visibility[i] = False
-        """
 
         visible_polygons = self.polygons[self.emitter_visibility]
 
         for r, receiver in enumerate(self.receivers):
-            projected_receiver = geom.project_points(receiver - self.emitter, screen_matrix)
-            projected_with_perspective_receiver = geom.project_points_with_perspective_mapping(
-                projected_receiver,
-                focal_distance=self.distance_to_screen
-            )
-            point = geom.shPoint(projected_with_perspective_receiver.reshape(-1))
-            if screen_shapely.intersects(point):
-                line = np.row_stack([self.emitter, receiver])
-                if not geom.polygons_obstruct_line_path(visible_polygons, line):
-                    self.los[r].append(line)
+            line = np.row_stack([self.emitter, receiver])
+            if not geom.polygons_obstruct_line_path(visible_polygons, line):
+                self.los[r].append(line)
 
     def get_visible_polygons_indices(self, index):
         indices = self.visibility_matrix[index, :]
@@ -231,7 +229,6 @@ class RayTracingProblem:
 
         plot_utils.add_points_to_3d_ax(ax, self.emitter, color='r', s=20)
         plot_utils.add_text_at_point_3d_ax(ax, self.emitter, 'TX')
-        self.emitter_screen.plot3d(ax=ax, facecolor='g', alpha=0.5)
 
         first = True
         handles = []
