@@ -19,7 +19,7 @@ Radar coverage
 
 1. Clone this repo
 2. Install Python 3.6 (or higher)
-2.1 Windows users are recommended to [install anaconda](https://www.anaconda.com/products/individual) as installing a C++ compiler is required and can be complicated via the standard way on Windows' machines.
+* Windows users are recommended to [install anaconda](https://www.anaconda.com/products/individual) as installing a C++ compiler is required and can be complicated via the standard way on Windows' machines
 3. Setup a virtual env. [with pip](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) or [with conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) (recommended but not mandatory)
 4. Install required packages: `pip3 install -e .` or use `conda install -e .` (**mandatory to enable command-line tools**)
 
