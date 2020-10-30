@@ -60,3 +60,5 @@ The documentation of this project is generated using *Sphinx*. More information 
 
 1. If you renamed one of the project folders, you may encounter an error because old *cached data* (e.g. from Numba)
 does not match new paths. To solve this, delete all the `__pycache__` folders.
+2. If you encounter this error `no arguments in initialization list` and that you are running on Windows,
+please try the solutions mentioned [here](https://github.com/pyproj4/pyproj/issues/134#issuecomment-458813395).
