@@ -67,4 +67,5 @@ please try the solutions mentioned [here](https://github.com/pyproj4/pyproj/issu
 A GDAL API version must be specified. Provide a path to gdal-config using a GDAL_CONFIG environment variable or use a GDAL_VERSION environment variable.
     ----------------------------------------
 ERROR: Command errored out with exit status 1: python setup.py egg_info Check the logs for full command output.)
-```, then gdal has trouble getting installed. Try `pip3 install gdal`. If an error occurs saying you need Microsoft Visual C++ 14.0, then install it from [here](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+```
+then gdal has trouble getting installed. Try `pip3 install gdal`. If an error occurs saying you need Microsoft Visual C++ 14.0, then install it from [here](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
