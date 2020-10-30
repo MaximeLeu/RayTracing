@@ -20,7 +20,7 @@ Radar coverage
 1. Clone this repo
 2. Install Python 3.6 (or higher)
 3. [Setup a virtual env](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) (recommended but not mandatory)
-4. Install required packages: `pip3 install install -e .` (**mandatory to enable command-line tools**)
+4. Install required packages: `pip3 install -e .` or use `conda install -e .` (**mandatory to enable command-line tools**)
 
 
 *Note: in order to accelerate the computation and make it more robust, this project uses Numba's JIT compiler.
@@ -62,3 +62,8 @@ The documentation of this project is generated using *Sphinx*. More information 
 does not match new paths. To solve this, delete all the `__pycache__` folders.
 2. If you encounter this error `no arguments in initialization list` and that you are running on Windows,
 please try the solutions mentioned [here](https://github.com/pyproj4/pyproj/issues/134#issuecomment-458813395).
+3. If you encounter this error ```
+A GDAL API version must be specified. Provide a path to gdal-config using a GDAL_CONFIG environment variable or use a GDAL_VERSION environment variable.
+    ----------------------------------------
+ERROR: Command errored out with exit status 1: python setup.py egg_info Check the logs for full command output.)
+```, then gdal has trouble getting installed. Try `pip3 install gdal`. If an error occurs saying you need Microsoft Visual C++ 14.0, then install it from [here](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
