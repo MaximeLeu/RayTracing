@@ -953,8 +953,10 @@ class OrientedGeometryEncoder(json.JSONEncoder):
             return obj.hex
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
-        elif isinstance(obj, np.int64):
+        elif np.issubdtype(type(obj), np.signedinteger):
             return int(obj)
+        elif np.issubdtype(type(obj), np.double):
+            return float(obj)
         else:
             return json.JSONEncoder.default(self, obj)
 
