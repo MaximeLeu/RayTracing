@@ -62,7 +62,8 @@ The documentation of this project is generated using *Sphinx*. More information 
 does not match new paths. To solve this, delete all the `__pycache__` folders.
 2. If you encounter this error `no arguments in initialization list` and that you are running on Windows,
 please try the solutions mentioned [here](https://github.com/pyproj4/pyproj/issues/134#issuecomment-458813395).
-3. If you encounter this error ```
+3. If you encounter this error:
+```
 A GDAL API version must be specified. Provide a path to gdal-config using a GDAL_CONFIG environment variable or use a GDAL_VERSION environment variable.
     ----------------------------------------
 ERROR: Command errored out with exit status 1: python setup.py egg_info Check the logs for full command output.)
