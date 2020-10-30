@@ -19,7 +19,8 @@ Radar coverage
 
 1. Clone this repo
 2. Install Python 3.6 (or higher)
-3. [Setup a virtual env](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) (recommended but not mandatory)
+2.1 Windows users are recommended to [install anaconda](https://www.anaconda.com/products/individual) as installing a C++ compiler is required and can be complicated via the standard way on Windows' machines.
+3. Setup a virtual env. [with pip](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) or [with conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) (recommended but not mandatory)
 4. Install required packages: `pip3 install -e .` or use `conda install -e .` (**mandatory to enable command-line tools**)
 
 
@@ -68,4 +69,4 @@ A GDAL API version must be specified. Provide a path to gdal-config using a GDAL
     ----------------------------------------
 ERROR: Command errored out with exit status 1: python setup.py egg_info Check the logs for full command output.)
 ```
-then gdal has trouble getting installed. Try `pip3 install gdal`. If an error occurs saying you need Microsoft Visual C++ 14.0, then install it from [here](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+then gdal has trouble getting installed. Try `pip3 install gdal`. If an error occurs saying you need Microsoft Visual C++ 14.0, then install it from [here](https://visualstudio.microsoft.com/visual-cpp-build-tools/).

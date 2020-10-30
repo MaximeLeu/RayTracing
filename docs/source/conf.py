@@ -15,6 +15,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath('../../raytracing/scripts'))
 sys.path.insert(0, os.path.abspath('../../raytracing'))
+sys.path.insert(0, os.path.abspath('../..'))  # Windows fix
 
 
 # -- Project information -----------------------------------------------------
