@@ -32,3 +32,5 @@ build/
 /raytracing.egg-info/
 
 raytracing/__pycache__/
+.packages.json
+.uninstalled_packages.txt
