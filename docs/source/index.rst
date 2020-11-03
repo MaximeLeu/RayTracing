@@ -7,7 +7,7 @@ Welcome to Ray Tracing's documentation!
 ==========================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    raytracing/modules

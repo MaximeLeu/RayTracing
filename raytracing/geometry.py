@@ -7,7 +7,7 @@ from numpy.dual import norm
 from scipy.optimize import root
 from raytracing import array_utils
 import numba
-from numba.types import UniTuple, float64, int64, string, boolean
+from numba.types import UniTuple, float64, int64, string, boolean, Omitted, optional
 
 # Geometry libraries
 from shapely.geometry import Polygon as shPolygon
@@ -201,7 +201,7 @@ def __project_around_point__(points, matrix, around_point):
     return __project__(points - around_point, matrix) + around_point
 
 
-@numba.njit(cache=True)
+@numba.generated_jit(nopython=True, cache=True)
 def project_points(points, matrix, around_point=None):
     """
     Projects points on different axes given by matrix columns.
@@ -215,13 +215,22 @@ def project_points(points, matrix, around_point=None):
     :return: the projected points
     :rtype: numpy.ndarray *shape=(N, 3)*
     """
-    points = np.atleast_2d(points)
 
-    if around_point is not None:
-        around_point = np.atleast_2d(points)
-        return __project_around_point__(points, matrix, around_point)
+    # TODO: improve this so it takes advantage of array contiguity
+
+    if not isinstance(around_point, Omitted):
+        @numba.njit(float64[:, :](float64[:, :], float64[:, :], float64[:, :]))
+        def __impl__(points, matrix, around_point):
+            p = np.atleast_2d(points)
+            a_p = np.atleast_2d(around_point)
+            return __project_around_point__(p, matrix, a_p)
+        return __impl__
     else:
-        return __project__(points, matrix)
+        @numba.njit(float64[:, :](float64[:, :], float64[:, :], optional(float64[:, :])))
+        def __impl__(points, matrix, around_point):
+            p = np.atleast_2d(points)
+            return __project__(p, matrix)
+        return __impl__
 
 
 def project_points_on_spherical_coordinates(points, r_axis=2):
@@ -2164,19 +2173,36 @@ class OrientedPlace(OrientedGeometry):
             return ax
 
 
-def generate_place_from_rooftops_file(roof_top_file, center=True):
+def generate_place_from_rooftops_file(roof_top_file, center=True,
+                                      drop_missing_heights=True,
+                                      default_height=10):
     """
     Returns a place from a geographic file containing building rooftops and their height.
 
-    :param roof_top_file: file containing polygons describing buildings on ground, with height attribute
+    :param roof_top_file: file containing polygons describing buildings on ground, with optional height attribute
     :type roof_top_file: str, any filetype supported by :func:`geopandas.read_file`
     :param center: if True, will center the coordinates
     :type center: bool
+    :param drop_missing_heights: if True, will remove all the data with missing information about height
+    :type drop_missing_heights: bool
+    :param default_height: default height for buildings missing height attribute
+    :type default_height: float
     :return: a place containing the buildings and a flat ground surface covering the whole area
     :rtype: OrientedPlace
     """
     gdf = gpd.read_file(roof_top_file)
-    gdf.dropna(subset=['height'], inplace=True)
+
+    # Only keeping polygon (sometimes points are given)
+    gdf = gdf[[isinstance(g, shPolygon) for g in gdf['geometry']]]
+
+    if drop_missing_heights:
+        gdf.dropna(subset=['height'], inplace=True)
+    else:
+        if 'height' not in gdf:
+            gdf['height'] = default_height
+        else:
+            gdf['height'].fillna(value=default_height, inplace=True)
+
     gdf.to_crs(epsg=3035, inplace=True)  # To make buildings look more realistic, there may be a better choice :)
 
     if center:
