@@ -17,11 +17,29 @@ Radar coverage
 
 ## Setup your project
 
+### On Linux or MacOS machines
 1. Clone this repo
 2. Install Python 3.6 (or higher)
-* Windows users are recommended to [install anaconda](https://www.anaconda.com/products/individual) as installing a C++ compiler is required and can be complicated via the standard way on Windows' machines
-3. Setup a virtual env. [with pip](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) or [with conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) (recommended but not mandatory)
-4. Install required packages: `pip3 install -e .` or use `conda install -e .` (**mandatory to enable command-line tools**)
+3. Setup a virtual env. [with pip](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) (recommended but not mandatory)
+4. Install required packages: 
+```
+pip3 install -r requirements.txt
+pip3 install -e .`
+```
+
+### On Windows machines
+1. Clone this repo
+2. Install Python 3.6 (or higher) via [anaconda](https://www.anaconda.com/products/individual). While it is possible to do everything without Anaconda, I highly recommend using it because it will make your life much simpler and avoid many installation problems...
+3. The rest of the tutorial will be done using the **Anaconda Prompt**
+4. Setup a virtual environment with [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html):
+```
+conda create --name RayTracing
+conda activate RayTracing
+```
+5. Install the packages using:
+```
+setup
+```
 
 
 *Note: in order to accelerate the computation and make it more robust, this project uses Numba's JIT compiler.
