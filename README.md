@@ -24,7 +24,7 @@ Radar coverage
 4. Install required packages: 
 ```
 pip3 install -r requirements.txt
-pip3 install -e .`
+pip3 install -e .
 ```
 
 ### On Windows machines
