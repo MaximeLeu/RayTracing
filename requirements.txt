@@ -4,6 +4,7 @@ geopandas
 matplotlib
 numba
 numpy
+pytest
 scipy
 shapely
 sphinx
