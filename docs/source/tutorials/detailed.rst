@@ -131,7 +131,7 @@ III. In the geometry file
 *************************
 
 Modify the content of the geometry, after loading and saving it into as a .json. The
-caveat of this method is that applying space transformation because very tedious as you
+caveat of this method is that applying space transformation becomes very tedious as you
 need to manually change all the points.
 
 .. code-block::
