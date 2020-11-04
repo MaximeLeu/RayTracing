@@ -7,7 +7,7 @@ from numpy.dual import norm
 from scipy.optimize import root
 from raytracing import array_utils
 import numba
-from numba.types import UniTuple, float64, int64, string, boolean, Omitted, optional
+from numba.types import UniTuple, float64, int64, string, boolean, Omitted, optional, NoneType
 
 # Geometry libraries
 from shapely.geometry import Polygon as shPolygon
@@ -215,10 +215,10 @@ def project_points(points, matrix, around_point=None):
     :return: the projected points
     :rtype: numpy.ndarray *shape=(N, 3)*
     """
-
+    
     # TODO: improve this so it takes advantage of array contiguity
 
-    if not isinstance(around_point, Omitted):
+    if not (isinstance(around_point, Omitted) or isinstance(around_point, NoneType)):
         @numba.njit(float64[:, :](float64[:, :], float64[:, :], float64[:, :]))
         def __impl__(points, matrix, around_point):
             p = np.atleast_2d(points)

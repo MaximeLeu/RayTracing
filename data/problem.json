@@ -1,13 +1,13 @@
 {
     "place": {
-        "id": "8b9e8183842c4ca5837f6425ba115a2f",
+        "id": "1c9bd39710484ddb8830381abeb1043a",
         "geotype": "place",
         "surface": {
-            "id": "1d01edfd5cda408fa4035288d7594ede",
+            "id": "25b4e904328046f8abe193af90a70acb",
             "geotype": "surface",
             "polygons": [
                 {
-                    "id": "c61d0247996b42e68a3048b6a33de84c",
+                    "id": "cb37a8c2a2d142b4b9b5b12f42d5db94",
                     "geotype": "polygon",
                     "points": [
                         [
@@ -36,11 +36,11 @@
         },
         "polyhedra": [
             {
-                "id": "58f5a01aa1794ddbb8c82b12ebc25e66",
+                "id": "b064dcd059134d219f47ffced2e9fe93",
                 "geotype": "polyhedron",
                 "polygons": [
                     {
-                        "id": "cc9d338fab304dad8cc6a36173788df4",
+                        "id": "d05e2cd1fc6c42378536a1b0d6e6bf59",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -66,7 +66,7 @@
                         ]
                     },
                     {
-                        "id": "0a5bee4ff05a477396501d88139b38db",
+                        "id": "2ca9303194674fbc8aca1f5b3cb7dc21",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -92,7 +92,7 @@
                         ]
                     },
                     {
-                        "id": "2525a310281543998a013fddabafe938",
+                        "id": "0b488a118cf14736bd89c4525fd0395d",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -118,7 +118,7 @@
                         ]
                     },
                     {
-                        "id": "e919cbf69fb1499382fc2776ec710e31",
+                        "id": "5d8771b9ecbb450eb313e7ed71e6803d",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -144,7 +144,7 @@
                         ]
                     },
                     {
-                        "id": "efc3d49edcd448f9862643c3e542166c",
+                        "id": "231adfa6c19347d985a39aa0c23860de",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -170,7 +170,7 @@
                         ]
                     },
                     {
-                        "id": "ab982d4ad46c4c58a8bca5f00b1a0b14",
+                        "id": "c108b2602bce4d59b6e49ee5c89a68f6",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -198,11 +198,11 @@
                 ]
             },
             {
-                "id": "2396d51dec624fa184618cf8be0f77cf",
+                "id": "6991cc6292114c6280f3adaabc5b70db",
                 "geotype": "polyhedron",
                 "polygons": [
                     {
-                        "id": "6000cd96625d4b31a1108e417aeaa924",
+                        "id": "162a35353b064556a81ecf7fa53bfc81",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -228,7 +228,7 @@
                         ]
                     },
                     {
-                        "id": "ebd1d2adadd4441fb6a2ce721ce242e0",
+                        "id": "260e11ea2bef4385a6663c9bb230f24f",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -254,7 +254,7 @@
                         ]
                     },
                     {
-                        "id": "9cd83abbc87f4302bf876e47fbdb689f",
+                        "id": "700e0b1754144b98b3bf7f83c18d0709",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -280,7 +280,7 @@
                         ]
                     },
                     {
-                        "id": "613416b68ea74d1c913cb2e38d39498f",
+                        "id": "99534b2fd4c344fb9f6744999b41ee78",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -306,7 +306,7 @@
                         ]
                     },
                     {
-                        "id": "dc0644e275b04367850468a27f69325b",
+                        "id": "3681659abe104deb916fae3f7284caad",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -332,7 +332,7 @@
                         ]
                     },
                     {
-                        "id": "1e90aeedfd6445518ce3f752639ce0b8",
+                        "id": "f7666a66d4fe4ddbb258e5e07cea3646",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -360,11 +360,11 @@
                 ]
             },
             {
-                "id": "aa8f3682490f43ec8d0232d5325945b0",
+                "id": "f3d7ea623b644117a40c53dddac56ccd",
                 "geotype": "polyhedron",
                 "polygons": [
                     {
-                        "id": "b59a95cd73344e77b5e4a5d13fe99bc5",
+                        "id": "fcdedc46fd5a47478cfbc734e2a6716b",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -390,7 +390,7 @@
                         ]
                     },
                     {
-                        "id": "02bbcd28de384b15b29235c069dc3727",
+                        "id": "f8f61aa8d6f344c98cad551d5d1e8726",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -416,7 +416,7 @@
                         ]
                     },
                     {
-                        "id": "8394ba9422db405eb27060fad6ed5848",
+                        "id": "a42ea7e8248140a9ba12097ec44dded8",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -442,7 +442,7 @@
                         ]
                     },
                     {
-                        "id": "5f85ad9f0d0a48389b4aa027b551f3b9",
+                        "id": "8de997369e9d484d9ba4325eaf259e48",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -468,7 +468,7 @@
                         ]
                     },
                     {
-                        "id": "d7152f6c7fe64a819fabd7d9e3b16cae",
+                        "id": "33efd1547802446cacbdbd89ab943a7d",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -494,7 +494,7 @@
                         ]
                     },
                     {
-                        "id": "96606d604a664357852ebe81dc3a049f",
+                        "id": "7728e271520149478ced12473cee53c3",
                         "geotype": "polygon",
                         "points": [
                             [
@@ -650,8 +650,8 @@
                             5.0
                         ],
                         [
-                            12.999999999999996,
-                            21.999999999999996,
+                            12.999999999999998,
+                            21.999999999999993,
                             5.0
                         ],
                         [
@@ -947,7 +947,7 @@
                         [
                             32.99999999999999,
                             2.0,
-                            4.082238004146711
+                            4.082238004146709
                         ],
                         [
                             65.0,
