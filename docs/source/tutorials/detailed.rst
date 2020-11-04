@@ -64,7 +64,7 @@ Because it did not have any height attribute, we gave it a default value of 30 m
     modified to provide a better ground surface. Note that its normal should be be oriented
     upward.
 
-2.B - Modify the geometry
+1.B - Modify the geometry
 #########################
 
 As seen previously, you can obtain data from internet pretty easily. Nonetheless, this
