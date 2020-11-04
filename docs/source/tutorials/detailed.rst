@@ -145,8 +145,8 @@ need to manually change all the points.
     :lines: 1-30
 
 
-1.C Validate the geometry
-#########################
+1.C - Validate the geometry
+###########################
 
 Once the geometry is built, it is important to check that the internal properties of this
 geometry are correct.
@@ -191,6 +191,30 @@ in red.
 .. image:: images/lln_sharp_edges_1.svg
 
 .. image:: images/lln_sharp_edges_2.svg
+
+
+III. Polygon visibility
+***********************
+
+Another really important thing in ray tracing is the polygon visibility. In order to find
+paths between multiple points, it is mandatory to know on which surfaces the rays can
+bounce. In 3D, this problem is *very complicated* and an attempt to give a solution to
+this problem is given by the **visibility matrix**. For each polygon in the geometry,
+the visibility matrix contains an indicator, for each other polygon, if it sees this polygon.
+In order, if it is possible to drawn a line segment between those two polygons, without
+intercepting any other polygon.
+
+.. code-block::
+    :caption: Generating the visibility matrix
+
+    place.show_visibility_matrix_animation(strict=False)
+
+
+.. image:: images/lln_visibility_matrix_1.svg
+
+.. image:: images/lln_visibility_matrix_2.svg
+
+.. image:: images/lln_visibility_matrix_3.svg
 
 ***********************
 2. Applying ray tracing

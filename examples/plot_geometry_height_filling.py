@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     place.to_json('lln.json')
 
-    place.get_sharp_edges(min_angle=0)  # Only if you want to override default value
-    place.show_sharp_edges_animation()
+    #place.get_sharp_edges(min_angle=0)  # Only if you want to override default value
+    place.show_visibility_matrix_animation(strict=False)
 
     plt.show()
