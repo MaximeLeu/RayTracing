@@ -144,6 +144,54 @@ need to manually change all the points.
     :language: JSON
     :lines: 1-30
 
+
+1.C Validate the geometry
+#########################
+
+Once the geometry is built, it is important to check that the internal properties of this
+geometry are correct.
+
+I. The orientation of each polygon
+**********************************
+
+As mentioned in the name of each class in the ``geometry.py`` file, geometrical objects are
+oriented. It means that their normal vector should be pointing outward of the polyhedron
+they are apart of. If a geometry is a surface or a polygon, its normal orientation should
+be point upward (eg. ground surface).
+
+You can verify that the orientation of correctly computed by plotting the geometry with
+additional parameters.
+
+.. code-block::
+    :caption: Plot of the orientation of surfaces
+
+    ax = place.plot3d(ret=True, poly_kwargs=dict(orientation=True, normal=True))
+
+.. image:: images/lln_orientation.svg
+
+
+II. Detection of sharp edges
+****************************
+
+Diffraction only occurs on *sharp edges*. A sharp edge is considered to be an edge such
+that the angle between the the polygon making this edge is bigger than a defined value.
+This value should always be higher than zero, because diffraction can only occur on
+convex angles. Nonetheless, it is possible to manually decide what you consider to be
+a sharp edge.
+
+.. code-block::
+    :caption: Computation and plot of the geometry's sharp edges
+
+    place.get_sharp_edges(min_angle=0)  # Only if you want to override default value
+    place.show_sharp_edges_animation()
+
+The plots below show, for each edge, the edge in green and the two adjacent polygons
+in red.
+
+.. image:: images/lln_sharp_edges_1.svg
+
+.. image:: images/lln_sharp_edges_2.svg
+
 ***********************
 2. Applying ray tracing
 ***********************

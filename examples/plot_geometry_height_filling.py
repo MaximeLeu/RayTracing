@@ -38,10 +38,15 @@ if __name__ == '__main__':
 
     place.polyhedra.extend([cube, building, pyramid])
 
-    ax = place.plot3d(ret=True)
+    ax = place.plot3d(ret=True, poly_kwargs=dict(orientation=True, normal=True))
 
     place.center_3d_plot(ax)
 
     plt.show()
 
     place.to_json('lln.json')
+
+    place.get_sharp_edges(min_angle=0)  # Only if you want to override default value
+    place.show_sharp_edges_animation()
+
+    plt.show()
