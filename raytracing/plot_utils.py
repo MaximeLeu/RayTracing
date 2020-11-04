@@ -9,7 +9,10 @@ import numpy as np
 # Utils
 import sys
 
-pause = False
+anim = dict(
+    pause=False,
+    speed=1
+)
 
 
 def get_2d_plot_ax(ax=None):
@@ -196,9 +199,11 @@ def add_text_at_point_3d_ax(ax, point, text, *args, **kwargs):
     :type args: any
     :param kwargs: keyword arguments passed to :func:`mpl_toolkits.mplot3d.Axes3D.text`
     :type kwargs: any
+    :return: # TODO
+    :rtype: # TODO
     """
     point = point.flat
-    ax.text(point[0], point[1], point[2], text, *args, **kwargs)
+    return ax.text(point[0], point[1], point[2], text, *args, **kwargs)
 
 
 def add_2d_text_at_point_3d_ax(ax, point, text, *args, **kwargs):
@@ -215,6 +220,8 @@ def add_2d_text_at_point_3d_ax(ax, point, text, *args, **kwargs):
     :type args: any
     :param kwargs: keyword arguments passed to :func:`mpl_toolkits.mplot3d.Axes3D.text2D`
     :type kwargs: any
+    :return: # TODO
+    :rtype: # TODO
 
     :Example:
 
@@ -223,7 +230,7 @@ def add_2d_text_at_point_3d_ax(ax, point, text, *args, **kwargs):
     >>> add_2d_text_at_point_3d_ax(ax, pos, 'Hello', *args, **kwargs)
     """
     point = point.reshape(-1)
-    ax.text2D(point[0], point[1], text, *args, transform=ax.transAxes, **kwargs)
+    return ax.text2D(point[0], point[1], text, *args, transform=ax.transAxes, **kwargs)
 
 
 def add_polygon_to_2d_ax(ax, points, *args, **kwargs):
@@ -325,32 +332,46 @@ def animate_3d_ax(ax, dt=0.01, func=None, *args, **kwargs):
     :param kwargs: keyword arguments passed to `func`
     :type kwargs: any
     """
-    pos = np.array([0.05, 0.95])
+    pos = np.array([0.05, 0.90])
 
-    add_2d_text_at_point_3d_ax(ax, pos, f'Press \'q\' to quit, \'space\' to play/pause')
+    global anim
+
+    def txt(anim):
+        speed = anim['speed']
+
+        return f'Press \'q\' to quit, \'space\' to play/pause,\n'\
+               f'\'>\' (\'<\') to accel. (slow) the animation, \'0\' to reset.\n'\
+               f'Current speed: {speed} [it./frame]'
+
+    text = add_2d_text_at_point_3d_ax(ax, pos, txt(anim))
 
     fig = plt.gcf()
 
-    global pause
-
     def press(event):
+        global anim
         sys.stdout.flush()
         if event.key.lower() == 'q':
             plt.close(fig)
         elif event.key.lower() == ' ':
-            global pause
-            pause ^= True
+            anim['pause'] ^= True
+        elif event.key.lower() == '>':
+            anim['speed'] += 1
+        elif event.key.lower() == '<':
+            anim['speed'] -= 1
+            anim['speed'] = max(0, anim['speed'])
+        elif event.key.lower() == '0':
+            anim['speed'] = 1
 
     fig.canvas.mpl_connect('key_press_event', press)
 
     angle = 0
     ax.view_init(30, 0)
 
-    global pause
-
     while plt.fignum_exists(fig.number):
 
-        if pause:
+        text.set_text(txt(anim))
+
+        if anim['pause']:
             angle = ax.azim
             plt.pause(0.1)
             continue
@@ -358,10 +379,10 @@ def animate_3d_ax(ax, dt=0.01, func=None, *args, **kwargs):
         ax.view_init(ax.elev, angle)
 
         if func is not None:
-            ret = func(ax, *args, **kwargs)
-
-            if ret == 0:
-                break
+            for _ in range(anim['speed']):
+                ret = func(ax, *args, **kwargs)
+                if ret == 0:
+                    break
 
         plt.draw()
         plt.pause(dt)
