@@ -1,0 +1,183 @@
+\documentclass[french,10pt]{article}
+\usepackage{ae,lmodern} % ou seulement l'un, ou l'autre, ou times etc.
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[top=2cm,bottom=2cm,left=2cm,right=2cm]{geometry}
+\usepackage{listings}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{physics}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{siunitx}
+\usepackage{wrapfig}
+\usepackage{fancybox}
+\usepackage{color}
+\usepackage{pgfplotstable}
+\usepackage{xcolor}
+\usepackage{setspace}
+\usepackage{pgfplots}
+\usepackage{float}
+\usepackage{multicol} %pour page de garde
+\usepackage{fancyvrb}
+\usepackage{hyperref}
+\usepackage{comment}
+\usepackage{url}
+\usepackage{xfrac}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[toc, nonumberlist]{glossaries}
+\usepackage[toc, page]{appendix}
+
+\usepackage{pgfplots,filecontents}
+
+\usepackage[colorlinks = true,
+            linkcolor = blue,
+            urlcolor  = blue,
+            citecolor = blue,
+            anchorcolor = blue]{hyperref}
+
+% The tree
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc}
+\usetikzlibrary{shapes.geometric,shapes.arrows,decorations.pathmorphing}
+\usetikzlibrary{matrix,chains,scopes,positioning,arrows,fit}
+\usetikzlibrary{decorations.pathreplacing,shapes,snakes}
+
+\usepackage{ifthen}
+
+\tikzset{
+  treenode/.style = {shape=rectangle, rounded corners,
+                     draw, align=center},
+  root/.style     = {treenode, font=\Large},
+  env/.style      = {treenode, font=\normalsize},
+  dummy/.style    = {circle,draw}
+}
+
+\newcommand{\MYhref}[3][blue]{\href{#2}{\color{#1}{#3}}}
+
+%
+\usepackage{xcolor}
+\definecolor{FREQUENTcolor}{RGB}{237,176,33}
+\definecolor{NONFREQUENTcolor}{RGB}{217,84,26}
+\definecolor{NONGENERATEDcolor}{RGB}{77,191,237}
+\definecolor{NONGENERATEDDFScolor}{RGB}{120,171,48}
+
+\pgfplotsset{compat=1.14}
+\setlength{\columnsep}{-1cm}
+\def\R{\textrm{I\kern-0.21emR}}
+
+\definecolor{Zgris}{rgb}{0.87,0.85,0.85}
+\newsavebox{\BBbox}
+\newenvironment{DDbox}[1]{
+\begin{lrbox}{\BBbox}\begin{minipage}{\linewidth}}
+{\end{minipage}\end{lrbox}\noindent\colorbox{Zgris}{\usebox{\BBbox}} \\
+[.5cm]}
+
+\let\oldemptyset\emptyset
+
+\counterwithin{figure}{section}
+
+
+\begin{document}
+
+\setcounter{page}{0}
+\input{Project 1/page_de_garde.tex}
+
+\newpage
+
+\section{Introduction}
+
+    In this document, the mathematical reasoning used in the code in order to find reflection and diffraction paths is detailed. If you find any error or wish to had any complementary resource to it, feel free to do so.
+    
+\section{Reflection}
+
+    \subsection{On one surface}
+
+    Given an incident vector $\vec{r}_0$ and a unit vector $\hat{n}$, normal to the surface of equation $<\pmb{X},\hat{n}> + d = 0$, the vector issued from the reflection of $\vec{r}_0$ on the surface is given by:
+    
+    \begin{align}
+        \vec{r}_1 &= \vec{r}_0 - 2 \frac{<\vec{r}_0,\hat{n}>}{<\vec{n},\hat{n}>} \hat{n}\\
+        &= \vec{r}_0 - 2 <\vec{r}_0,\hat{n}> \hat{n}
+    \end{align}
+    
+    If you want to determine the path from $\pmb{X}_0$ to $\pmb{X}_2$, with a reflection point $\pmb{X}_1$ (unknown) on the surface, then you can rewrite:
+    
+    \begin{align}
+        \frac{1}{\alpha_1}\left(\pmb{X}_2 - \pmb{X}_1 \right) &= \frac{1}{\alpha_0}\left(\pmb{X}_1 - \pmb{X}_0 \right) - \frac{2}{\alpha_0}<\pmb{X}_1 - \pmb{X}_0, \hat{n} > \hat{n}\\
+        \frac{1}{\alpha_1}\left(\pmb{X}_2 - \pmb{X}_1 \right) &= \frac{1}{\alpha_0}\left(\pmb{X}_1 - \pmb{X}_0 \right) + \frac{2}{\alpha_0}\left(d + <\pmb{X}_0, \hat{n} > \right)\hat{n}
+    \end{align}
+    
+    with $\alpha_n$ a scaling factor such that $\alpha_n \cdot \vec{r}_{n} = \pmb{X}_{n+1} - \pmb{X}_n$. A shorted formulation is also proposed:\\
+    
+    \begin{equation}\label{eq:eq1plane}
+        {\gamma_1}\left(\pmb{X}_2 - \pmb{X}_1 \right) = \pmb{X}_1 - \pmb{X}_0 + 2\left(d + <\pmb{X}_0, \hat{n} > \right)\hat{n}
+    \end{equation}
+    
+    such that $\gamma_1 = \frac{\|\pmb{X}_1 - \pmb{X}_0\|}{\|\pmb{X}_2 - \pmb{X}_1\|}$.\\
+    
+    This leads to 3 non-linear equations with 3 unknowns (3 coordinates), which can be solved easily using an iterative solver.
+    
+    \subsection{On multiple surfaces}
+    
+    From \eqref{eq:eq1plane}, it is pretty straightforward to derive a system of equations for $n$ planes with equation $<\pmb{X},\hat{n}_n> + d_n = 0$.
+    
+    \begin{equation}\label{eq:eqnplanes}
+        {\gamma_n}\left(\pmb{X}_{n+1} - \pmb{X}_n \right) = \pmb{X}_n - \pmb{X}_{n-1} + 2\left(d_n + <\pmb{X}_{n-1}, \hat{n}_n > \right)\hat{n}_n
+    \end{equation}
+    
+    Again, \eqref{eq:eqnplanes} makes a system of $3\times n$ equations with $3 \times n$ unknowns which can be easily solved using an iterative solver.
+    
+\section{Diffraction}
+
+    \subsection{On one edge}
+    
+    Given the law of diffraction, an incident vector $\vec{i}$ and a diffracted vector $\vec{d}$ make the same angle $\alpha$ with the unit direction vector $\hat{v}_e$ of the edge. The edge is a straight line with equation $\pmb{X} = \pmb{X}_e + \hat{v}_e \cdot t$.
+    
+    \begin{equation}
+        \frac{<\vec{i}, \hat{v}_e>}{\|\vec{i}\|} = \cos\alpha = \frac{<\vec{d}, \hat{v}_e>}{\|\vec{d}\|}
+    \end{equation}
+    
+    Using the same notation as above:
+    
+    \begin{equation}\label{eq:diffprob}
+        \frac{<\pmb{X}_1 - \pmb{X}_0, \hat{v}_e>}{\|\vec{i}\|} = \cos\alpha = \frac{<\pmb{X}_2 - \pmb{X}_1, \hat{v}_e>}{\|\vec{d}\|}
+    \end{equation}
+    
+    Because the problem of finding $\pmb{X}_1$ is the same as finding the value of $t$ such that $\pmb{X}_1 = \pmb{X}_e + \hat{v}_e \cdot t$ and it satisfies \eqref{eq:diffprob}. Let's make the hypothesis\footnote{If it is not the case, a simple change of coordinate can make this possible, which is what is done in the code. It also avoids division by 0 when the direction vector has a $0$ component.} that $\hat{v}_e = \begin{pmatrix}0 & 0 & 1 \end{pmatrix}
+   ^T$. With this, $t$ can be easily obtained:
+   
+   \begin{equation}
+       t = z_1 - z_e
+   \end{equation}
+   
+   The equation know becomes much simpler:
+   
+   \begin{equation}
+       \frac{z_e - z_0 + t}{\|\pmb{X}_e + \hat{v}_e\cdot t - \pmb{X}_0\|} = \frac{z_2 - z_e - t}{\|\pmb{X}_2 - \pmb{X}_e - \hat{v}_e\cdot t\|}
+   \end{equation}
+   
+   A further simplification that be done but does not lower the computational cost:
+   
+   \begin{equation}\label{eq:eqdiff}
+       \frac{z_1 - z_0}{\|\pmb{X}_e + \hat{v}_e\cdot t - \pmb{X}_0\|} = \frac{z_2 - z_1}{\|\pmb{X}_2 - \pmb{X}_e - \hat{v}_e\cdot t\|}
+   \end{equation}
+   
+   It leads to one equation with one unknown $z_1$. The full solution of the problem can be directly derived as $\pmb{X}_1 = \begin{pmatrix}x_e & y_e & z_1 \end{pmatrix}$.
+   
+   \subsubsection{Uniqueness of solution}
+   
+        Because \eqref{eq:eqdiff} is continuous, has an image from $-\infty$ to $\infty$ and is bijective (thanks to its $|x|\cdot x$ shape), there exists only one solution to the problem.\\
+   
+        It is easy to convince ourselves that there must exist an unique solution: each point on the line create a surface of diffracted rays in a cone shape. Each cone's angle is defined by the position of the point, each point mapping to an unique angle. The whole 3D space can then be constructed as the sum of all the possibles cones.
+
+\section{Combining reflection and diffraction}
+
+    In order to combine multiple reflections and/or diffraction, one just need to create an appropriate system of equations by combining equations found above.
+    
+    \subsection{Discussion}
+    
+        As seen for the diffraction problem can be reduced to only one unknown. The same can be applied for the reflection but it reduces to two unknowns as it is a plane equation. The trade-off between reducing complexity of the system and changing the coordinates is not worth to do it. Each plane would require a $3\times 3$ matrix multiplication on 3 points (the point in the place and the points before and after). If number of planes for reflections is not large, it is preferable to keep the problem in 3 dimensions rather than projecting it in 2 dimensions.
+
+\end{document}
