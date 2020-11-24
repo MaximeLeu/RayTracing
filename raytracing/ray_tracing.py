@@ -222,7 +222,7 @@ class RayTracingProblem:
 
         file_utils.json_save(filename, data, cls=geom.OrientedGeometryEncoder)
 
-    def plot3d(self, ax=None, ret=False):
+    def plot3d(self, ax=None, ret=False, show_refl=True, show_diff=True):
         ax = plot_utils.get_3d_plot_ax(ax)
 
         self.place.plot3d(ax=ax, points_kwargs=dict(color='k', s=20))
@@ -250,29 +250,31 @@ class RayTracingProblem:
                 4: 'r'
             }
 
-            for order, lines in self.reflections[r].items():
-                first = True
-                color = colors[order]
-                for line, _ in lines:
-                    line3D, = plot_utils.add_line_to_3d_ax(ax, line, color=color)
-                    plot_utils.add_points_to_3d_ax(ax, line[1:order+1, :], color=color)
+            if show_refl:
+                for order, lines in self.reflections[r].items():
+                    first = True
+                    color = colors[order]
+                    for line, _ in lines:
+                        line3D, = plot_utils.add_line_to_3d_ax(ax, line, color=color)
+                        plot_utils.add_points_to_3d_ax(ax, line[1:order+1, :], color=color)
 
-                    if first:
-                        handles.append(line3D)
-                        labels.append(f'{order} reflect.')
-                        first = False
+                        if first:
+                            handles.append(line3D)
+                            labels.append(f'{order} reflect.')
+                            first = False
 
-            for order, lines in self.diffractions[r].items():
-                first = True
-                color = colors[order]
-                for line, _, _, _ in lines:
-                    line3D, = plot_utils.add_line_to_3d_ax(ax, line, color=color, linestyle='--')
-                    plot_utils.add_points_to_3d_ax(ax, line[1:order+1, :], color=color)
+            if show_diff:
+                for order, lines in self.diffractions[r].items():
+                    first = True
+                    color = colors[order]
+                    for line, _, _, _ in lines:
+                        line3D, = plot_utils.add_line_to_3d_ax(ax, line, color=color, linestyle='--')
+                        plot_utils.add_points_to_3d_ax(ax, line[1:order+1, :], color=color)
 
-                    if first:
-                        handles.append(line3D)
-                        labels.append(f'{order-1} reflect. and 1 diff.')
-                        first = False
+                        if first:
+                            handles.append(line3D)
+                            labels.append(f'{order-1} reflect. and 1 diff.')
+                            first = False
 
         self.place.center_3d_plot(ax)
         ax.legend(handles, labels)

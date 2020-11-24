@@ -1,9 +1,11 @@
+"""
+This file shows different coordinate changes.
+"""
+
 import raytracing.geometry as geom
 from raytracing import plot_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from raytracing.plot_utils import add_points_to_3d_ax, add_text_at_point_3d_ax, add_2d_text_at_point_3d_ax
-import random
 
 
 if __name__ == '__main__':
@@ -62,6 +64,5 @@ if __name__ == '__main__':
 
     for i, poly3d in enumerate(ax.collections):
         poly3d.set_facecolor(colors[i])
-
 
     plt.show()

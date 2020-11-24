@@ -1,3 +1,7 @@
+"""
+This file times several execution of the solver with the dummy geometry.
+"""
+
 import raytracing.geometry as geom
 from raytracing import file_utils
 import numpy as np

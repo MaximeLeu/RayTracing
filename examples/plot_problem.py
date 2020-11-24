@@ -1,5 +1,11 @@
+"""
+This file show how to use the Ray Tracing solver.
+"""
+
+
 import raytracing.geometry as geom
 from raytracing import file_utils
+from raytracing import plot_utils
 import numpy as np
 from time import time
 from raytracing.ray_tracing import RayTracingProblem
@@ -12,7 +18,7 @@ if __name__ == '__main__':
 
     # 1. Load data
 
-    geometry = 'dummy'
+    geometry = 'dummy'  # You can change to use another geometry
 
     if geometry == 'small':
         place = geom.generate_place_from_rooftops_file('../data/small.geojson')
@@ -46,15 +52,24 @@ if __name__ == '__main__':
 
         place = geom.OrientedPlace(geom.OrientedSurface(ground), [building_1, building_2, building_3])
 
+    # Adding receivers to place
+    place.add_set_of_points(rx)
+    ax = place.plot3d(ret=True)
+    place.center_3d_plot(ax)
 
-    # place.show_visibility_matrix_animation(True)
+    plot_utils.add_points_to_3d_ax(ax=ax, points=tx, label="TX")
+
+    plt.legend()
+
+    # This plot is here to check that you geometry is correct.
+    plt.show()
 
     t = time()
-    problem = RayTracingProblem(tx, place, receivers=rx)
+    problem = RayTracingProblem(tx, place)
     print(f'Took {time() - t:.4f} seconds to initialize and precompute problem.')
 
     t = time()
-    problem.solve(3)
+    problem.solve(max_order=3)
     print(f'Took {time() - t:.4f} seconds to solve problem.')
     problem.plot3d()
 
@@ -62,7 +77,7 @@ if __name__ == '__main__':
 
     from raytracing.electromagnetism import compute_field_from_solution
 
-    compute_field_from_solution(problem)
+    compute_field_from_solution(problem, '../data/electromagnetism.json')
 
     plt.show()
 

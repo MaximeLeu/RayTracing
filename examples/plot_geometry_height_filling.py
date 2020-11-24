@@ -1,3 +1,7 @@
+"""
+This file is here to generate images for the tutorial.
+"""
+
 import raytracing.geometry as geom
 from raytracing import file_utils
 import matplotlib.pyplot as plt

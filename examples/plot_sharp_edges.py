@@ -1,3 +1,7 @@
+"""
+This file shows you how to verify visually the sharp edges in your geometry.
+"""
+
 import raytracing.geometry as geom
 from raytracing import file_utils
 

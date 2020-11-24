@@ -3,10 +3,13 @@ from raytracing import geometry as geom
 import numpy as np
 from numpy.dual import norm
 
+import json
+
 from scipy.constants import c, mu_0, epsilon_0, pi
 from scipy.special import fresnel
 
-n_air = 1.00026825
+# n_air = 1.00026825
+n_air = 1  # Same as Matlab
 c = 3e8
 er = 4.44 + 1e-3j
 
@@ -40,6 +43,10 @@ class ElectromagneticField:
         return EF
 
     def reflect(self, reflection_path, surface_normal, surface_r_index=1/er):
+        # Point A ----- Point B ------ Point C
+        # Point B is where reflection occurs
+        # -> reflection_path = [A, B, C]
+
         # Compute vectors from emitter to reflection point,
         # then to reflection point to receiver
         vectors, norms = geom.normalize_path(reflection_path)
@@ -202,37 +209,55 @@ class ElectromagneticField:
         return ElectromagneticField(E, f=self.f, v=self.v)
 
 
-def compute_field_from_solution(rtp):
+def compute_field_from_solution(rtp, output):
+    """
+    Computes the electromagnetic field from a ray tracing problem solution, and writes
+    all the different EM fields in a json file.
+    """
     los = rtp.los
     reflections = rtp.reflections
     diffractions = rtp.diffractions
     polygons = rtp.polygons
 
+    out = {}
+
     for r, receiver in enumerate(rtp.receivers):
 
-        E = 0
+        out[r] = dict(receiver_position=receiver.tolist(), los=[], reflections=[], diffractions=[])
 
+        E = 0
         for path in los[r]:
             rt = ElectromagneticField.from_path(path)
+
+            out[r]["los"].append(dict(path=path.tolist(), E_real=np.real(rt.E).tolist(), E_imag=np.imag(rt.E).tolist()))
+
             E += np.real(rt.E.conj() @ rt.E.T)
 
         for order, paths in reflections[r].items():
+
             for path, indices in paths:
+                out[r]["reflections"].append(dict(order=order, path=path.tolist(), E_real=[], E_imag=[]))
+
                 rt = ElectromagneticField.from_path(path[:2, :])
                 for i, index in enumerate(indices):
                     polygon = polygons[index]
                     normal = polygon.get_normal()
                     rt = rt.reflect(path[i:i+3, :], normal)
+                    out[r]["reflections"][-1]["E_real"].append(np.real(rt.E).tolist())
+                    out[r]["reflections"][-1]["E_imag"].append(np.imag(rt.E).tolist())
 
                 E += np.real(rt.E.conj() @ rt.E.T)
 
         for order, paths in diffractions[r].items():
             for path, indices, (diff_p1, diff_p2), edge in paths:
+                out[r]["diffractions"].append(dict(order=order, path=path.tolist(), E_real=[], E_imag=[]))
                 rt = ElectromagneticField.from_path(path[:2, :])
                 for i, index in enumerate(indices):
                     polygon = polygons[index]
                     normal = polygon.get_normal()
                     rt = rt.reflect(path[i:i+3, :], normal)
+                    out[r]["diffractions"][-1]["E_real"].append(np.real(rt.E).tolist())
+                    out[r]["diffractions"][-1]["E_imag"].append(np.imag(rt.E).tolist())
 
                 # Last operation is diffraction
                 polygon_1 = polygons[diff_p1]
@@ -247,8 +272,13 @@ def compute_field_from_solution(rtp):
                     path[-3:, :], edge,
                     normal_1, normal_2,
                 )
+                out[r]["diffractions"][-1]["E_real"].append(np.real(rt.E).tolist())
+                out[r]["diffractions"][-1]["E_imag"].append(np.imag(rt.E).tolist())
 
                 E += np.real(rt.E.conj() @ rt.E.T)
+
+        with open(output, "w") as f:
+            json.dump(out, f, sort_keys=True, indent=4)
 
         # Power
         # EE = conj(E) @ E^T (hermitian transpose)

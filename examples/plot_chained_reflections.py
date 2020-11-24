@@ -1,3 +1,7 @@
+"""
+This file shows you the correctness of the chained reflections algorithm.
+"""
+
 import raytracing.geometry as geom
 from raytracing import file_utils
 import matplotlib.pyplot as plt
