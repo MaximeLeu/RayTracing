@@ -21,7 +21,7 @@ if __name__ == '__main__':
     geometry = 'dummy'  # You can change to use another geometry
 
     if geometry == 'small':
-        place = geom.generate_place_from_rooftops_file('../data/small.geojson')
+        place = geom.generate_place_from_rooftops_file('../data/CropseyAvenue.geojson')
 
         # 2. Create TX and RX
 
@@ -29,12 +29,14 @@ if __name__ == '__main__':
         ground_center = place.get_centroid()
 
         tx = ground_center + [-50, 5, 1]
+        tx = np.array([8, -104, 35])
         rx = ground_center + np.array([
             [35, 5, 5],
             [35, -5, 5],
             [10, -3, -5]
         ])
         rx = rx[2, :]
+        rx = np.array([16, 84, 2])
         tx = tx.reshape(-1, 3)
         rx = rx.reshape(-1, 3)
     elif geometry == 'dummy':

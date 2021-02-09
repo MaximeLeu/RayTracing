@@ -886,7 +886,10 @@ def polygon_visibility_vector(polygon_A, polygons, out=None, strict=False):
                 polygon_B_in_screen = shapely_polygon_B
             except:
                 continue
-            difference = polygon_B_in_screen.difference(canvas)
+            try:
+                difference = polygon_B_in_screen.difference(canvas)
+            except:
+                continue
             if not difference.is_empty:
                 canvas = canvas.union(polygon_B_in_screen)
                 filtered_polygons.append((i, spherical_polygon_B))
