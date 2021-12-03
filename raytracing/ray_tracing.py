@@ -28,6 +28,7 @@ class RayTracingProblem:
         and the goal is to avoid losing any possible polygon on which reflection is possible)
     :type n_screens: int, 0 < n_screens <= 6
     """
+
     def __init__(self, emitter, place, receivers=None, n_screens=6):
         assert 0 < n_screens <= 6
         self.emitter = emitter
@@ -45,18 +46,9 @@ class RayTracingProblem:
         self.emitter_visibility = None
         self.sharp_edges = None
         n = self.receivers.shape[0]
-        self.los = {
-            r: list()  # Lines of sight
-            for r in range(n)
-        }
-        self.reflections = {
-            r: defaultdict(list)
-            for r in range(n)
-        }
-        self.diffractions = {
-            r: defaultdict(list)
-            for r in range(n)
-        }
+        self.los = {r: list() for r in range(n)}  # Lines of sight
+        self.reflections = {r: defaultdict(list) for r in range(n)}
+        self.diffractions = {r: defaultdict(list) for r in range(n)}
         self.precompute()
 
     def precompute(self):
@@ -84,7 +76,7 @@ class RayTracingProblem:
 
         self.emitter_visibility = emitter_visibilities[0][1]
 
-        for _, emitter_visibility in emitter_visibilities[1:self.n_screens]:
+        for _, emitter_visibility in emitter_visibilities[1 : self.n_screens]:
             self.emitter_visibility |= emitter_visibility
 
         self.sharp_edges = self.place.get_sharp_edges()
@@ -110,22 +102,26 @@ class RayTracingProblem:
         :rtype: bool
         """
         for i, index in enumerate(polygons_indices):
-            if not self.polygons[index].contains_point(lines[i + 1, :], check_in_plane=True):
+            if not self.polygons[index].contains_point(
+                lines[i + 1, :], check_in_plane=True
+            ):
                 return False
 
         if geom.polygons_obstruct_line_path(self.polygons, lines[:2, :]):
             return False
 
         for i, _ in enumerate(polygons_indices):
-            if geom.polygons_obstruct_line_path(self.polygons, lines[i + 1:i + 3, :]):
+            if geom.polygons_obstruct_line_path(self.polygons, lines[i + 1 : i + 3, :]):
                 return False
 
         return True
 
     def check_reflections_and_diffraction(self, lines, polygons_indices, edge):
-        return self.check_reflections(lines[:-1, :], polygons_indices) and \
-               geom.point_on_edge_(lines[-2, :], edge) and \
-               not geom.polygons_obstruct_line_path(self.polygons, lines[-2:, :])
+        return (
+            self.check_reflections(lines[:-1, :], polygons_indices)
+            and geom.point_on_edge_(lines[-2, :], edge)
+            and not geom.polygons_obstruct_line_path(self.polygons, lines[-2:, :])
+        )
 
     def solve(self, max_order=2):
         emitter = self.emitter
@@ -134,10 +130,14 @@ class RayTracingProblem:
 
         # Only reflections
         def recursive_reflections(polygons_indices, order):
-            planes_parametric = [self.polygons[index].get_parametric() for index in polygons_indices]
+            planes_parametric = [
+                self.polygons[index].get_parametric() for index in polygons_indices
+            ]
 
             for r, receiver in enumerate(receivers):
-                points, sol = geom.reflexion_points_from_origin_destination_and_planes(emitter, receiver, planes_parametric)
+                points, sol = geom.reflexion_points_from_origin_destination_and_planes(
+                    emitter, receiver, planes_parametric
+                )
 
                 if not sol.success:
                     continue
@@ -155,7 +155,7 @@ class RayTracingProblem:
                     recursive_reflections(polygons_indices + [i], order=order + 1)
 
         if max_order >= 1:
-            print('Iterating through all n reflect.')
+            print("Iterating through all n reflect.")
             for index in tqdm(indices):
                 recursive_reflections([index], 1)
 
@@ -163,11 +163,14 @@ class RayTracingProblem:
             return
 
         # Reflections and 1 diffraction
-        print('Iterating through all 1 diff.')
+        print("Iterating through all 1 diff.")
         for (i, j), edge in tqdm(self.sharp_edges.items()):
             if self.emitter_visibility[i] or self.emitter_visibility[j]:
                 for r, receiver in enumerate(receivers):
-                    points, sol = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(
+                    (
+                        points,
+                        sol,
+                    ) = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(
                         emitter, receiver, [], edge
                     )
 
@@ -182,22 +185,35 @@ class RayTracingProblem:
             return
 
         def recursive_reflections_and_diffraction(polygons_indices, order):
-            planes_parametric = [self.polygons[index].get_parametric() for index in polygons_indices]
+            planes_parametric = [
+                self.polygons[index].get_parametric() for index in polygons_indices
+            ]
 
             last_index = polygons_indices[-1]
 
             visible_polygons_indices = self.get_visible_polygons_indices(last_index)
 
-            for edge_polygons, edge in self.sharp_edges[(*visible_polygons_indices, ...)]:
+            for edge_polygons, edge in self.sharp_edges[
+                (*visible_polygons_indices, ...)
+            ]:
                 for r, receiver in enumerate(receivers):
-                    points, sol = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(emitter, receiver, planes_parametric, edge)
+                    (
+                        points,
+                        sol,
+                    ) = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(
+                        emitter, receiver, planes_parametric, edge
+                    )
 
                     if not sol.success:
                         continue
 
                     lines = np.row_stack([emitter, points, receiver])
-                    if self.check_reflections_and_diffraction(lines, polygons_indices, edge):
-                        self.diffractions[r][order].append((lines, polygons_indices, edge_polygons, edge))
+                    if self.check_reflections_and_diffraction(
+                        lines, polygons_indices, edge
+                    ):
+                        self.diffractions[r][order].append(
+                            (lines, polygons_indices, edge_polygons, edge)
+                        )
 
             if order == max_order:
                 return
@@ -205,19 +221,21 @@ class RayTracingProblem:
                 index = polygons_indices[-1]
                 indices = self.get_visible_polygons_indices(index)
                 for i in indices:
-                    recursive_reflections_and_diffraction(polygons_indices + [i], order=order + 1)
+                    recursive_reflections_and_diffraction(
+                        polygons_indices + [i], order=order + 1
+                    )
 
-        print('Iterating through all n-1 reflect. and 1 diff.')
+        print("Iterating through all n-1 reflect. and 1 diff.")
         for index in tqdm(indices):
             recursive_reflections_and_diffraction([index], 2)
 
     def save(self, filename):
         data = {
-            'place': self.place.to_json(),
-            'emitter': self.emitter,
-            'los': self.los,
-            'reflections': self.reflections,
-            'diffractions': self.diffractions
+            "place": self.place.to_json(),
+            "emitter": self.emitter,
+            "los": self.los,
+            "reflections": self.reflections,
+            "diffractions": self.diffractions,
         }
 
         file_utils.json_save(filename, data, cls=geom.OrientedGeometryEncoder)
@@ -225,10 +243,10 @@ class RayTracingProblem:
     def plot3d(self, ax=None, ret=False, show_refl=True, show_diff=True):
         ax = plot_utils.get_3d_plot_ax(ax)
 
-        self.place.plot3d(ax=ax, points_kwargs=dict(color='k', s=20))
+        self.place.plot3d(ax=ax, points_kwargs=dict(color="k", s=20))
 
-        plot_utils.add_points_to_3d_ax(ax, self.emitter, color='r', s=20)
-        plot_utils.add_text_at_point_3d_ax(ax, self.emitter, 'TX')
+        plot_utils.add_points_to_3d_ax(ax, self.emitter, color="r", s=20)
+        plot_utils.add_text_at_point_3d_ax(ax, self.emitter, "TX")
 
         first = True
         handles = []
@@ -237,30 +255,27 @@ class RayTracingProblem:
         for r, _ in enumerate(self.receivers):
 
             for line in self.los[r]:
-                line3D, = plot_utils.add_line_to_3d_ax(ax, line, color='b')
+                (line3D,) = plot_utils.add_line_to_3d_ax(ax, line, color="b")
                 if first:
                     handles.append(line3D)
-                    labels.append('LOS')
+                    labels.append("LOS")
                     first = False
 
-            colors = {
-                1: 'g',
-                2: 'm',
-                3: 'y',
-                4: 'r'
-            }
+            colors = {1: "g", 2: "m", 3: "y", 4: "r"}
 
             if show_refl:
                 for order, lines in self.reflections[r].items():
                     first = True
                     color = colors[order]
                     for line, _ in lines:
-                        line3D, = plot_utils.add_line_to_3d_ax(ax, line, color=color)
-                        plot_utils.add_points_to_3d_ax(ax, line[1:order+1, :], color=color)
+                        (line3D,) = plot_utils.add_line_to_3d_ax(ax, line, color=color)
+                        plot_utils.add_points_to_3d_ax(
+                            ax, line[1 : order + 1, :], color=color
+                        )
 
                         if first:
                             handles.append(line3D)
-                            labels.append(f'{order} reflect.')
+                            labels.append(f"{order} reflect.")
                             first = False
 
             if show_diff:
@@ -268,12 +283,16 @@ class RayTracingProblem:
                     first = True
                     color = colors[order]
                     for line, _, _, _ in lines:
-                        line3D, = plot_utils.add_line_to_3d_ax(ax, line, color=color, linestyle='--')
-                        plot_utils.add_points_to_3d_ax(ax, line[1:order+1, :], color=color)
+                        (line3D,) = plot_utils.add_line_to_3d_ax(
+                            ax, line, color=color, linestyle="--"
+                        )
+                        plot_utils.add_points_to_3d_ax(
+                            ax, line[1 : order + 1, :], color=color
+                        )
 
                         if first:
                             handles.append(line3D)
-                            labels.append(f'{order-1} reflect. and 1 diff.')
+                            labels.append(f"{order-1} reflect. and 1 diff.")
                             first = False
 
         self.place.center_3d_plot(ax)

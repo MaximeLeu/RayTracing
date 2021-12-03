@@ -9,10 +9,7 @@ import numpy as np
 # Utils
 import sys
 
-anim = dict(
-    pause=False,
-    speed=1
-)
+anim = dict(pause=False, speed=1)
 
 
 def get_2d_plot_ax(ax=None):
@@ -65,7 +62,7 @@ def set_cartesian_axes_label(ax):
     :param ax: the axes
     :type ax: matplotlib.axes.Axes or mpl_toolkits.mplot3d.Axes3D
     """
-    set_axes_label(ax, ['x', 'y', 'z'])
+    set_axes_label(ax, ["x", "y", "z"])
 
 
 def set_polar_axes_label(ax):
@@ -75,7 +72,7 @@ def set_polar_axes_label(ax):
     :param ax: the axes
     :type ax: matplotlib.axes.Axes
     """
-    set_axes_label(ax, ['r', r'\theta'])
+    set_axes_label(ax, ["r", r"\theta"])
 
 
 def set_spherical_axes_label(ax):
@@ -85,7 +82,7 @@ def set_spherical_axes_label(ax):
     :param ax: the axes
     :type ax: mpl_toolkits.mplot3d.Axes3D
     """
-    set_axes_label(ax, ['r', r'\phi', r'\theta'])
+    set_axes_label(ax, ["r", r"\phi", r"\theta"])
 
 
 def add_points_to_2d_ax(ax, points, *args, **kwargs):
@@ -337,11 +334,13 @@ def animate_3d_ax(ax, dt=0.01, func=None, *args, **kwargs):
     global anim
 
     def txt(anim):
-        speed = anim['speed']
+        speed = anim["speed"]
 
-        return f'Press \'q\' to quit, \'space\' to play/pause,\n'\
-               f'\'>\' (\'<\') to accel. (slow) the animation, \'0\' to reset.\n'\
-               f'Current speed: {speed} [it./frame]'
+        return (
+            f"Press 'q' to quit, 'space' to play/pause,\n"
+            f"'>' ('<') to accel. (slow) the animation, '0' to reset.\n"
+            f"Current speed: {speed} [it./frame]"
+        )
 
     text = add_2d_text_at_point_3d_ax(ax, pos, txt(anim))
 
@@ -350,19 +349,19 @@ def animate_3d_ax(ax, dt=0.01, func=None, *args, **kwargs):
     def press(event):
         global anim
         sys.stdout.flush()
-        if event.key.lower() == 'q':
+        if event.key.lower() == "q":
             plt.close(fig)
-        elif event.key.lower() == ' ':
-            anim['pause'] ^= True
-        elif event.key.lower() == '>':
-            anim['speed'] += 1
-        elif event.key.lower() == '<':
-            anim['speed'] -= 1
-            anim['speed'] = max(0, anim['speed'])
-        elif event.key.lower() == '0':
-            anim['speed'] = 1
+        elif event.key.lower() == " ":
+            anim["pause"] ^= True
+        elif event.key.lower() == ">":
+            anim["speed"] += 1
+        elif event.key.lower() == "<":
+            anim["speed"] -= 1
+            anim["speed"] = max(0, anim["speed"])
+        elif event.key.lower() == "0":
+            anim["speed"] = 1
 
-    fig.canvas.mpl_connect('key_press_event', press)
+    fig.canvas.mpl_connect("key_press_event", press)
 
     angle = 0
     ax.view_init(30, 0)
@@ -371,7 +370,7 @@ def animate_3d_ax(ax, dt=0.01, func=None, *args, **kwargs):
 
         text.set_text(txt(anim))
 
-        if anim['pause']:
+        if anim["pause"]:
             angle = ax.azim
             plt.pause(0.1)
             continue
@@ -379,7 +378,7 @@ def animate_3d_ax(ax, dt=0.01, func=None, *args, **kwargs):
         ax.view_init(ax.elev, angle)
 
         if func is not None:
-            for _ in range(anim['speed']):
+            for _ in range(anim["speed"]):
                 ret = func(ax, *args, **kwargs)
                 if ret == 0:
                     break

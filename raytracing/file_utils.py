@@ -17,7 +17,7 @@ def json_save(filename, data, *args, indent=4, **kwargs):
     :type indent: int
     :param kwargs: keyword arguments to be passed to :func:`json.dump`
     """
-    with open(filename, 'w') as f:
+    with open(filename, "w") as f:
         json.dump(data, f, *args, indent=indent, **kwargs)
 
 
@@ -33,7 +33,7 @@ def json_load(filename, *args, **kwargs):
     :return: the dictionary
     :rtype: dict
     """
-    with open(filename, 'r') as f:
+    with open(filename, "r") as f:
         return json.load(f, *args, **kwargs)
 
 

@@ -6,11 +6,15 @@ import raytracing.geometry as geom
 from raytracing import file_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from raytracing.plot_utils import add_points_to_3d_ax, add_text_at_point_3d_ax, add_2d_text_at_point_3d_ax
+from raytracing.plot_utils import (
+    add_points_to_3d_ax,
+    add_text_at_point_3d_ax,
+    add_2d_text_at_point_3d_ax,
+)
 import random
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     file_utils.chdir_to_file_dir(__file__)
 
@@ -24,9 +28,9 @@ if __name__ == '__main__':
 
     ax = cube.plot3d(ret=True, alpha=0)
     add_points_to_3d_ax(ax, A)
-    add_text_at_point_3d_ax(ax, A, 'TX')
+    add_text_at_point_3d_ax(ax, A, "TX")
     add_points_to_3d_ax(ax, B)
-    add_text_at_point_3d_ax(ax, B, 'RX')
+    add_text_at_point_3d_ax(ax, B, "RX")
     cube.center_3d_plot(ax)
     cube.tight_3d_plot(ax)
 
@@ -34,7 +38,7 @@ if __name__ == '__main__':
 
     I = np.array([0.05, 0.95])
 
-    add_2d_text_at_point_3d_ax(ax, I, f'Reflection on {n} wall(s) ')
+    add_2d_text_at_point_3d_ax(ax, I, f"Reflection on {n} wall(s) ")
 
     faces = cube.polygons
     random.shuffle(faces)
@@ -44,7 +48,7 @@ if __name__ == '__main__':
     param = [faces[i].get_parametric() for i in range(n)]
 
     for i in range(n):
-        faces[i].plot3d(facecolor='r', alpha=0.3, ax=ax, edgecolor='r')
+        faces[i].plot3d(facecolor="r", alpha=0.3, ax=ax, edgecolor="r")
 
     z, _ = geom.reflexion_points_from_origin_destination_and_planes(A, B, param)
 
@@ -59,4 +63,3 @@ if __name__ == '__main__':
 
     plt.legend()
     plt.show()
-

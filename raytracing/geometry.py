@@ -2231,3 +2231,13 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     place.polyhedra = polyhedra
 
     return place
+
+
+class Sphere(OrientedGeometry):
+
+    def __init__(self, center, radius):
+        self.center = center
+        self.radius = radius
+
+    def get_domain(self, force=False):
+        return np.array([

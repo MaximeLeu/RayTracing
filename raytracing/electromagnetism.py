@@ -15,7 +15,6 @@ er = 4.44 + 1e-3j
 
 
 class ElectromagneticField:
-
     def __init__(self, E=np.array([1, 0, 0], dtype=complex), f=1.8e9, v=c):
         self.E = E
         self.f = f
@@ -39,10 +38,10 @@ class ElectromagneticField:
         eth = np.array([ctheta * cphi, sphi * ctheta, -stheta])
 
         EF = ElectromagneticField()
-        EF.E = np.exp(-1j*EF.k*d) * (eph + eth) / (4 * pi * d)
+        EF.E = np.exp(-1j * EF.k * d) * (eph + eth) / (4 * pi * d)
         return EF
 
-    def reflect(self, reflection_path, surface_normal, surface_r_index=1/er):
+    def reflect(self, reflection_path, surface_normal, surface_r_index=1 / er):
         # Point A ----- Point B ------ Point C
         # Point B is where reflection occurs
         # -> reflection_path = [A, B, C]
@@ -80,11 +79,22 @@ class ElectromagneticField:
         er_par = array_utils.normalize(np.cross(ei_per, sr))
 
         # Reflected vector
-        E = (R_per * Ei_per * ei_per + R_par * Ei_par * er_par) * np.exp(-1j*self.k*Sr) * Si / (Si + Sr)
+        E = (
+            (R_per * Ei_per * ei_per + R_par * Ei_par * er_par)
+            * np.exp(-1j * self.k * Sr)
+            * Si
+            / (Si + Sr)
+        )
         return ElectromagneticField(E, f=self.f, v=self.v)
 
-    def diffract(self, diffraction_path, edge, surface_1_normal, surface_2_normal,
-                 surface_r_index=1/er):
+    def diffract(
+        self,
+        diffraction_path,
+        edge,
+        surface_1_normal,
+        surface_2_normal,
+        surface_r_index=1 / er,
+    ):
         # Compute vectors from emitter to reflection point, then to diffraction point to receiver
         vectors, norms = geom.normalize_path(diffraction_path)
         si = vectors[0, :]
@@ -139,7 +149,7 @@ class ElectromagneticField:
         # "Propagation Modelling of Low Earth-Orbit Satellite Personal
         # Communication Systems" C. Oestges
 
-        L = Si * Sd * np.sin(beta_0)**2 / (Si + Sd)
+        L = Si * Sd * np.sin(beta_0) ** 2 / (Si + Sd)
         sm = phidiff + phiinc
         sb = phidiff - phiinc
 
@@ -180,11 +190,15 @@ class ElectromagneticField:
         fresnel_sin, fresnel_cos = fresnel(np.sqrt(pi / 2) * a_array)
 
         # Computes the transition function
-        integrals = np.sqrt(pi / 2) * (0.5 * (1 - 1j) - (fresnel_cos - 1j * fresnel_sin))
+        integrals = np.sqrt(pi / 2) * (
+            0.5 * (1 - 1j) - (fresnel_cos - 1j * fresnel_sin)
+        )
         F = 2j * a_array * np.exp(1j * arg_array) * integrals
 
         # Computes the components of the diffraction coefficients
-        coeff = - np.exp(-1j * pi / 4) / (2 * n_diff * np.sqrt(2 * pi * self.k) * np.sin(beta_0))
+        coeff = -np.exp(-1j * pi / 4) / (
+            2 * n_diff * np.sqrt(2 * pi * self.k) * np.sin(beta_0)
+        )
         angles = np.array([pi + sb, pi - sb, pi + sm, pi - sm])
         D = coeff * F / np.tan(angles / (2 * n_diff))
         Dh = D[0] + D[1] + R_par_n * D[2] * R_par_o * D[3]
@@ -205,7 +219,11 @@ class ElectromagneticField:
         Es = np.dot(self.E, beta_i)
         Eh = np.dot(self.E, phi_i)
 
-        E = (-Ds * Es * beta_d - Dh * Eh * phi_d) * np.sqrt(Si / (Sd * (Si + Sd))) * np.exp(-1j * self.k * Sd)
+        E = (
+            (-Ds * Es * beta_d - Dh * Eh * phi_d)
+            * np.sqrt(Si / (Sd * (Si + Sd)))
+            * np.exp(-1j * self.k * Sd)
+        )
         return ElectromagneticField(E, f=self.f, v=self.v)
 
 
@@ -223,26 +241,36 @@ def compute_field_from_solution(rtp, output):
 
     for r, receiver in enumerate(rtp.receivers):
 
-        out[r] = dict(receiver_position=receiver.tolist(), los=[], reflections=[], diffractions=[])
+        out[r] = dict(
+            receiver_position=receiver.tolist(), los=[], reflections=[], diffractions=[]
+        )
 
         E = 0
         for path in los[r]:
             rt = ElectromagneticField.from_path(path)
 
-            out[r]["los"].append(dict(path=path.tolist(), E_real=np.real(rt.E).tolist(), E_imag=np.imag(rt.E).tolist()))
+            out[r]["los"].append(
+                dict(
+                    path=path.tolist(),
+                    E_real=np.real(rt.E).tolist(),
+                    E_imag=np.imag(rt.E).tolist(),
+                )
+            )
 
             E += np.real(rt.E.conj() @ rt.E.T)
 
         for order, paths in reflections[r].items():
 
             for path, indices in paths:
-                out[r]["reflections"].append(dict(order=order, path=path.tolist(), E_real=[], E_imag=[]))
+                out[r]["reflections"].append(
+                    dict(order=order, path=path.tolist(), E_real=[], E_imag=[])
+                )
 
                 rt = ElectromagneticField.from_path(path[:2, :])
                 for i, index in enumerate(indices):
                     polygon = polygons[index]
                     normal = polygon.get_normal()
-                    rt = rt.reflect(path[i:i+3, :], normal)
+                    rt = rt.reflect(path[i : i + 3, :], normal)
                     out[r]["reflections"][-1]["E_real"].append(np.real(rt.E).tolist())
                     out[r]["reflections"][-1]["E_imag"].append(np.imag(rt.E).tolist())
 
@@ -250,12 +278,14 @@ def compute_field_from_solution(rtp, output):
 
         for order, paths in diffractions[r].items():
             for path, indices, (diff_p1, diff_p2), edge in paths:
-                out[r]["diffractions"].append(dict(order=order, path=path.tolist(), E_real=[], E_imag=[]))
+                out[r]["diffractions"].append(
+                    dict(order=order, path=path.tolist(), E_real=[], E_imag=[])
+                )
                 rt = ElectromagneticField.from_path(path[:2, :])
                 for i, index in enumerate(indices):
                     polygon = polygons[index]
                     normal = polygon.get_normal()
-                    rt = rt.reflect(path[i:i+3, :], normal)
+                    rt = rt.reflect(path[i : i + 3, :], normal)
                     out[r]["diffractions"][-1]["E_real"].append(np.real(rt.E).tolist())
                     out[r]["diffractions"][-1]["E_imag"].append(np.imag(rt.E).tolist())
 
@@ -269,8 +299,10 @@ def compute_field_from_solution(rtp, output):
                 edge = np.diff(edge, axis=0).reshape(-1)
 
                 rt = rt.diffract(
-                    path[-3:, :], edge,
-                    normal_1, normal_2,
+                    path[-3:, :],
+                    edge,
+                    normal_1,
+                    normal_2,
                 )
                 out[r]["diffractions"][-1]["E_real"].append(np.real(rt.E).tolist())
                 out[r]["diffractions"][-1]["E_imag"].append(np.imag(rt.E).tolist())
@@ -283,7 +315,7 @@ def compute_field_from_solution(rtp, output):
         # Power
         # EE = conj(E) @ E^T (hermitian transpose)
         print("E", E)
-        #EE = E.conj() @ E.T
+        # EE = E.conj() @ E.T
         EE = np.real(E)
         print("EE", EE)
 

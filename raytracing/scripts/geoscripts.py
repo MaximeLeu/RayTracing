@@ -16,9 +16,9 @@ def geometry():
 
 
 @geometry.command()
-@click.argument('i', type=click.Path(exists=True))
-@click.argument('o', type=click.Path())
-@click.option('--geotype', default='place', help='Type of geometry to be loaded')
+@click.argument("i", type=click.Path(exists=True))
+@click.argument("o", type=click.Path())
+@click.option("--geotype", default="place", help="Type of geometry to be loaded")
 def create(i, o, geotype):
     """
     Creates a new geometry from .geojson file.
@@ -27,18 +27,23 @@ def create(i, o, geotype):
     O is the output .ogeom file
     GEOTYPE is the type of geometry to be created
     """
-    if geotype == 'place':
+    if geotype == "place":
         place = geom.generate_place_from_rooftops_file(i)
         place.save(o)
-        click.secho(f'Successfully created and saved geometry to {o}', fg='green')
+        click.secho(f"Successfully created and saved geometry to {o}", fg="green")
     else:
-        click.secho(f'Type {geotype} not currently supported.', fg='red')
+        click.secho(f"Type {geotype} not currently supported.", fg="red")
 
 
 @geometry.command()
-@click.argument('i', type=click.Path(exists=True))
-@click.argument('t', type=int, nargs=3)
-@click.option('--o', type=click.Path(), default=None, help='Output .ogeom file, same as input file if not specified')
+@click.argument("i", type=click.Path(exists=True))
+@click.argument("t", type=int, nargs=3)
+@click.option(
+    "--o",
+    type=click.Path(),
+    default=None,
+    help="Output .ogeom file, same as input file if not specified",
+)
 def translate(i, t, o):
     """
     Translates a geometry with a given displacement vector.
@@ -53,12 +58,15 @@ def translate(i, t, o):
     vector = np.array(t)
     g.translate(vector).save(o)
 
-    click.secho(f'Successfully translated geometry in {i} by {vector.tolist()} and saved the result in {o}', fg='green')
+    click.secho(
+        f"Successfully translated geometry in {i} by {vector.tolist()} and saved the result in {o}",
+        fg="green",
+    )
 
 
 @geometry.command()
-@click.argument('i', type=click.Path(exists=True))
-@click.option('--dim', default=3, type=int, help='2 or 3 for 2d or 3d plot.')
+@click.argument("i", type=click.Path(exists=True))
+@click.option("--dim", default=3, type=int, help="2 or 3 for 2d or 3d plot.")
 def show(i, dim):
     """
     Shows a geometry in a 2D or 3D plot.
@@ -78,7 +86,7 @@ def show(i, dim):
         g.center_3d_plot(ax)
         plt.show()
     else:
-        click.secho(f'Cannot plot in {dim}D.', fg='red')
+        click.secho(f"Cannot plot in {dim}D.", fg="red")
 
 
 register_repl(geometry)

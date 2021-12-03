@@ -32,9 +32,7 @@ def sort_by_columns(array, columns=None, axis=1):
         slc = tuple(slc)
         slices.append(slc)
 
-    arrays = [
-        array[slc] for slc in slices
-    ]
+    arrays = [array[slc] for slc in slices]
 
     r = np.core.records.fromarrays(arrays)
 

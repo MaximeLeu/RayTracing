@@ -1,7 +1,7 @@
 class ManyToOneDict(dict):
     """
     Subclass of dict providing multiple keys access to identical values.
-    
+
     :Example:
 
     >>> d = ManyToOneDict()
@@ -19,6 +19,7 @@ class ManyToOneDict(dict):
     >>> d[5, 1]  # Will always return a tuple
     ((5, 1), 0)
     """
+
     def __setitem__(self, key, value):
         if not isinstance(key, tuple):
             key = (key,)

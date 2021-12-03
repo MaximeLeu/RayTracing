@@ -28,14 +28,14 @@ def ok__gamma__(v):
 def ok_parse_3d_axis(axis):
     if isinstance(axis, str):
         axis = axis.lower()
-        if axis == 'x':
+        if axis == "x":
             axis = 0
-        elif axis == 'y':
+        elif axis == "y":
             axis = 1
-        elif axis == 'z':
+        elif axis == "z":
             axis = 2
         else:
-            raise ValueError(f'Cannot parse {axis} to a valid axis.')
+            raise ValueError(f"Cannot parse {axis} to a valid axis.")
     else:
         axis = (int(axis) + 3) % 3
 
@@ -43,15 +43,12 @@ def ok_parse_3d_axis(axis):
 
 
 class TestGeometry(np.testing.TestCase):
-
     def test_normalize_path(self):
 
         my_func = geom.normalize_path
         ok_func = ok_normalize_path
 
-        args = [
-            np.random.rand(10, 3)
-        ]
+        args = [np.random.rand(10, 3)]
 
         for i, arg in enumerate(args):
             with self.subTest(i=i):
@@ -65,9 +62,7 @@ class TestGeometry(np.testing.TestCase):
         my_func = geom.intersection_of_2d_lines
         ok_func = ok_intersection_of_2d_lines
 
-        args = [
-            (np.random.rand(2, 2), np.random.rand(2, 2))
-        ]
+        args = [(np.random.rand(2, 2), np.random.rand(2, 2))]
 
         for i, arg in enumerate(args):
             with self.subTest(i=i):
@@ -80,9 +75,7 @@ class TestGeometry(np.testing.TestCase):
         my_func = geom.__gamma__
         ok_func = ok__gamma__
 
-        args = [
-            np.random.rand(10, 3)
-        ]
+        args = [np.random.rand(10, 3)]
 
         for i, arg in enumerate(args):
             with self.subTest(i=i):
@@ -95,20 +88,7 @@ class TestGeometry(np.testing.TestCase):
         my_func = geom.parse_3d_axis
         ok_func = ok_parse_3d_axis
 
-        args = [
-            'x',
-            'y',
-            'z',
-            0,
-            1,
-            2,
-            3,
-            4,
-            -3,
-            -2,
-            -1,
-            1000
-        ]
+        args = ["x", "y", "z", 0, 1, 2, 3, 4, -3, -2, -1, 1000]
 
         for i, arg in enumerate(args):
             with self.subTest(i=i):
@@ -118,5 +98,5 @@ class TestGeometry(np.testing.TestCase):
                 self.assertEqual(got, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     np.testing.main()

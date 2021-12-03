@@ -8,22 +8,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    colors = ['b', 'r', 'g', 'm', 'y']
+    colors = ["b", "r", "g", "m", "y"]
 
     # Cartesian coordinates
-    points_A = np.array([
-        [0, 0, 0],
-        [1, 2, 3],
-        [4, 6, 4]
-    ])
+    points_A = np.array([[0, 0, 0], [1, 2, 3], [4, 6, 4]])
 
-    points_B = np.array([
-        [-3, 2, -1],
-        [-2, 5, 5],
-        [1, 3, 4]
-    ])
+    points_B = np.array([[-3, 2, -1], [-2, 5, 5], [1, 3, 4]])
 
     polygon_A = geom.OrientedPolygon(points_A)
     polygon_B = geom.OrientedPolygon(points_B)
@@ -53,7 +45,9 @@ if __name__ == '__main__':
 
     # Spherical coordinates relative to polygon A
 
-    surface = surface.project_on_spherical_coordinates().project_with_perspective_mapping(1)
+    surface = (
+        surface.project_on_spherical_coordinates().project_with_perspective_mapping(1)
+    )
 
     for polygon in surface.polygons:
         print(polygon.get_shapely())
