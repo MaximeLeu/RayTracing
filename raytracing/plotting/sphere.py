@@ -1,4 +1,4 @@
-from utils import drawer
+from .utils import drawer
 
 import matplotlib.patches as patches
 

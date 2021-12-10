@@ -17,17 +17,27 @@ def new_3d_axes(*args, **kwargs):
 
 class Plotable(object):
     def __init__(self, ax=None, dim=3):
-        if ax:
-            self.ax = ax
-        else:
-            if dim == 2:
-                self.ax = new_2d_axes()
-            elif dim == 3:
-                self.ax = new_3d_axes()
-            pass
-        raise NotImplementedError
+        assert 2 <= dim <= 3
+        self.dim = dim
+        self._ax = ax
 
-    def plot(self, *args, ax=None, **kwargs):
+    @property
+    def ax(self):
+        if self._ax is None:
+            if self.dim == 2:
+                self._ax = new_2d_axes()
+            else:
+                self._ax = new_3d_axes()
+        return self._ax
+
+    def on(self, ax):
+        self._ax = ax
+        return self
+
+    def show(self):
+        plt.show()
+
+    def plot(self, *args, **kwargs):
         raise NotImplementedError
 
     def plot2d(self, *args, ax=None, **kwargs):
