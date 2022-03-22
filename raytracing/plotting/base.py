@@ -1,4 +1,7 @@
 import matplotlib.pyplot as plt
+import numpy as np
+
+from .misc import set_limits
 
 
 def __new_axes(*args, **kwargs):
@@ -33,6 +36,16 @@ class Plotable(object):
     def on(self, ax):
         self._ax = ax
         return self
+
+    def set_limits(self, domain, centroid=np.array([0, 0, 0]), kind="equal"):
+        if kind == "equal":
+            bound = np.max(domain[1] - domain[0])
+            limits = np.vstack((centroid - bound / 2, centroid + bound / 2))
+
+        elif kind == "tight":
+            limits = domain
+
+        set_limits(self.ax, *limits.T)
 
     def show(self):
         plt.show()

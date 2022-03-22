@@ -9,12 +9,21 @@ from .polyhedron import Polyhedron
 
 class Scene(Plotable):
     def __init__(self, geometries):
+        super().__init__()
         self.geometries = geometries
         self.paths = []
+
+        domains = np.dstack([geometry.domain for geometry in geometries])
+        self.domain = np.zeros((2, 3), dtype=float)
+        self.domain[0, :] = domains[0, :, :].min(axis=-1)
+        self.domain[1, :] = domains[1, :, :].max(axis=-1)
 
     def plot(self):
         for geometry in self.geometries:
             geometry.on(self.ax).plot()
+
+        self.set_limits(self.domain)
+
         return self.ax
 
     @staticmethod

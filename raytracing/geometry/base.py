@@ -3,6 +3,7 @@ import numpy as np
 
 class Geometry(object):
     def __init__(self):
+        self.domain = None
         self.centroid = None
 
     def get_domain(self, force=False):
@@ -12,7 +13,7 @@ class Geometry(object):
         :param force: if True, will force to (re)compute value (only necessary if geometry has changed)
         :type force: bool
         :return: opposite vertices of the bounding prism for this object
-        :rtype: numpy.ndarray([min], [max])
+        :rtype: numpy.ndarray([[min], [max]])
         """
         raise NotImplementedError
 

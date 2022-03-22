@@ -11,6 +11,10 @@ class Polyhedron(Geometry, Plotable):
         super(Plotable, self).__init__(**kwargs)
 
         self.polygons = polygons
+        domains = np.dstack([polygon.domain for polygon in polygons])
+        self.domain = np.zeros((2, 3), dtype=float)
+        self.domain[0, :] = domains[0, :, :].min(axis=-1)
+        self.domain[1, :] = domains[1, :, :].max(axis=-1)
 
     @staticmethod
     def from_2d_polygon(polygon, height=1, keep_ground=True):
@@ -35,7 +39,7 @@ class Polyhedron(Geometry, Plotable):
             polygons = [top]
 
         bottom_points = bottom_points[
-            ::-1, :
+            ::1, :
         ]  # Bottom points are now oriented cw to match top points
 
         # For each face other than top and bottom

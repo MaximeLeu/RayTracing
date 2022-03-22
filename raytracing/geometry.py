@@ -130,14 +130,14 @@ def is_ccw(points):
 
 @numba.njit(int64(string), cache=True)
 def __parse_3d_char_axis(axis):
-    if axis == 'x' or axis == 'X':
+    if axis == "x" or axis == "X":
         return 0
-    elif axis == 'y' or axis == 'Y':
+    elif axis == "y" or axis == "Y":
         return 1
-    elif axis == 'z' or axis == 'Z':
+    elif axis == "z" or axis == "Z":
         return 2
     else:
-        raise ValueError('Cannot parse input axis to a valid axis.')
+        raise ValueError("Cannot parse input axis to a valid axis.")
 
 
 @numba.njit(int64(int64), cache=True)
@@ -160,8 +160,9 @@ def parse_3d_axis(axis):
     elif isinstance(axis, numba.types.UnicodeType):
         return __parse_3d_char_axis
     else:
+
         def __impl__(axis):
-            raise ValueError('Cannot parse input type as axis.')
+            raise ValueError("Cannot parse input type as axis.")
 
         return __impl__
 
@@ -183,6 +184,7 @@ def translate_points(points, vector):
 @numba.generated_jit(nopython=True, cache=True)
 def __project__(points, matrix):
     if matrix.is_c_contig:
+
         @numba.njit(float64[:, ::1](float64[:, ::1], float64[:, ::1]), cache=True)
         def __impl__(points, matrix):
             return points @ matrix.T
@@ -190,12 +192,14 @@ def __project__(points, matrix):
         return __impl__
 
     elif matrix.is_f_contig:
+
         @numba.njit(float64[:, ::1](float64[:, ::1], float64[:, ::-1]), cache=True)
         def __impl__(points, matrix):
             return points @ np.ascontiguousarray(matrix.T)
 
         return __impl__
     else:
+
         @numba.njit(float64[:, ::1](float64[:, ::1], float64[:, :]), cache=True)
         def __impl__(points, matrix):
             return points @ np.ascontiguousarray(matrix.T)
@@ -226,17 +230,23 @@ def project_points(points, matrix, around_point=None):
     # TODO: improve this so it takes advantage of array contiguity
 
     if not (isinstance(around_point, Omitted) or isinstance(around_point, NoneType)):
+
         @numba.njit(float64[:, :](float64[:, :], float64[:, :], float64[:, :]))
         def __impl__(points, matrix, around_point):
             p = np.atleast_2d(points)
             a_p = np.atleast_2d(around_point)
             return __project_around_point__(p, matrix, a_p)
+
         return __impl__
     else:
-        @numba.njit(float64[:, :](float64[:, :], float64[:, :], optional(float64[:, :])))
+
+        @numba.njit(
+            float64[:, :](float64[:, :], float64[:, :], optional(float64[:, :]))
+        )
         def __impl__(points, matrix, around_point):
             p = np.atleast_2d(points)
             return __project__(p, matrix)
+
         return __impl__
 
 
@@ -397,7 +407,7 @@ def projection_matrix_from_line_path(points):
     return projection_matrix_from_vector(V)
 
 
-#@numba.njit(boolean(float64[:], float64[:, ::1], float64))
+# @numba.njit(boolean(float64[:], float64[:, ::1], float64))
 @numba.njit(cache=True)
 def point_on_edge_(point, edge, tol=1e-8):
     """
@@ -419,9 +429,11 @@ def point_on_edge_(point, edge, tol=1e-8):
     A = projected_edge[0, :].flat
     B = projected_edge[1, :].flat
 
-    return A[0] - tol <= projected_point[0] <= A[0] + tol and \
-           A[1] - tol <= projected_point[1] <= A[1] + tol and \
-           A[2] - tol <= projected_point[2] <= B[2] + tol
+    return (
+        A[0] - tol <= projected_point[0] <= A[0] + tol
+        and A[1] - tol <= projected_point[1] <= A[1] + tol
+        and A[2] - tol <= projected_point[2] <= B[2] + tol
+    )
 
 
 def polygons_sharp_edges_iter(polygons, min_angle=10.0):
@@ -461,11 +473,14 @@ def polygons_sharp_edges_iter(polygons, min_angle=10.0):
         line_B = np.row_stack([centroid_B, centroid_B + normal_B])
 
         if np.any(
-                np.abs(centroid_A - centroid_B) > np.diff(domain_A, axis=0) + np.diff(domain_B, axis=0)
+            np.abs(centroid_A - centroid_B)
+            > np.diff(domain_A, axis=0) + np.diff(domain_B, axis=0)
         ):  # Check that polygons are close enough to possibly touch
             continue
 
-        if abs(np.dot(normal_A, normal_B)) >= max_cos:  # Check that planes have minimal angle
+        if (
+            abs(np.dot(normal_A, normal_B)) >= max_cos
+        ):  # Check that planes have minimal angle
             continue
 
         x = np.cross(normal_A, normal_B)
@@ -473,9 +488,13 @@ def polygons_sharp_edges_iter(polygons, min_angle=10.0):
         projected_line_A = project_points(line_A, matrix.T)
         projected_line_B = project_points(line_B, matrix.T)
 
-        intersection_point = intersection_of_2d_lines(projected_line_A[:, :2], projected_line_B[:, :2])
+        intersection_point = intersection_of_2d_lines(
+            projected_line_A[:, :2], projected_line_B[:, :2]
+        )
 
-        if np.any(np.isnan(intersection_point)):  # No line intersection = planes are parallel
+        if np.any(
+            np.isnan(intersection_point)
+        ):  # No line intersection = planes are parallel
             continue
 
         # X = A + V * t
@@ -488,20 +507,28 @@ def polygons_sharp_edges_iter(polygons, min_angle=10.0):
         else:
             continue
 
-        if t < 0:  # If two polygons make a convex form => t < 0 (because normals intercept inside the polyhedron)
+        if (
+            t < 0
+        ):  # If two polygons make a convex form => t < 0 (because normals intercept inside the polyhedron)
             points_A = polygon_A.points
             points_B = polygon_B.points
 
             # Sort points in order to easily check if two edges are the same
             edges_A = [
-                array_utils.sort_by_columns(np.row_stack([points_A[k - 1, :], points_A[k, :]]))
+                array_utils.sort_by_columns(
+                    np.row_stack([points_A[k - 1, :], points_A[k, :]])
+                )
                 for k in range(points_A.shape[0])
             ]
             edges_B = [
-                array_utils.sort_by_columns(np.row_stack([points_B[m - 1, :], points_B[m, :]]))
+                array_utils.sort_by_columns(
+                    np.row_stack([points_B[m - 1, :], points_B[m, :]])
+                )
                 for m in range(points_B.shape[0])
             ]
-            for k, m in itertools.product(range(points_A.shape[0]), range(points_B.shape[0])):
+            for k, m in itertools.product(
+                range(points_A.shape[0]), range(points_B.shape[0])
+            ):
                 edge_A = edges_A[k]
                 edge_B = edges_B[m]
 
@@ -531,7 +558,9 @@ def reflexion_on_plane(incidents, normal, normalized=False):
         den = 1
     else:
         den = normal @ normal.T
-    return incidents - (incidents @ normal.T) @ ((2 / den) * normal)  # Order of operation minimizes the # of op.
+    return incidents - (incidents @ normal.T) @ (
+        (2 / den) * normal
+    )  # Order of operation minimizes the # of op.
 
 
 @numba.njit(numba.float64[:, :](numba.float64[:, :]), cache=True)
@@ -550,8 +579,9 @@ def __gamma__(v):
     return gamma
 
 
-@numba.njit(UniTuple(float64[:, :], 3)(float64[:, :], float64[:, :], float64[:, :]),
-            cache=True)
+@numba.njit(
+    UniTuple(float64[:, :], 3)(float64[:, :], float64[:, :], float64[:, :]), cache=True
+)
 def __generate__(origin, destination, planes_parametric):
     n = len(planes_parametric)
     normal = np.empty((n, 3))
@@ -568,8 +598,9 @@ def __generate__(origin, destination, planes_parametric):
 
         # First guess for solution
         new_point = 0.5 * (
-                points[i, :] + destination
-                - 2 * (d[i, 0] + np.dot(points[i, :], normal[i, :])) * normal[i, :]
+            points[i, :]
+            + destination
+            - 2 * (d[i, 0] + np.dot(points[i, :], normal[i, :])) * normal[i, :]
         )
         for j in range(3):
             points[i + 1, j] = new_point.flat[j]
@@ -577,9 +608,10 @@ def __generate__(origin, destination, planes_parametric):
     return normal, d, points
 
 
-@numba.njit(float64[::1](float64[::1], float64[:, ::1],
-                         float64[:, ::1], float64[:, ::1]),
-            cache=True)
+@numba.njit(
+    float64[::1](float64[::1], float64[:, ::1], float64[:, ::1], float64[:, ::1]),
+    cache=True,
+)
 def __reflexion_zero_func__(x, normal, d, points):
     n = d.size
 
@@ -602,7 +634,9 @@ def __reflexion_zero_func__(x, normal, d, points):
     return (g * v[1:, :] - v[:-1, :] - 2 * (d + dot_product) * normal).reshape(-1)
 
 
-def reflexion_points_from_origin_destination_and_planes(origin, destination, planes_parametric, **kwargs):
+def reflexion_points_from_origin_destination_and_planes(
+    origin, destination, planes_parametric, **kwargs
+):
     """
     Returns the reflection point on each plane such that a path between origin and destination is possible.
     The parametric equation of the plane should contained the normal vector in a normalized form.
@@ -624,43 +658,47 @@ def reflexion_points_from_origin_destination_and_planes(origin, destination, pla
 
     n = d.size
 
-    sol = root(__reflexion_zero_func__, x0=points[1:n + 1, :].reshape(-1),
-               args=(normal, d, points), **kwargs)
+    sol = root(
+        __reflexion_zero_func__,
+        x0=points[1 : n + 1, :].reshape(-1),
+        args=(normal, d, points),
+        **kwargs,
+    )
 
     x = sol.x.reshape(-1, 3)
 
     return x, sol
 
 
-@numba.njit(UniTuple(float64[:], 2)(float64[:],
-                                    float64[:], float64[:],
-                                    float64[:], float64[:]),
-            cache=True)
-def __diffraction_zero_func__(x,
-                              ze, Xe,
-                              projected_A, projected_B):
+@numba.njit(
+    UniTuple(float64[:], 2)(float64[:], float64[:], float64[:], float64[:], float64[:]),
+    cache=True,
+)
+def __diffraction_zero_func__(x, ze, Xe, projected_A, projected_B):
     t = x - ze
     x = np.copy(Xe)
     x[2] += t[0]
     i = x - projected_A
     d = projected_B - x
 
-    num1 = (ze - projected_A[2] + t)
-    num2 = (projected_B[2] - ze - t)
+    num1 = ze - projected_A[2] + t
+    num2 = projected_B[2] - ze - t
     den1 = norm(i)
     den2 = norm(d)
 
     f = num1 / den1 - num2 / den2
 
     den1_prime = num1 / den1
-    den2_prime = - num2 / den2
+    den2_prime = -num2 / den2
 
     jac = (-num1 - den1_prime) / (den1 * den1) - (num2 - den2_prime) / (den2 * den2)
 
     return f, jac
 
 
-def diffraction_point_from_origin_destination_and_edge(origin, destination, edge, **kwargs):
+def diffraction_point_from_origin_destination_and_edge(
+    origin, destination, edge, **kwargs
+):
     """
     Returns the diffraction point on a edge such that a path between origin and destination is possible.
 
@@ -686,22 +724,34 @@ def diffraction_point_from_origin_destination_and_edge(origin, destination, edge
     Xe = projected_edge[0, :]
     ze = np.atleast_1d(Xe[2])
 
-    sol = root(__diffraction_zero_func__, x0=ze, jac=True,
-               args=(ze, Xe, projected_A, projected_B), **kwargs)
+    sol = root(
+        __diffraction_zero_func__,
+        x0=ze,
+        jac=True,
+        args=(ze, Xe, projected_A, projected_B),
+        **kwargs,
+    )
     Xe[2] = sol.x
 
     return project_points(Xe, matrix.T), sol
 
 
-@numba.njit(float64[::1](float64[::1],
-                         float64[:, ::1], float64[:, ::1],
-                         float64[:, ::1], float64[:, :],
-                         float64[:], float64[:], float64[:]),
-            cache=True)
-def __reflexion_and_diffraction_zero_func__(x,
-                                            normal, d,
-                                            points, matrix,
-                                            ze, Xe, projected_B):
+@numba.njit(
+    float64[::1](
+        float64[::1],
+        float64[:, ::1],
+        float64[:, ::1],
+        float64[:, ::1],
+        float64[:, :],
+        float64[:],
+        float64[:],
+        float64[:],
+    ),
+    cache=True,
+)
+def __reflexion_and_diffraction_zero_func__(
+    x, normal, d, points, matrix, ze, Xe, projected_B
+):
     n = d.size
 
     for i in range(1, n + 1):
@@ -732,8 +782,8 @@ def __reflexion_and_diffraction_zero_func__(x,
     i_ = xn - projected_A
     d_ = projected_B - xn
 
-    num1 = (ze - projected_A[2] + t)
-    num2 = (projected_B[2] - ze - t)
+    num1 = ze - projected_A[2] + t
+    num2 = projected_B[2] - ze - t
     den1 = norm(i_)
     den2 = norm(d_)
 
@@ -742,12 +792,17 @@ def __reflexion_and_diffraction_zero_func__(x,
     return r
 
 
-def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(origin, destination,
-                                                                                   planes_parametric, edge, **kwargs):
+def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(
+    origin, destination, planes_parametric, edge, **kwargs
+):
     if len(planes_parametric) == 0:
-        return diffraction_point_from_origin_destination_and_edge(origin, destination, edge, **kwargs)
+        return diffraction_point_from_origin_destination_and_edge(
+            origin, destination, edge, **kwargs
+        )
     elif edge is None:
-        return reflexion_points_from_origin_destination_and_planes(origin, destination, planes_parametric, **kwargs)
+        return reflexion_points_from_origin_destination_and_planes(
+            origin, destination, planes_parametric, **kwargs
+        )
 
     A = origin.reshape(1, 3).astype(float)
     B = destination.reshape(1, 3).astype(float)
@@ -765,14 +820,16 @@ def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_ed
 
     points[-1, :] = edge[0, :]
 
-    sol = root(__reflexion_and_diffraction_zero_func__,
-               x0=points[1:, :].flat[:-2],
-               args=(normal, d, points, matrix, ze, Xe, projected_B),
-               **kwargs)
+    sol = root(
+        __reflexion_and_diffraction_zero_func__,
+        x0=points[1:, :].flat[:-2],
+        args=(normal, d, points, matrix, ze, Xe, projected_B),
+        **kwargs,
+    )
 
     x = sol.x
 
-    points[1:n + 1, :] = x[:-1].reshape(-1, 3)
+    points[1 : n + 1, :] = x[:-1].reshape(-1, 3)
     points[-1, :] = project_points(np.array([Xe[0], Xe[1], x[-1]]), matrix.T)
 
     return points[1:, :], sol
@@ -808,10 +865,12 @@ def polygons_obstruct_line_path(polygons, points):
         domain = projected_polygon.get_domain()
 
         if domain[1, 2] > z_min and domain[0, 2] < z_max:
-            if projected_polygon.get_shapely().intersects(point):  # Projection of line is intersected by polygon
+            if projected_polygon.get_shapely().intersects(
+                point
+            ):  # Projection of line is intersected by polygon
                 normal = polygon.get_normal()
                 d = polygon.get_parametric()[3]
-                t = - (d + np.dot(A, normal)) / np.dot(V, normal)
+                t = -(d + np.dot(A, normal)) / np.dot(V, normal)
 
                 if tol < t < 1 - tol:  # Is the polygon between A and B ?
                     return True
@@ -858,13 +917,17 @@ def polygon_visibility_vector(polygon_A, polygons, out=None, strict=False):
     centroid_A = polygon_A.get_centroid()
 
     projected_polygon_A = polygon_A.translate(-centroid_A).project(matrix_A)
-    projected_polygons = [(i, polygon.translate(-centroid_A).project(matrix_A))
-                          for i, polygon in enumerate(polygons) if polygon != polygon_A]
+    projected_polygons = [
+        (i, polygon.translate(-centroid_A).project(matrix_A))
+        for i, polygon in enumerate(polygons)
+        if polygon != polygon_A
+    ]
 
     # First filter: by z coordinate
     filtered_polygons = (
-        (i, projected_polygon) for i, projected_polygon in projected_polygons if
-        projected_polygon.get_domain()[1, 2] > tol_dz
+        (i, projected_polygon)
+        for i, projected_polygon in projected_polygons
+        if projected_polygon.get_domain()[1, 2] > tol_dz
     )
 
     # Second filter: by polygon masking
@@ -872,7 +935,8 @@ def polygon_visibility_vector(polygon_A, polygons, out=None, strict=False):
     if not strict:
 
         spherical_polygons = (
-            (i, projected_polygon.project_on_spherical_coordinates()) for i, projected_polygon in filtered_polygons
+            (i, projected_polygon.project_on_spherical_coordinates())
+            for i, projected_polygon in filtered_polygons
         )
 
         def func(polygon):
@@ -900,15 +964,16 @@ def polygon_visibility_vector(polygon_A, polygons, out=None, strict=False):
 
     # Last filter: by normal vector analysis
     filtered_polygons = (
-        i for i, _ in filtered_polygons if any(
-        np.dot(array_utils.normalize(
-            point - polygons[i].get_centroid()
-        ),
-            polygons[i].get_normal()
+        i
+        for i, _ in filtered_polygons
+        if any(
+            np.dot(
+                array_utils.normalize(point - polygons[i].get_centroid()),
+                polygons[i].get_normal(),
+            )
+            > tol_dot
+            for point in polygon_A.points
         )
-        >
-        tol_dot for point in polygon_A.points
-    )
     )
 
     for i in filtered_polygons:
@@ -937,7 +1002,9 @@ def polygons_visibility_matrix(polygons, strict=False):
     visibility_matrix = np.zeros((n, n), dtype=bool)
     for i in range(n):
         polygon_A = polygons[i]
-        polygon_visibility_vector(polygon_A, polygons, out=visibility_matrix[i, :], strict=strict)
+        polygon_visibility_vector(
+            polygon_A, polygons, out=visibility_matrix[i, :], strict=strict
+        )
 
     # Symmetric matrix
     # Can fix bugs such as for the ground surface (spherical projection blocks a lot a potential polygons)
@@ -985,9 +1052,9 @@ class OrientedGeometryDecoder(json.JSONDecoder):
     def decode(self, obj, w=None):
         decoded = json.JSONDecoder().decode(obj)
         for key in decoded:
-            if key == 'id':
+            if key == "id":
                 decoded[key] = uuid.UUID(hex=decoded[key])
-            elif key == 'points':
+            elif key == "points":
                 decoded[key] = np.array(decoded[key])
         return decoded
 
@@ -1012,7 +1079,7 @@ class OrientedGeometry(object):
     """
 
     def __init__(self, **attributes):
-        self.id = attributes.pop('id', None)
+        self.id = attributes.pop("id", None)
         if self.id is None:
             self.id = uuid.uuid4()
         self.attributes = attributes
@@ -1034,9 +1101,9 @@ class OrientedGeometry(object):
         :param filename: the filepath
         :type filename: str
         """
-        if not filename.endswith('.ogeom'):
-            filename += '.ogeom'
-        with open(filename, 'wb') as f:
+        if not filename.endswith(".ogeom"):
+            filename += ".ogeom"
+        with open(filename, "wb") as f:
             pickle.dump(self, f)
 
     @staticmethod
@@ -1049,10 +1116,10 @@ class OrientedGeometry(object):
         :return: the geometry stored in the file
         :rtype: OrientedGeometry
         """
-        if not filename.endswith('.ogeom'):
-            raise ValueError(f'Can only read .ogeom files.')
+        if not filename.endswith(".ogeom"):
+            raise ValueError(f"Can only read .ogeom files.")
 
-        with open(filename, 'rb') as f:
+        with open(filename, "rb") as f:
             return pickle.load(f)
 
     @staticmethod
@@ -1078,10 +1145,7 @@ class OrientedGeometry(object):
         :return: the geometry in a json format
         :rtype: dict
         """
-        data = dict(
-            id=self.id,
-            **self.attributes
-        )
+        data = dict(id=self.id, **self.attributes)
 
         if filename is not None:
             file_utils.json_save(filename, data, cls=OrientedGeometryEncoder)
@@ -1186,7 +1250,9 @@ class OrientedGeometry(object):
         return self.apply_on_points(project_points, matrix, around_point=around_point)
 
     def project_on_spherical_coordinates(self, r_axis=2):
-        return self.apply_on_points(project_points_on_spherical_coordinates, r_axis=r_axis)
+        return self.apply_on_points(
+            project_points_on_spherical_coordinates, r_axis=r_axis
+        )
 
     def project_with_perspective_mapping(self, focal_distance=1, axis=2):
         """
@@ -1200,7 +1266,11 @@ class OrientedGeometry(object):
         :return: the new geometry
         :rtype: OrientedGeometry
         """
-        return self.apply_on_points(project_points_with_perspective_mapping, focal_distance=focal_distance, axis=axis)
+        return self.apply_on_points(
+            project_points_with_perspective_mapping,
+            focal_distance=focal_distance,
+            axis=axis,
+        )
 
     def plot2d(self, *args, ax=None, ret=False, **kwargs):
         """
@@ -1301,8 +1371,7 @@ class OrientedGeometry(object):
         """
         if force or self.domain is None:
             points = self.get_points()
-            self.domain = np.array([points.min(axis=0),
-                                    points.max(axis=0)])
+            self.domain = np.array([points.min(axis=0), points.max(axis=0)])
         return self.domain
 
     def get_centroid(self, force=False):
@@ -1334,7 +1403,9 @@ class OrientedGeometry(object):
         :rtype: numpy.ndarray *dtype=bool, shape=(N, N)*
         """
         if force or self.visibility_matrix is None:
-            self.visibility_matrix = polygons_visibility_matrix(self.get_polygons_iter(), strict=strict)
+            self.visibility_matrix = polygons_visibility_matrix(
+                self.get_polygons_iter(), strict=strict
+            )
 
         return self.visibility_matrix
 
@@ -1376,7 +1447,9 @@ class OrientedGeometry(object):
         visibility_matrix = self.get_visibility_matrix(strict=strict)
 
         n = len(polys3d)
-        indices = itertools.cycle(itertools.chain.from_iterable(itertools.repeat(i, 30) for i in range(n)))
+        indices = itertools.cycle(
+            itertools.chain.from_iterable(itertools.repeat(i, 30) for i in range(n))
+        )
 
         def func(_):
             i = next(indices)
@@ -1385,10 +1458,10 @@ class OrientedGeometry(object):
                 poly.set_alpha(0)
 
             for j in np.where(visibility_matrix[i])[0]:
-                polys3d[j].set_facecolor('r')
+                polys3d[j].set_facecolor("r")
                 polys3d[j].set_alpha(0.5)
 
-            polys3d[i].set_facecolor('b')
+            polys3d[i].set_facecolor("b")
             polys3d[i].set_alpha(0.8)
 
         plot_utils.animate_3d_ax(ax, func=func)
@@ -1403,7 +1476,9 @@ class OrientedGeometry(object):
         polys3d = ax.collections
 
         n = len(sharp_edges)
-        indices = itertools.cycle(itertools.chain.from_iterable(itertools.repeat(i, 30) for i in range(n)))
+        indices = itertools.cycle(
+            itertools.chain.from_iterable(itertools.repeat(i, 30) for i in range(n))
+        )
 
         def func(_):
             i = next(indices)
@@ -1415,12 +1490,12 @@ class OrientedGeometry(object):
                 line.remove()
 
             (j, k), edge = sharp_edges[i]
-            polys3d[j].set_facecolor('r')
+            polys3d[j].set_facecolor("r")
             polys3d[j].set_alpha(0.5)
-            polys3d[k].set_facecolor('r')
+            polys3d[k].set_facecolor("r")
             polys3d[k].set_alpha(0.5)
 
-            plot_utils.add_line_to_3d_ax(ax, edge, lw=2.5, color='g')
+            plot_utils.add_line_to_3d_ax(ax, edge, lw=2.5, color="g")
 
         plot_utils.animate_3d_ax(ax, func=func)
 
@@ -1448,23 +1523,23 @@ class OrientedPolygon(OrientedGeometry):
         return self.points.shape[0]
 
     def __str__(self):
-        return f'Polygon({len(self)} points)'
+        return f"Polygon({len(self)} points)"
 
     @staticmethod
     def from_json(data=None, filename=None):
-        data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
-        geotype = data.pop('geotype')
-        if geotype != 'polygon':
-            raise ValueError(f'Cannot cast geotype {geotype} to polygon.')
-        points = np.array(data.pop('points'))
+        data = (
+            data.copy()
+            if data is not None
+            else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
+        )
+        geotype = data.pop("geotype")
+        if geotype != "polygon":
+            raise ValueError(f"Cannot cast geotype {geotype} to polygon.")
+        points = np.array(data.pop("points"))
         return OrientedPolygon(points, **data)
 
     def to_json(self, filename=None):
-        data = dict(
-            super().to_json(),
-            geotype='polygon',
-            points=self.points
-        )
+        data = dict(super().to_json(), geotype="polygon", points=self.points)
 
         if filename is not None:
             file_utils.json_save(filename, data, cls=OrientedGeometryEncoder)
@@ -1535,10 +1610,12 @@ class OrientedPolygon(OrientedGeometry):
             pass
         elif distance is not None:
             d = self.distance_to_point(point)
-            factor = - distance / d
+            factor = -distance / d
 
         else:
-            raise ValueError('factor and distance parameters can\'t de None at the same time.')
+            raise ValueError(
+                "factor and distance parameters can't de None at the same time."
+            )
 
         point = point.reshape(1, 3)
         vectors = self.points - point
@@ -1558,8 +1635,10 @@ class OrientedPolygon(OrientedGeometry):
         """
         if force or self.parametric is None:
             # Plane calculation
-            normal = np.cross(self.points[1, :] - self.points[0, :],
-                              self.points[2, :] - self.points[1, :])
+            normal = np.cross(
+                self.points[1, :] - self.points[0, :],
+                self.points[2, :] - self.points[1, :],
+            )
             normal /= norm(normal)  # Normalize
             a, b, c = normal
             d = -np.dot(np.array([a, b, c]), self.points[2, :])
@@ -1638,28 +1717,57 @@ class OrientedPolygon(OrientedGeometry):
 
         return self.matrix
 
-    def plot2d(self, *args, facecolor='b', alpha=1, edgecolor='k', lw=1, ret=False, ax=None, **kwargs):
+    def plot2d(
+        self,
+        *args,
+        facecolor="b",
+        alpha=1,
+        edgecolor="k",
+        lw=1,
+        ret=False,
+        ax=None,
+        **kwargs,
+    ):
 
         ax = plot_utils.get_2d_plot_ax(ax)
 
-        plot_utils.add_polygon_to_2d_ax(ax, self.points, *args, facecolor=facecolor, alpha=alpha,
-                                        edgecolor=edgecolor, lw=lw, **kwargs)
+        plot_utils.add_polygon_to_2d_ax(
+            ax,
+            self.points,
+            *args,
+            facecolor=facecolor,
+            alpha=alpha,
+            edgecolor=edgecolor,
+            lw=lw,
+            **kwargs,
+        )
 
         if ret:
             return ax
 
-    def plot3d(self, facecolor=(0, 0, 0, 0), edgecolor='k', alpha=0.1, ret=False, ax=None,
-               normal=False, normal_kwargs=None,
-               orientation=False, orientation_kwargs=None):
+    def plot3d(
+        self,
+        facecolor=(0, 0, 0, 0),
+        edgecolor="k",
+        alpha=0.1,
+        ret=False,
+        ax=None,
+        normal=False,
+        normal_kwargs=None,
+        orientation=False,
+        orientation_kwargs=None,
+    ):
 
         if normal and normal_kwargs is None:
-            normal_kwargs = {'color': 'b', 'length': 10}
+            normal_kwargs = {"color": "b", "length": 10}
         if orientation and orientation_kwargs is None:
-            orientation_kwargs = {'color': 'r', 'arrow_length_ratio': 0.1}
+            orientation_kwargs = {"color": "r", "arrow_length_ratio": 0.1}
 
         ax = plot_utils.get_3d_plot_ax(ax=ax)
 
-        plot_utils.add_polygon_to_3d_ax(ax, self.points, facecolor=facecolor, edgecolor=edgecolor, alpha=alpha)
+        plot_utils.add_polygon_to_3d_ax(
+            ax, self.points, facecolor=facecolor, edgecolor=edgecolor, alpha=alpha
+        )
 
         center = self.get_centroid()
 
@@ -1685,7 +1793,6 @@ class OrientedPolygon(OrientedGeometry):
 
 
 class Square(OrientedPolygon):
-
     @staticmethod
     def by_2_corner_points(points):
         points = array_utils.sort_by_columns(points)
@@ -1714,35 +1821,41 @@ class OrientedSurface(OrientedGeometry):
             polygons = [polygons]
 
         if type(polygons[0]) == np.ndarray:
-            self.polygons = [OrientedPolygon(polygon)
-                             for polygon in polygons]
+            self.polygons = [OrientedPolygon(polygon) for polygon in polygons]
         elif isinstance(polygons[0], OrientedPolygon):
             self.polygons = polygons
         else:
-            raise ValueError('OrientedSurface needs a nump.ndarray or OrientedPolygon as input')
+            raise ValueError(
+                "OrientedSurface needs a nump.ndarray or OrientedPolygon as input"
+            )
 
     def __len__(self):
         return len(self.polygons)
 
     def __str__(self):
-        return f'Surface({len(self)} polygons)'
+        return f"Surface({len(self)} polygons)"
 
     @staticmethod
     def from_json(data=None, filename=None):
-        data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
-        geotype = data.pop('geotype')
-        if geotype != 'surface':
-            raise ValueError(f'Cannot cast geotype {geotype} to surface.')
-        polygons = [OrientedPolygon.from_json(data=poly_data) for poly_data in data.pop('polygons')]
+        data = (
+            data.copy()
+            if data is not None
+            else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
+        )
+        geotype = data.pop("geotype")
+        if geotype != "surface":
+            raise ValueError(f"Cannot cast geotype {geotype} to surface.")
+        polygons = [
+            OrientedPolygon.from_json(data=poly_data)
+            for poly_data in data.pop("polygons")
+        ]
         return OrientedSurface(polygons, **data)
 
     def to_json(self, filename=None):
         data = dict(
             super().to_json(),
-            geotype='surface',
-            polygons=[
-                polygon.to_json() for polygon in self.polygons
-            ]
+            geotype="surface",
+            polygons=[polygon.to_json() for polygon in self.polygons],
         )
 
         if filename is not None:
@@ -1754,8 +1867,9 @@ class OrientedSurface(OrientedGeometry):
         return iter(self.polygons)
 
     def apply_on_points(self, func, *args, **kwargs):
-        polygons = [polygon.apply_on_points(func, *args, **kwargs)
-                    for polygon in self.polygons]
+        polygons = [
+            polygon.apply_on_points(func, *args, **kwargs) for polygon in self.polygons
+        ]
         return OrientedSurface(polygons)
 
     def plot2d(self, *args, ret=False, ax=None, **kwargs):
@@ -1800,24 +1914,29 @@ class OrientedPolyhedron(OrientedGeometry):
         return len(self.polygons)
 
     def __str__(self):
-        return f'Polyhedron({len(self)} polygons)'
+        return f"Polyhedron({len(self)} polygons)"
 
     @staticmethod
     def from_json(data=None, filename=None):
-        data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
-        geotype = data.pop('geotype')
-        if geotype != 'polyhedron':
-            raise ValueError(f'Cannot cast geotype {geotype} to polyhedron.')
-        polygons = [OrientedPolygon.from_json(data=poly_data) for poly_data in data.pop('polygons')]
+        data = (
+            data.copy()
+            if data is not None
+            else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
+        )
+        geotype = data.pop("geotype")
+        if geotype != "polyhedron":
+            raise ValueError(f"Cannot cast geotype {geotype} to polyhedron.")
+        polygons = [
+            OrientedPolygon.from_json(data=poly_data)
+            for poly_data in data.pop("polygons")
+        ]
         return OrientedPolyhedron(polygons, **data)
 
     def to_json(self, filename=None):
         data = dict(
             super().to_json(),
-            geotype='polyhedron',
-            polygons=[
-                polygon.to_json() for polygon in self.polygons
-            ]
+            geotype="polyhedron",
+            polygons=[polygon.to_json() for polygon in self.polygons],
         )
 
         if filename is not None:
@@ -1908,7 +2027,7 @@ class Building(OrientedPolyhedron):
         elif isinstance(polygon, np.ndarray):
             bottom_points = polygon
         else:
-            raise ValueError(f'Type {type(polygon)} is not supported for polygon !')
+            raise ValueError(f"Type {type(polygon)} is not supported for polygon !")
 
         top_points = np.array(bottom_points)
         top_points[:, -1] += float(height)
@@ -1923,9 +2042,9 @@ class Building(OrientedPolyhedron):
         bottom = OrientedPolygon(bottom_points)
 
         if top.get_normal()[2] < 0:  # z component should be positive
-            top.parametric = - top.parametric
+            top.parametric = -top.parametric
         if bottom.get_normal()[2] > 0:  # z component should be negative
-            bottom.parametric = - bottom.parametric
+            bottom.parametric = -bottom.parametric
 
         n = top_points.shape[0]
 
@@ -1934,7 +2053,9 @@ class Building(OrientedPolyhedron):
         else:
             polygons = [top]
 
-        bottom_points = bottom_points[::-1, :]  # Bottom points are now oriented cw to match top points
+        bottom_points = bottom_points[
+            ::-1, :
+        ]  # Bottom points are now oriented cw to match top points
 
         # For each face other than top and bottom
         for i in range(n):
@@ -1976,14 +2097,16 @@ class Building(OrientedPolyhedron):
         elif isinstance(polygon, np.ndarray):
             x, y = polygon[:, :-1].T
         else:
-            raise ValueError(f'Type {type(polygon)} is not supported for polygon !')
+            raise ValueError(f"Type {type(polygon)} is not supported for polygon !")
 
         z0 = np.zeros_like(x, dtype=float)
         bottom_points = np.column_stack([x, y, z0])
 
         polygon = OrientedPolygon(bottom_points)
 
-        return Building.by_polygon_and_height(polygon, height, make_ccw=make_ccw, keep_ground=keep_ground)
+        return Building.by_polygon_and_height(
+            polygon, height, make_ccw=make_ccw, keep_ground=keep_ground
+        )
 
 
 class Cube(OrientedPolyhedron):
@@ -2004,12 +2127,7 @@ class Cube(OrientedPolyhedron):
         :rtype: Cube
         """
         r = side_length / 2
-        polygon = np.array([
-            [r, r, -r],
-            [-r, r, -r],
-            [-r, -r, -r],
-            [r, -r, -r]
-        ])
+        polygon = np.array([[r, r, -r], [-r, r, -r], [-r, -r, -r], [r, -r, -r]])
 
         polygon += point.reshape(1, 3)
 
@@ -2032,7 +2150,9 @@ class OrientedPlace(OrientedGeometry):
     :type attributes: any
     """
 
-    def __init__(self, surface, polyhedra=None, set_of_points=np.empty((0, 3)), **attributes):
+    def __init__(
+        self, surface, polyhedra=None, set_of_points=np.empty((0, 3)), **attributes
+    ):
         super().__init__(**attributes)
 
         if isinstance(surface, OrientedSurface):
@@ -2040,7 +2160,9 @@ class OrientedPlace(OrientedGeometry):
         elif type(surface) == list or type(surface) == np.ndarray:
             self.surface = OrientedSurface(surface)
         else:
-            raise ValueError('OrientedPlace needs an OrientedSurface or a numpy.ndarray as surface input')
+            raise ValueError(
+                "OrientedPlace needs an OrientedSurface or a numpy.ndarray as surface input"
+            )
 
         if polyhedra is not None:
             if type(polyhedra) != list:
@@ -2058,31 +2180,36 @@ class OrientedPlace(OrientedGeometry):
             if set_of_points.shape[1] == 3:
                 self.set_of_points = set_of_points
         else:
-            raise ValueError('OrientedPlace has an invalid set_of_points as input')
+            raise ValueError("OrientedPlace has an invalid set_of_points as input")
 
     def __str__(self):
-        return f'Place({len(self.polyhedra)} polyhedra, {self.set_of_points.shape[0]} points)'
+        return f"Place({len(self.polyhedra)} polyhedra, {self.set_of_points.shape[0]} points)"
 
     @staticmethod
     def from_json(data=None, filename=None):
-        data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
-        geotype = data.pop('geotype')
-        if geotype != 'place':
-            raise ValueError(f'Cannot cast geotype {geotype} to place.')
-        surface = OrientedSurface.from_json(data=data.pop('surface'))
-        polyhedra = [OrientedPolyhedron.from_json(data=poly_data) for poly_data in data.pop('polyhedra')]
-        points = np.ndarray(data.pop('points'))
+        data = (
+            data.copy()
+            if data is not None
+            else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
+        )
+        geotype = data.pop("geotype")
+        if geotype != "place":
+            raise ValueError(f"Cannot cast geotype {geotype} to place.")
+        surface = OrientedSurface.from_json(data=data.pop("surface"))
+        polyhedra = [
+            OrientedPolyhedron.from_json(data=poly_data)
+            for poly_data in data.pop("polyhedra")
+        ]
+        points = np.ndarray(data.pop("points"))
         return OrientedPlace(surface, polyhedra, points, **data)
 
     def to_json(self, filename=None):
         data = dict(
             super().to_json(),
-            geotype='place',
+            geotype="place",
             surface=self.surface.to_json(),
-            polyhedra=[
-                polyhedron.to_json() for polyhedron in self.polyhedra
-            ],
-            points=self.set_of_points
+            polyhedra=[polyhedron.to_json() for polyhedron in self.polyhedra],
+            points=self.set_of_points,
         )
 
         if filename is not None:
@@ -2104,13 +2231,15 @@ class OrientedPlace(OrientedGeometry):
             self.surface.get_polygons_iter(),
             itertools.chain.from_iterable(
                 polyhedron.get_polygons_iter() for polyhedron in self.polyhedra
-            )
+            ),
         )
 
     def apply_on_points(self, func, *args, **kwargs):
         surface = self.surface.apply_on_points(func, *args, **kwargs)
-        polyhedra = [polyhedron.apply_on_points(func, *args, **kwargs)
-                     for polyhedron in self.polyhedra]
+        polyhedra = [
+            polyhedron.apply_on_points(func, *args, **kwargs)
+            for polyhedron in self.polyhedra
+        ]
         set_of_points = func(self.set_of_points, *args, **kwargs)
         return OrientedPlace(surface, polyhedra=polyhedra, set_of_points=set_of_points)
 
@@ -2125,9 +2254,15 @@ class OrientedPlace(OrientedGeometry):
         """
         return polygons_obstruct_line_path(self.get_polygons_iter(), points)
 
-    def plot2d(self, ret=False, ax=None,
-               poly_args=None, poly_kwargs=None,
-               points_args=None, points_kwargs=None):
+    def plot2d(
+        self,
+        ret=False,
+        ax=None,
+        poly_args=None,
+        poly_kwargs=None,
+        points_args=None,
+        points_kwargs=None,
+    ):
 
         if poly_args is None:
             poly_args = ()
@@ -2152,9 +2287,15 @@ class OrientedPlace(OrientedGeometry):
         if ret:
             return ax
 
-    def plot3d(self, ret=False, ax=None,
-               poly_args=None, poly_kwargs=None,
-               points_args=None, points_kwargs=None):
+    def plot3d(
+        self,
+        ret=False,
+        ax=None,
+        poly_args=None,
+        poly_kwargs=None,
+        points_args=None,
+        points_kwargs=None,
+    ):
 
         if poly_args is None:
             poly_args = ()
@@ -2174,15 +2315,17 @@ class OrientedPlace(OrientedGeometry):
 
         if self.set_of_points.size > 0:
             points = self.set_of_points
-            ax.scatter(points[:, 0], points[:, 1], points[:, 2], *points_args, **points_kwargs)
+            ax.scatter(
+                points[:, 0], points[:, 1], points[:, 2], *points_args, **points_kwargs
+            )
 
         if ret:
             return ax
 
 
-def generate_place_from_rooftops_file(roof_top_file, center=True,
-                                      drop_missing_heights=True,
-                                      default_height=10):
+def generate_place_from_rooftops_file(
+    roof_top_file, center=True, drop_missing_heights=True, default_height=10
+):
     """
     Returns a place from a geographic file containing building rooftops and their height.
 
@@ -2200,27 +2343,31 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     gdf = gpd.read_file(roof_top_file)
 
     # Only keeping polygon (sometimes points are given)
-    gdf = gdf[[isinstance(g, shPolygon) for g in gdf['geometry']]]
+    gdf = gdf[[isinstance(g, shPolygon) for g in gdf["geometry"]]]
 
     if drop_missing_heights:
-        gdf.dropna(subset=['height'], inplace=True)
+        gdf.dropna(subset=["height"], inplace=True)
     else:
-        if 'height' not in gdf:
-            gdf['height'] = default_height
+        if "height" not in gdf:
+            gdf["height"] = default_height
         else:
-            gdf['height'].fillna(value=default_height, inplace=True)
+            gdf["height"].fillna(value=default_height, inplace=True)
 
-    gdf.to_crs(epsg=3035, inplace=True)  # To make buildings look more realistic, there may be a better choice :)
+    gdf.to_crs(
+        epsg=3035, inplace=True
+    )  # To make buildings look more realistic, there may be a better choice :)
 
     if center:
         bounds = gdf.total_bounds
         x = (bounds[0] + bounds[2]) / 2
         y = (bounds[1] + bounds[3]) / 2
 
-        gdf['geometry'] = gdf['geometry'].translate(-x, -y)
+        gdf["geometry"] = gdf["geometry"].translate(-x, -y)
 
     def func(series: gpd.GeoSeries):
-        return Building.by_polygon2d_and_height(series['geometry'], series['height'], keep_ground=False)
+        return Building.by_polygon2d_and_height(
+            series["geometry"], series["height"], keep_ground=False
+        )
 
     polyhedra = gdf.apply(func, axis=1).values.tolist()
 
@@ -2238,13 +2385,3 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     place.polyhedra = polyhedra
 
     return place
-
-
-class Sphere(OrientedGeometry):
-
-    def __init__(self, center, radius):
-        self.center = center
-        self.radius = radius
-
-    def get_domain(self, force=False):
-        return np.array([

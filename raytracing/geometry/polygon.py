@@ -90,6 +90,8 @@ class Polygon(Geometry, Surface, Plotable):
         self.parametric = np.append(w, [d])
         self.st_to_xyz_func = plane_st_to_xyz_function(*self.parametric)
 
+        self.domain = np.array([self.points.min(axis=0), self.points.max(axis=0)])
+
     def is_planar(self) -> bool:
         x0 = self.points
         x1 = np.roll(x0, 1, axis=0)
@@ -97,6 +99,7 @@ class Polygon(Geometry, Surface, Plotable):
         v1 = x1 - x0
         v2 = x2 - x1
         normals = np.cross(v1, v2)
+        normals /= np.linalg.norm(normals, axis=0)
 
         return np.linalg.norm(np.diff(normals, axis=0)) < 1e-6
 
