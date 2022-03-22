@@ -57,23 +57,3 @@ def draw_3d_sphere(ax, center, radius, *args, **kwargs):
     return ax.plot_surface(
         x, y, z, color="r", rstride=1, cstride=1, linewidth=0, antialiased=False
     )
-
-
-if __name__ == "__main__":
-    import numpy as np
-    from base import new_2d_axes, new_3d_axes, plt
-
-    ax1 = new_2d_axes()
-
-    center = np.array([0, 0, 0])
-    radius = 1
-
-    draw_sphere(ax1, center, radius)
-
-    plt.show()
-
-    ax2 = new_3d_axes()
-
-    draw_sphere(ax2, center, radius)
-
-    plt.show()

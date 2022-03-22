@@ -1,11 +1,11 @@
 import numba as nb
 import numpy as np
-from base import Geometry
 from shapely.geometry import Point as shPoint
 from shapely.geometry import Polygon as shPolygon
 
-from raytracing.interaction import Surface
-from raytracing.plotting import Plotable, draw_polygon
+from ..interaction import Surface
+from ..plotting import Plotable, draw_polygon
+from .base import Geometry
 
 
 def plane_st_to_xyz_function(a, b, c, d):
@@ -59,25 +59,10 @@ def plane_xyz_to_st_function(a, b, c, d):
     return __impl__
 
 
-@nb.njit(cache=True)
-def orthogonal_matrix(points, normal):
-    A = points[0, :]
-    B = points[1, :]
-
-    matrix = np.empty((3, 3))
-    matrix[0, :] = B - A
-    matrix[1, :] = np.cross(normal, matrix[0, :])
-    matrix[2, :] = normal  # Already normalized
-
-    for i in range(2):
-        matrix[i, :] /= norm([matrix[i, :]])
-
-    return matrix
-
-
 class Polygon(Geometry, Surface, Plotable):
     def __init__(self, points, **kwargs):
         super(Geometry, self).__init__(**kwargs)
+        super(Surface, self).__init__()
         super(Plotable, self).__init__()
 
         self.points = np.asarray(points, dtype=float)
@@ -91,10 +76,19 @@ class Polygon(Geometry, Surface, Plotable):
         if self.points.shape[0] < 3:
             raise ValueError("A valid polygon must have at least 3 points")
 
-        self._parametric = None
-        self._matrix = None
-        self._shapely = None
-        self._st_to_xyz_func = None
+        p0, p1, p2 = self.points[:3, :]
+        u = p1 - p0
+        u /= np.linalg.norm(u)
+        v = p2 - p1
+        v /= np.linalg.norm(v)
+        w = np.cross(u, v)
+        self.__matrix = np.column_stack([u, v, w])
+        self.__uv = self.__matrix[:, :2]
+        self.__polygon = shPolygon(np.dot(self.points, self.__uv))
+        self.__normal = w
+        d = -np.dot(self.__normal, p0)
+        self.parametric = np.append(w, [d])
+        self.st_to_xyz_func = plane_st_to_xyz_function(*self.parametric)
 
     def is_planar(self) -> bool:
         x0 = self.points
@@ -106,43 +100,16 @@ class Polygon(Geometry, Surface, Plotable):
 
         return np.linalg.norm(np.diff(normals, axis=0)) < 1e-6
 
-    @property
-    def parametric(self):
-        if self._parametric is None:
-            # Plane calculation
-            normal = np.cross(
-                self.points[1, :] - self.points[0, :],
-                self.points[2, :] - self.points[1, :],
-            )
-            normal /= np.linalg.norm(normal)  # Normalize
-            a, b, c = normal
-            d = -np.dot(np.array([a, b, c]), self.points[2, :])
-            self._parametric = np.array([a, b, c, d])
+    def cartesian(self, point):
+        d = self.parametric[-1]
+        return np.dot(self.__normal, point) + d
 
-        return self._parametric
+    def normal(self, point):
+        return self.__normal
 
-    def cartesian(self, x, y, z):
-        a, b, c, d = self.parametric
-        return x * a + y * b + z * c + d
-
-    def normal(self, x, y, z):
-        return self.parametric[:3]
-
-    def st_to_xyz(self, s, t):
-        if self._st_to_xyz_func is None:
-            a, b, c, d = self.parametric
-            self._st_to_xyz_func = plane_st_to_xyz_function(a, b, c, d)
-
-        return self._st_to_xyz_func(s, t)
-
-    def contains(self, x, y, z):
-        point = np.array([x, y, z])
-        matrix = self.matrix()
-
-        projected_polygon = self.points @ matrix
-        projected_point = point @ matrix
-
-        return shPolygon(projected_polygon[:, :2]).intersects(shPoint(projected_point))
+    def contains(self, point):
+        point = shPoint(np.dot(point[:2], self.uv))
+        return self.__polygon.contains(point)
 
     def plot(self, *args, facecolor=(0, 0, 0, 0), edgecolor="k", alpha=0.1, **kwargs):
         draw_polygon(
@@ -170,20 +137,3 @@ class Square(Polygon):
         points[3, :] = np.array([lower[0], upper[1], upper[2]])
 
         return cls(points)
-
-
-if __name__ == "__main__":
-    from raytracing.plotting import draw_polygon, new_3d_axes
-
-    points = np.array(
-        [
-            [0, 0, 0],
-            [1, 0, 0],
-            [1, 1, 1],
-            [0, 1, 1],
-        ]
-    )
-
-    p = Polygon(points)
-    p.plot()
-    p.show()

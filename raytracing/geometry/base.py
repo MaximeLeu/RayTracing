@@ -16,6 +16,14 @@ class Geometry(object):
         """
         raise NotImplementedError
 
+    def obstructs(self, vector):
+        """
+        Returns true if the vector intersects with the current object
+
+        TODO
+        """
+        raise NotImplementedError
+
     def get_centroid(self, force=False):
         """
         The centroid is considered the center point of the circumscribed

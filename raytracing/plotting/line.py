@@ -1,4 +1,4 @@
-from utils import drawer
+from .utils import drawer
 
 
 @drawer
@@ -47,28 +47,3 @@ def draw_3d_line(ax, points, *args, **kwargs):
     y = points[:, 1]
     z = points[:, 2]
     return ax.plot(x, y, z, *args, **kwargs)
-
-
-if __name__ == "__main__":
-    import numpy as np
-    from base import new_2d_axes, new_3d_axes, plt
-
-    ax1 = new_2d_axes()
-
-    points = np.array(
-        [
-            [0, 0, 0],
-            [0, 1, 1],
-            [1, 1, 0],
-        ]
-    )
-
-    draw_line(ax1, points)
-
-    plt.show()
-
-    ax2 = new_3d_axes()
-
-    draw_line(ax2, points)
-
-    plt.show()
