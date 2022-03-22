@@ -1,7 +1,7 @@
-from base import Geometry
-from raytracing.plotting import Plotable
-
 import numpy as np
+from base import Geometry
+
+from raytracing.plotting import Plotable
 
 
 class Polyhedron(Geometry, Plotable):
@@ -19,8 +19,8 @@ class Polyhedron(Geometry, Plotable):
 
 
 if __name__ == "__main__":
-    from raytracing.plotting import new_3d_axes
     from raytracing.geometry import Polygon
+    from raytracing.plotting import new_3d_axes
 
     points = np.array(
         [

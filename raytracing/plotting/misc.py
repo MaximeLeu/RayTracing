@@ -35,9 +35,9 @@ def set_3d_view(ax, azim=-60, elev=30):
 
 
 if __name__ == "__main__":
+    import numpy as np
     from base import new_2d_axes, new_3d_axes, plt
     from polygon import draw_polygon
-    import numpy as np
 
     ax1 = new_2d_axes()
 

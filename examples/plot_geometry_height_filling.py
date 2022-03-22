@@ -2,9 +2,10 @@
 This file is here to generate images for the tutorial.
 """
 
+import matplotlib.pyplot as plt
+
 import raytracing.geometry as geom
 from raytracing import file_utils
-import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 

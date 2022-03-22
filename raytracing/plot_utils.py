@@ -1,13 +1,13 @@
 # Plotting libraries
+# Utils
+import sys
+
+import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as mplot3d
-import matplotlib.patches as patches
 
 # Numerical libraries
 import numpy as np
-
-# Utils
-import sys
 
 anim = dict(pause=False, speed=1)
 

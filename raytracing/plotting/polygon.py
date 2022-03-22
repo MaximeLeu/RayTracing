@@ -1,7 +1,7 @@
-from .utils import drawer
-
-import mpl_toolkits.mplot3d as mplot3d
 import matplotlib.patches as patches
+import mpl_toolkits.mplot3d as mplot3d
+
+from .utils import drawer
 
 
 @drawer
@@ -53,8 +53,8 @@ def draw_3d_polygon(ax, points, *args, **kwargs):
 
 
 if __name__ == "__main__":
-    from base import new_2d_axes, new_3d_axes, plt
     import numpy as np
+    from base import new_2d_axes, new_3d_axes, plt
 
     ax1 = new_2d_axes()
 

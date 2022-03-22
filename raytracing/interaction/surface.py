@@ -13,5 +13,5 @@ class Surface(object):
         raise NotImplementedError
 
     def reflection(self, i, x, y, z):
-        n = self.norma(x, y, z)
+        n = self.normal(x, y, z)
         return i - 2 * np.dot(i, n) * n

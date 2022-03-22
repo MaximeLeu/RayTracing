@@ -2,9 +2,10 @@
 This tutorial shows you how to plot the orientation of the polygons in your geometry.
 """
 
+import matplotlib.pyplot as plt
+
 import raytracing.geometry as geom
 from raytracing import file_utils
-import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 

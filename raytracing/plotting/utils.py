@@ -1,5 +1,5 @@
-from functools import wraps
 from collections import defaultdict
+from functools import wraps
 
 from matplotlib.axes import Axes as Axes2D
 from mpl_toolkits.mplot3d import Axes3D

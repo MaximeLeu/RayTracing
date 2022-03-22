@@ -1,11 +1,11 @@
-from raytracing import geometry as geom
-from raytracing import plot_utils
-from raytracing import file_utils
+from collections import defaultdict
 
 import numpy as np
-
-from collections import defaultdict
 from tqdm import tqdm
+
+from raytracing import file_utils
+from raytracing import geometry as geom
+from raytracing import plot_utils
 
 
 class RayTracingProblem:

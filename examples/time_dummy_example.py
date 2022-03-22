@@ -2,13 +2,15 @@
 This file times several execution of the solver with the dummy geometry.
 """
 
+import sys
+import timeit
+
+import numpy as np
+
 import raytracing.geometry as geom
 from raytracing import file_utils
-import numpy as np
-from raytracing.ray_tracing import RayTracingProblem
 from raytracing.electromagnetism import compute_field_from_solution
-import timeit
-import sys
+from raytracing.ray_tracing import RayTracingProblem
 
 
 def f(r):

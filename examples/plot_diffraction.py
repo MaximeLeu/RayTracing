@@ -3,11 +3,11 @@ This file shows you the correctness of the diffraction algorithm.
 Warning: not all diffractions are computed here.
 """
 
-import raytracing.geometry as geom
-from raytracing import file_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from raytracing import plot_utils
+
+import raytracing.geometry as geom
+from raytracing import file_utils, plot_utils
 
 if __name__ == "__main__":
 

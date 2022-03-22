@@ -1,11 +1,11 @@
+import numba as nb
+import numpy as np
 from base import Geometry
+from shapely.geometry import Point as shPoint
+from shapely.geometry import Polygon as shPolygon
+
 from raytracing.interaction import Surface
 from raytracing.plotting import Plotable, draw_polygon
-
-from shapely.geometry import Polygon as shPolygon, Point as shPoint
-
-import numpy as np
-import numba as nb
 
 
 def plane_st_to_xyz_function(a, b, c, d):
@@ -173,7 +173,7 @@ class Square(Polygon):
 
 
 if __name__ == "__main__":
-    from raytracing.plotting import new_3d_axes, draw_polygon
+    from raytracing.plotting import draw_polygon, new_3d_axes
 
     points = np.array(
         [

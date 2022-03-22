@@ -2,11 +2,11 @@
 This file shows different coordinate changes.
 """
 
-import raytracing.geometry as geom
-from raytracing import plot_utils
 import matplotlib.pyplot as plt
 import numpy as np
 
+import raytracing.geometry as geom
+from raytracing import plot_utils
 
 if __name__ == "__main__":
 

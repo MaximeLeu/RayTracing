@@ -1,12 +1,12 @@
-from raytracing import array_utils
-from raytracing import geometry as geom
-import numpy as np
-from numpy.dual import norm
-
 import json
 
-from scipy.constants import c, mu_0, epsilon_0, pi
+import numpy as np
+from numpy.dual import norm
+from scipy.constants import c, epsilon_0, mu_0, pi
 from scipy.special import fresnel
+
+from raytracing import array_utils
+from raytracing import geometry as geom
 
 # n_air = 1.00026825
 n_air = 1  # Same as Matlab

@@ -1,9 +1,10 @@
 import click
-from click_repl import register_repl
-from raytracing import geometry as geom
-from raytracing import plot_utils
 import matplotlib.pyplot as plt
 import numpy as np
+from click_repl import register_repl
+
+from raytracing import geometry as geom
+from raytracing import plot_utils
 
 
 @click.group()

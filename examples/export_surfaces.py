@@ -2,10 +2,11 @@
 This file shows you how to plot the geometry in 3D.
 """
 
+import matplotlib.pyplot as plt
 import numpy as np
+
 import raytracing.geometry as geom
 from raytracing import file_utils
-import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 

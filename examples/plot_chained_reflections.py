@@ -2,17 +2,18 @@
 This file shows you the correctness of the chained reflections algorithm.
 """
 
-import raytracing.geometry as geom
-from raytracing import file_utils
-import matplotlib.pyplot as plt
-import numpy as np
-from raytracing.plot_utils import (
-    add_points_to_3d_ax,
-    add_text_at_point_3d_ax,
-    add_2d_text_at_point_3d_ax,
-)
 import random
 
+import matplotlib.pyplot as plt
+import numpy as np
+
+import raytracing.geometry as geom
+from raytracing import file_utils
+from raytracing.plot_utils import (
+    add_2d_text_at_point_3d_ax,
+    add_points_to_3d_ax,
+    add_text_at_point_3d_ax,
+)
 
 if __name__ == "__main__":
 

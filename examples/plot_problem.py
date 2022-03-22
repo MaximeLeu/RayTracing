@@ -3,14 +3,14 @@ This file show how to use the Ray Tracing solver.
 """
 
 
-import raytracing.geometry as geom
-from raytracing import file_utils
-from raytracing import plot_utils
-import numpy as np
 from time import time
-from raytracing.ray_tracing import RayTracingProblem
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
+import numpy as np
+
+import raytracing.geometry as geom
+from raytracing import file_utils, plot_utils
+from raytracing.ray_tracing import RayTracingProblem
 
 if __name__ == "__main__":
 

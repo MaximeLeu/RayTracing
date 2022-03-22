@@ -1,5 +1,6 @@
-import raytracing.geometry as geom
 import numpy as np
+
+import raytracing.geometry as geom
 
 
 def ok_normalize_path(points):

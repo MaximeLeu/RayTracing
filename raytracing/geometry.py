@@ -1,26 +1,33 @@
 # Plotting libraries
-from raytracing import plot_utils
+# Utils
+import itertools
+import json
+import pickle
+import uuid
+
+import geopandas as gpd
+import numba
 
 # Numerical libraries
 import numpy as np
+from numba.types import (
+    NoneType,
+    Omitted,
+    UniTuple,
+    boolean,
+    float64,
+    int64,
+    optional,
+    string,
+)
 from numpy.dual import norm
 from scipy.optimize import root
-from raytracing import array_utils
-import numba
-from numba.types import UniTuple, float64, int64, string, boolean, Omitted, optional, NoneType
 
 # Geometry libraries
-from shapely.geometry import Polygon as shPolygon
 from shapely.geometry import Point as shPoint
-import geopandas as gpd
+from shapely.geometry import Polygon as shPolygon
 
-# Utils
-import itertools
-import pickle
-import uuid
-import json
-from raytracing import file_utils
-from raytracing import container_utils
+from raytracing import array_utils, container_utils, file_utils, plot_utils
 
 
 @numba.njit(cache=True)
@@ -215,7 +222,7 @@ def project_points(points, matrix, around_point=None):
     :return: the projected points
     :rtype: numpy.ndarray *shape=(N, 3)*
     """
-    
+
     # TODO: improve this so it takes advantage of array contiguity
 
     if not (isinstance(around_point, Omitted) or isinstance(around_point, NoneType)):
