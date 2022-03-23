@@ -1,5 +1,5 @@
-from .base import bounding_box
 from ..plotting import Plotable
+from .base import bounding_box
 
 
 class Simulation(Plotable):

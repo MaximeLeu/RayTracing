@@ -1,6 +1,6 @@
-from ..plotting import Plotable, draw_points
-
 import numpy as np
+
+from ..plotting import Plotable, draw_points
 
 
 class Point(Plotable):
