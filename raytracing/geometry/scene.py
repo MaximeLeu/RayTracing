@@ -3,6 +3,7 @@ import numpy as np
 from shapely.geometry import Polygon as shPolygon
 
 from ..plotting import Plotable
+from .base import bounding_box
 from .polygon import Polygon
 from .polyhedron import Polyhedron
 
@@ -11,12 +12,7 @@ class Scene(Plotable):
     def __init__(self, geometries):
         super().__init__()
         self.geometries = geometries
-        self.paths = []
-
-        domains = np.dstack([geometry.domain for geometry in geometries])
-        self.domain = np.zeros((2, 3), dtype=float)
-        self.domain[0, :] = domains[0, :, :].min(axis=-1)
-        self.domain[1, :] = domains[1, :, :].max(axis=-1)
+        self.domain = bounding_box([geometry.domain for geometry in geometries])
 
     def plot(self):
         for geometry in self.geometries:

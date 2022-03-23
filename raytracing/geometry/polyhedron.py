@@ -1,7 +1,7 @@
 import numpy as np
 
 from ..plotting import Plotable
-from .base import Geometry
+from .base import Geometry, bounding_box
 from .polygon import Polygon
 
 
@@ -11,10 +11,7 @@ class Polyhedron(Geometry, Plotable):
         super(Plotable, self).__init__(**kwargs)
 
         self.polygons = polygons
-        domains = np.dstack([polygon.domain for polygon in polygons])
-        self.domain = np.zeros((2, 3), dtype=float)
-        self.domain[0, :] = domains[0, :, :].min(axis=-1)
-        self.domain[1, :] = domains[1, :, :].max(axis=-1)
+        self.domain = bounding_box([polygon.domain for polygon in polygons])
 
     @staticmethod
     def from_2d_polygon(polygon, height=1, keep_ground=True):

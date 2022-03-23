@@ -1,6 +1,14 @@
 import numpy as np
 
 
+def bounding_box(bounding_boxes):
+    bboxes = np.dstack(bounding_boxes)
+    bbox = np.zeros((2, 3), dtype=float)
+    bbox[0, :] = bboxes[0, :, :].min(axis=-1)
+    bbox[1, :] = bboxes[1, :, :].max(axis=-1)
+    return bbox
+
+
 class Geometry(object):
     def __init__(self):
         self.domain = None
