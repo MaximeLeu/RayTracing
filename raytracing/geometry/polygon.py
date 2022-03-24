@@ -3,7 +3,7 @@ import numpy as np
 from shapely.geometry import Point as shPoint
 from shapely.geometry import Polygon as shPolygon
 
-from ..interaction import Surface
+from ..interaction import LinearEdge, Surface
 from ..plotting import Plotable, draw_polygon
 from .base import Geometry
 
@@ -76,6 +76,7 @@ class Polygon(Geometry, Surface, Plotable):
         if self.points.shape[0] < 3:
             raise ValueError("A valid polygon must have at least 3 points")
 
+        self.__n_points = self.points.shape[0]
         p0, p1, p2 = self.points[:3, :]
         u = p1 - p0
         u /= np.linalg.norm(u)
@@ -91,6 +92,14 @@ class Polygon(Geometry, Surface, Plotable):
         self.st_to_xyz_func = plane_st_to_xyz_function(*self.parametric)
 
         self.domain = np.array([self.points.min(axis=0), self.points.max(axis=0)])
+        self.edges = [
+            LinearEdge(self.points[[i, (i + 1) % self.__n_points], :], self)
+            for i in range(self.__n_points)
+        ]
+        self.surfaces = [self]
+
+    def st_to_xyz(self, *args):
+        return self.st_to_xyz_func(*args)
 
     def is_planar(self) -> bool:
         x0 = self.points
@@ -107,11 +116,11 @@ class Polygon(Geometry, Surface, Plotable):
         d = self.parametric[-1]
         return np.dot(self.__normal, point) + d
 
-    def normal(self, point):
+    def normal(self, *args):
         return self.__normal
 
     def contains(self, point):
-        point = shPoint(np.dot(point[:2], self.uv))
+        point = shPoint(np.dot(point, self.__uv))
         return self.__polygon.contains(point)
 
     def plot(self, *args, facecolor=(0, 0, 0, 0), edgecolor="k", alpha=0.1, **kwargs):

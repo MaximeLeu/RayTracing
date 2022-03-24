@@ -1,5 +1,8 @@
+from itertools import combinations, product
+
 import numpy as np
 
+from ..interaction import LinearEdge
 from ..plotting import Plotable
 from .base import Geometry, bounding_box
 from .polygon import Polygon
@@ -12,6 +15,17 @@ class Polyhedron(Geometry, Plotable):
 
         self.polygons = polygons
         self.domain = bounding_box([polygon.domain for polygon in polygons])
+        self.surfaces = self.polygons
+        self.edges = []
+
+        for s1, s2 in combinations(self.polygons, 2):
+            equal_edges = (
+                e1.join(e2) for e1, e2 in product(s1.edges, s2.edges) if e1 == e2
+            )
+            edge = next(equal_edges, None)
+
+            if edge:
+                self.edges.append(edge)
 
     @staticmethod
     def from_2d_polygon(polygon, height=1, keep_ground=True):

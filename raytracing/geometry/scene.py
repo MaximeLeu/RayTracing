@@ -13,6 +13,12 @@ class Scene(Plotable):
         super().__init__()
         self.geometries = geometries
         self.domain = bounding_box([geometry.domain for geometry in geometries])
+        self.edges = []
+        self.surfaces = []
+
+        for geometry in self.geometries:
+            self.edges.extend(geometry.edges)
+            self.surfaces.extend(geometry.surfaces)
 
     def plot(self):
         for geometry in self.geometries:
