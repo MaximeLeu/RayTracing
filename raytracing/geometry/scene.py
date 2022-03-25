@@ -72,5 +72,6 @@ class Scene(Plotable):
         points[2:, 1] = bounds[1, 1]
 
         ground_surface = Polygon(points)
+        ground_surface.edges = []
 
         return Scene([ground_surface, *polyhedra])

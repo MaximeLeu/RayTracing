@@ -123,6 +123,27 @@ class Polygon(Geometry, Surface, Plotable):
         point = shPoint(np.dot(point, self.__uv))
         return self.__polygon.contains(point)
 
+    def can_see(self, other):
+        a = np.dot(self.__normal, other.__normal) < 0
+        b = np.dot(self.__normal, other.points[0, :] - self.points[0, :]) > 0
+        return a and b
+
+    def intersects(self, path, tol=1e-6):
+        directions = np.diff(path, axis=0)
+
+        for i in range(directions.shape[0]):
+            num = np.dot(path[i, :] - self.points[0, :], self.__normal)
+            den = np.dot(directions[i, :], self.__normal)
+
+            if den != 0:
+                d = -num / den
+                if tol < d < 1 - tol:
+                    proj = path[i, :] + d * directions[i, :]
+                    if self.contains(proj):
+                        return True
+
+        return False
+
     def plot(self, *args, facecolor=(0, 0, 0, 0), edgecolor="k", alpha=0.1, **kwargs):
         draw_polygon(
             self.ax,

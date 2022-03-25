@@ -8,6 +8,7 @@ class Point(Plotable):
         super().__init__()
 
         self.point = np.asarray(point, dtype=float).reshape(3)
+        self.domain = np.array([self.point, self.point])
 
     def plot(self, *args, **kwargs):
 

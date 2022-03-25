@@ -1,7 +1,10 @@
-from itertools import combinations_with_replacement
+from itertools import combinations_with_replacement, tee
+from math import comb
 
+import networkx as nx
 import numpy as np
 from scipy.optimize import minimize
+from tqdm import tqdm, trange
 
 from ..interaction import Edge, Surface
 from ..plotting import Plotable
@@ -9,17 +12,19 @@ from .base import bounding_box
 from .path import Path
 
 
+def pairwise(iterable):
+    # pairwise('ABCDEFG') --> AB BC CD DE EF FG
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
+
 def assert_no_two_same_interactions(interact_list):
-    it = iter(interact_list)
-    n = next(it, None)
+    return not any(i1 != i2 for i1, i2 in pairwise(interact_list))
 
-    while n is not None:
-        p = next(it, None)
-        if p == n:
-            return False
-        n = p
 
-    return True
+def assert_interactions_can_see(interact_list):
+    return all(i1.can_see(i2) for i1, i2 in pairwise(interact_list))
 
 
 def st_to_xyz(points, interactions, ret, ret_normals=False):
@@ -105,37 +110,93 @@ class Simulation(Plotable):
         self.TX = TX
         self.RXS = RXS
         self.paths = []
-        # self.domain = bounding_box([scene.domain, TX.domain, *[RX.domain for RX in RXS]])
+        self.domain = bounding_box(
+            [scene.domain, TX.domain] + [RX.domain for RX in RXS]
+        )
 
     def compute_paths(
         self,
-        max_interactions=1,
+        max_interactions=3,
     ):
         self.paths.clear()
+        surfaces = self.scene.surfaces
+        edges = self.scene.edges
 
-        interactions = [*self.scene.edges, *self.scene.surfaces]
+        interactions = [*surfaces, *edges]
 
-        for i in range(0, max_interactions + 1):
-            for interact_list in combinations_with_replacement(interactions, i):
+        surface_indices = dict()
+
+        n = len(interactions)
+        m = len(surfaces)
+
+        visibility = np.zeros((n + 2, n + 2), dtype=bool)
+
+        for i, s1 in tqdm(enumerate(surfaces), total=m, leave=False):
+            surface_indices[s1] = i
+            for j in range(i + 1, m):
+                s2 = surfaces[j]
+                visibility[i, j] = s1.can_see(s2)
+
+        visibility += visibility.T
+
+        for k in range(m, n):
+            edge = edges[k - m]
+            i = surface_indices[edge.parent_surface_1]
+            j = surface_indices[edge.parent_surface_2]
+            visibility[k, :] = visibility[i, :] + visibility[j, :]
+            visibility[k, i] = False
+            visibility[k, j] = False
+
+        visibility[-2, :] = True  # TX sees everyone
+        visibility[:, -1] = True  # RX is seen by everyone
+
+        G = nx.DiGraph(visibility)
+
+        all_simple_paths = list(
+            nx.all_simple_paths(G, source=n, target=n + 1, cutoff=max_interactions + 1)
+        )
+
+        for indices in tqdm(all_simple_paths):
+            for RX in self.RXS:
+                interact_list = [interactions[i] for i in indices[1:-1]]
+                path = compute_path(self.TX, RX, interact_list)
+
+                if path.is_valid() and not any(
+                    surface.intersects(path.points) for surface in self.scene.surfaces
+                ):
+                    self.paths.append(path)
+
+        """
+        for i in trange(0, max_interactions + 1, leave=False):
+            for interact_list in tqdm(
+                combinations_with_replacement(interactions, i),
+                total=comb(n + i - 1, i),
+                leave=False,
+            ):
                 if not assert_no_two_same_interactions(interact_list):
                     continue
 
                 for RX in self.RXS:
                     path = compute_path(self.TX, RX, interact_list)
 
-                    if path.is_valid():
+                    if path.is_valid() and not any(
+                        surface.intersects(path.points)
+                        for surface in self.scene.surfaces
+                    ):
                         self.paths.append(path)
-
+        """
         return self.paths
 
     def plot(self):
         self.scene.on(self.ax).plot()
         for path in self.paths:
-            path.on(self.ax).plot(color="m")
+            path.on(self.ax).plot()
 
         self.TX.on(self.ax).plot(color="b")
 
         for RX in self.RXS:
             RX.on(self.ax).plot(color="r")
+
+        self.set_limits(self.domain)
 
         return self.ax

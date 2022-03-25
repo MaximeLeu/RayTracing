@@ -1,6 +1,14 @@
 import numpy as np
 
+from ..interaction import Edge
 from ..plotting import Plotable, draw_line
+
+COLORS = [
+    "k",
+    "y",
+    "r",
+    "m",
+]
 
 
 class Path(Plotable):
@@ -12,6 +20,9 @@ class Path(Plotable):
         self.end = end
         self.interact_list = interact_list
         self.res = res
+
+    def __len__(self):
+        return self.points.shape[0]
 
     @staticmethod
     def from_optimize_result(res, **kwargs):
@@ -30,5 +41,12 @@ class Path(Plotable):
         return True
 
     def plot(self, *args, **kwargs):
-        draw_line(self.ax, self.points, *args, **kwargs)
+        color = COLORS[len(self) - 2]
+        linestyle = "solid"
+        if self.interact_list is not None:
+            if any(isinstance(interaction, Edge) for interaction in self.interact_list):
+                linestyle = "dashed"
+        draw_line(
+            self.ax, self.points, *args, color=color, linestyle=linestyle, **kwargs
+        )
         return self.ax

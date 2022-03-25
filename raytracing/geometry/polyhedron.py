@@ -1,6 +1,7 @@
 from itertools import combinations, product
 
 import numpy as np
+from shapely.geometry import Polygon as shPolygon
 
 from ..interaction import LinearEdge
 from ..plotting import Plotable
@@ -29,9 +30,12 @@ class Polyhedron(Geometry, Plotable):
 
     @staticmethod
     def from_2d_polygon(polygon, height=1, keep_ground=True):
-        x, y = polygon.exterior.coords.xy
-        x = x[:-1]
-        y = y[:-1]
+        if isinstance(polygon, shPolygon):
+            x, y = polygon.exterior.coords.xy
+            x = x[:-1]
+            y = y[:-1]
+        elif isinstance(polygon, np.ndarray) or isinstance(polygon, list):
+            x, y = np.asarray(polygon, dtype=float).reshape(-1, 2).T
 
         z0 = np.zeros_like(x, dtype=float)
         zh = np.full_like(z0, height)
