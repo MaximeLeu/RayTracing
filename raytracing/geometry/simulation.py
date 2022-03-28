@@ -1,5 +1,6 @@
 from itertools import combinations_with_replacement, tee
 from math import comb
+import pickle
 
 import networkx as nx
 import numpy as np
@@ -131,24 +132,66 @@ class Simulation(Plotable):
 
         visibility = np.zeros((n + 2, n + 2), dtype=bool)
 
-        for i, s1 in tqdm(enumerate(surfaces), total=m, leave=False):
+        for i, s1 in tqdm(
+            enumerate(surfaces),
+            total=m,
+            leave=False,
+            desc="Computing first part of visibility matrix: surfaces",
+        ):
             surface_indices[s1] = i
+            # For each other surface j, check if surface i can see j
             for j in range(i + 1, m):
                 s2 = surfaces[j]
-                visibility[i, j] = s1.can_see(s2)
+                if s1.can_see(s2):
+                    visibility[i, j] = True
+                    visibility[j, i] = True
 
-        visibility += visibility.T
-
-        for k in range(m, n):
+        for k in trange(
+            m, n, leave=False, desc="Computing second part of visibility matrix"
+        ):
+            # For every edge
             edge = edges[k - m]
+            # Get parent surfaces
             i = surface_indices[edge.parent_surface_1]
             j = surface_indices[edge.parent_surface_2]
+            # Edge has the same visibility as parent surfaces
             visibility[k, :] = visibility[i, :] + visibility[j, :]
+            for l, value in enumerate(visibility[k, :m]):
+                visibility[l, k] = value
+            # But edge cannot see its parent (and vice-versa)
             visibility[k, i] = False
             visibility[k, j] = False
+            visibility[i, k] = False
+            visibility[j, k] = False
+
+        for k in trange(
+            m, n, leave=False, desc="Computing third part of visibility matrix"
+        ):
+            # For every edge
+            edge_1 = edges[k - m]
+            for l in range(k + 1, n):
+                edge_2 = edges[l - m]
+                # Get parent surfaces
+                s1 = edge_2.parent_surface_1
+                s2 = edge_2.parent_surface_2
+                i = surface_indices[s1]
+                j = surface_indices[s2]
+
+                point = np.mean(edge_1.points, axis=0)
+
+                # If edge_1 can see any of the parents of edge_2
+                if (visibility[k, i] and s1.can_see_point(point)) or (
+                    visibility[k, j] and s2.can_see_point(point)
+                ):
+                    # Then edge_1 sees edge_2
+                    visibility[k, l] = True
+                    # And vice-versa
+                    visibility[l, k] = True
+                    pass
 
         visibility[-2, :] = True  # TX sees everyone
-        visibility[:, -1] = True  # RX is seen by everyone
+        visibility[-2, -2] = False
+        visibility[:-1, -1] = True  # RX is seen by everyone
 
         G = nx.DiGraph(visibility)
 
@@ -156,7 +199,23 @@ class Simulation(Plotable):
             nx.all_simple_paths(G, source=n, target=n + 1, cutoff=max_interactions + 1)
         )
 
-        for indices in tqdm(all_simple_paths):
+        def trace_ray(indices):
+            paths = []
+
+            for RX in self.RXS:
+                interact_list = [interactions[i] for i in indices[1:-1]]
+                path = compute_path(self.TX, RX, interact_list)
+
+                if path.is_valid() and not any(
+                    surface.intersects(path.points) for surface in self.scene.surfaces
+                ):
+                    paths.appends(path)
+
+            return paths
+
+        # result = pqdm(all_simple_paths, trace_ray, n_jobs=16)
+
+        for indices in tqdm(all_simple_paths, leave=False, desc="Tracing rays"):
             for RX in self.RXS:
                 interact_list = [interactions[i] for i in indices[1:-1]]
                 path = compute_path(self.TX, RX, interact_list)
@@ -186,6 +245,10 @@ class Simulation(Plotable):
                         self.paths.append(path)
         """
         return self.paths
+
+    def save_paths(self, filename):
+        with open(filename, "wb") as f:
+            pickle.dump(self.paths, f)
 
     def plot(self):
         self.scene.on(self.ax).plot()

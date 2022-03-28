@@ -4,8 +4,43 @@ from shapely.geometry import Point as shPoint
 from shapely.geometry import Polygon as shPolygon
 
 from ..interaction import LinearEdge, Surface
-from ..plotting import Plotable, draw_polygon
+from ..plotting import Plotable, draw_polygon, draw_vector
 from .base import Geometry
+
+
+@nb.njit
+def enclosed_area(points):
+    """
+    Returns the enclosed area of the polygon described by the points.
+    The polygon is projected on the z=0 plane.
+    If results is negative, it means that the curve orientation is ccw.
+
+    :param points: the points of the polygon
+    :type points: numpy.ndarray *shape=(N, 2 or 3)*
+    :return: the enclosed area
+    :rtype: float
+    """
+    # From:
+    # https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order
+    x = points[:, 0]
+    y = points[:, 1]
+    s = np.sum((x[1:] - x[:-1]) * (y[1:] + y[:-1]))
+    s += (x[0] - x[-1]) * (y[0] + y[-1])
+    return s / 2
+
+
+@nb.njit
+def is_ccw(points):
+    """
+    Returns if the curve described by the points is oriented ccw or not.
+    The curve is projected on the z=0 plane.
+
+    :param points: the points of the polygon
+    :type points: numpy.ndarray *shape=(N, 2 or 3)*
+    :return: True if the curve is oriented ccw
+    :rtype: bool
+    """
+    return enclosed_area(points) < 0
 
 
 def plane_st_to_xyz_function(a, b, c, d):
@@ -81,8 +116,9 @@ class Polygon(Geometry, Surface, Plotable):
         u = p1 - p0
         u /= np.linalg.norm(u)
         v = p2 - p1
-        v /= np.linalg.norm(v)
         w = np.cross(u, v)
+        w /= np.linalg.norm(w)
+        v = np.cross(w, u)
         self.__matrix = np.column_stack([u, v, w])
         self.__uv = self.__matrix[:, :2]
         self.__polygon = shPolygon(np.dot(self.points, self.__uv))
@@ -92,6 +128,7 @@ class Polygon(Geometry, Surface, Plotable):
         self.st_to_xyz_func = plane_st_to_xyz_function(*self.parametric)
 
         self.domain = np.array([self.points.min(axis=0), self.points.max(axis=0)])
+        self.centroid = np.mean(self.domain, axis=0)
         self.edges = [
             LinearEdge(self.points[[i, (i + 1) % self.__n_points], :], self)
             for i in range(self.__n_points)
@@ -124,9 +161,18 @@ class Polygon(Geometry, Surface, Plotable):
         return self.__polygon.contains(point)
 
     def can_see(self, other):
+        # self can see other if
+        # normals are pointing towards each other
         a = np.dot(self.__normal, other.__normal) < 0
-        b = np.dot(self.__normal, other.points[0, :] - self.points[0, :]) > 0
+        # and other is not "behind" self
+        b = np.dot(self.__normal, other.centroid - self.centroid) > 0
         return a and b
+
+    def can_see_point(self, point):
+        # self can see point if
+        # point is not "behind" self
+        a = np.dot(self.__normal, point - self.centroid) > 0
+        return a
 
     def intersects(self, path, tol=1e-6):
         directions = np.diff(path, axis=0)
@@ -144,7 +190,15 @@ class Polygon(Geometry, Surface, Plotable):
 
         return False
 
-    def plot(self, *args, facecolor=(0, 0, 0, 0), edgecolor="k", alpha=0.1, **kwargs):
+    def plot(
+        self,
+        *args,
+        normal=True,
+        facecolor=(0, 0, 0, 0),
+        edgecolor="k",
+        alpha=0.1,
+        **kwargs
+    ):
         draw_polygon(
             self.ax,
             self.points,
@@ -154,6 +208,8 @@ class Polygon(Geometry, Surface, Plotable):
             alpha=alpha,
             **kwargs
         )
+        if normal:
+            draw_vector(self.ax, self.centroid, self.__normal)
         return self.ax
 
 
