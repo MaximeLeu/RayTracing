@@ -1,6 +1,6 @@
+import pickle
 from itertools import combinations_with_replacement, tee
 from math import comb
-import pickle
 
 import networkx as nx
 import numpy as np
