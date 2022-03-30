@@ -1,0 +1,3463 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-ide",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2022-03-30T13:43:39Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773492",
+        "addr:city": "New York",
+        "addr:housenumber": "900",
+        "addr:postcode": "10003",
+        "addr:state": "NY",
+        "addr:street": "Broadway",
+        "building": "yes",
+        "building:levels": "10",
+        "height": "44.6",
+        "name": "Goelet Building",
+        "nycdoitt:bin": "1016184",
+        "start_date": "1887",
+        "wikidata": "Q16948222"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9894001,
+              40.738708
+            ],
+            [
+              -73.9892789,
+              40.738875
+            ],
+            [
+              -73.9896212,
+              40.7390183
+            ],
+            [
+              -73.9896468,
+              40.7390189
+            ],
+            [
+              -73.9896669,
+              40.7390106
+            ],
+            [
+              -73.989687,
+              40.7389912
+            ],
+            [
+              -73.9897445,
+              40.7387833
+            ],
+            [
+              -73.9894951,
+              40.7386787
+            ],
+            [
+              -73.9894567,
+              40.7387317
+            ],
+            [
+              -73.9894001,
+              40.738708
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773492"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773503",
+        "addr:housenumber": "123",
+        "addr:postcode": "10003",
+        "addr:street": "5th Avenue",
+        "building": "yes",
+        "height": "16.9",
+        "nycdoitt:bin": "1016156"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9907638,
+              40.7390699
+            ],
+            [
+              -73.9907255,
+              40.7391228
+            ],
+            [
+              -73.9910425,
+              40.7392555
+            ],
+            [
+              -73.9910808,
+              40.7392025
+            ],
+            [
+              -73.9907638,
+              40.7390699
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773503"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773504",
+        "addr:housenumber": "125",
+        "addr:postcode": "10003",
+        "addr:street": "5th Avenue",
+        "building": "yes",
+        "height": "16.9",
+        "nycdoitt:bin": "1016157"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9906459,
+              40.7392329
+            ],
+            [
+              -73.990739,
+              40.7392719
+            ],
+            [
+              -73.9909629,
+              40.7393656
+            ],
+            [
+              -73.9910425,
+              40.7392555
+            ],
+            [
+              -73.9907255,
+              40.7391228
+            ],
+            [
+              -73.9907011,
+              40.7391566
+            ],
+            [
+              -73.9906581,
+              40.739216
+            ],
+            [
+              -73.9906459,
+              40.7392329
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773504"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773512",
+        "addr:housenumber": "15",
+        "addr:postcode": "10003",
+        "addr:street": "East 18th Street",
+        "building": "yes",
+        "height": "36.0",
+        "nycdoitt:bin": "1080753"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9906632,
+              40.738115
+            ],
+            [
+              -73.9905718,
+              40.7382411
+            ],
+            [
+              -73.9905406,
+              40.7382841
+            ],
+            [
+              -73.9906098,
+              40.7383132
+            ],
+            [
+              -73.99062,
+              40.7382991
+            ],
+            [
+              -73.9906249,
+              40.7383012
+            ],
+            [
+              -73.9907373,
+              40.7381461
+            ],
+            [
+              -73.9906632,
+              40.738115
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773512"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773515",
+        "addr:housenumber": "16",
+        "addr:postcode": "10003",
+        "addr:street": "East 18th Street",
+        "building": "yes",
+        "height": "33.3",
+        "nycdoitt:bin": "1016140"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9909681,
+              40.7377939
+            ],
+            [
+              -73.9908215,
+              40.7379959
+            ],
+            [
+              -73.9908933,
+              40.738026
+            ],
+            [
+              -73.9910193,
+              40.7378523
+            ],
+            [
+              -73.9910399,
+              40.737824
+            ],
+            [
+              -73.9909681,
+              40.7377939
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773515"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773517",
+        "addr:housenumber": "17",
+        "addr:postcode": "10003",
+        "addr:street": "East 18th Street",
+        "building": "yes",
+        "height": "36.0",
+        "nycdoitt:bin": "1080752"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9905832,
+              40.7380815
+            ],
+            [
+              -73.9904918,
+              40.7382075
+            ],
+            [
+              -73.9905718,
+              40.7382411
+            ],
+            [
+              -73.9906632,
+              40.738115
+            ],
+            [
+              -73.9905832,
+              40.7380815
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773517"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773519",
+        "addr:housenumber": "18",
+        "addr:postcode": "10003",
+        "addr:street": "East 18th Street",
+        "building": "yes",
+        "height": "26.4",
+        "nycdoitt:bin": "1016139"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9907088,
+              40.737739
+            ],
+            [
+              -73.9905922,
+              40.7378996
+            ],
+            [
+              -73.9908215,
+              40.7379959
+            ],
+            [
+              -73.9909681,
+              40.7377939
+            ],
+            [
+              -73.9909744,
+              40.7377852
+            ],
+            [
+              -73.990919,
+              40.7377756
+            ],
+            [
+              -73.9907088,
+              40.737739
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773519"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773521",
+        "addr:housenumber": "19",
+        "addr:postcode": "10003",
+        "addr:street": "East 17th Street",
+        "building": "yes",
+        "height": "23.8",
+        "nycdoitt:bin": "1016119"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9908011,
+              40.7376068
+            ],
+            [
+              -73.9907806,
+              40.7376502
+            ],
+            [
+              -73.9908667,
+              40.7376699
+            ],
+            [
+              -73.9908802,
+              40.7376514
+            ],
+            [
+              -73.9909944,
+              40.7374939
+            ],
+            [
+              -73.990909,
+              40.7374581
+            ],
+            [
+              -73.9908011,
+              40.7376068
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773521"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773525",
+        "addr:housenumber": "21",
+        "addr:postcode": "10003",
+        "addr:street": "East 17th Street",
+        "building": "yes",
+        "height": "23.9",
+        "nycdoitt:bin": "1016120"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9907184,
+              40.737572
+            ],
+            [
+              -73.9907115,
+              40.7375921
+            ],
+            [
+              -73.9906979,
+              40.7376316
+            ],
+            [
+              -73.9907806,
+              40.7376502
+            ],
+            [
+              -73.9908011,
+              40.7376068
+            ],
+            [
+              -73.990909,
+              40.7374581
+            ],
+            [
+              -73.9908263,
+              40.7374233
+            ],
+            [
+              -73.9907184,
+              40.737572
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773525"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773528",
+        "addr:housenumber": "23",
+        "addr:postcode": "10003",
+        "addr:street": "East 17th Street",
+        "building": "yes",
+        "height": "24.0",
+        "nycdoitt:bin": "1016121"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9906226,
+              40.7375726
+            ],
+            [
+              -73.9906912,
+              40.7375876
+            ],
+            [
+              -73.9907115,
+              40.7375921
+            ],
+            [
+              -73.9907184,
+              40.737572
+            ],
+            [
+              -73.9908263,
+              40.7374233
+            ],
+            [
+              -73.990752,
+              40.7373921
+            ],
+            [
+              -73.9907111,
+              40.7374492
+            ],
+            [
+              -73.9906678,
+              40.7375095
+            ],
+            [
+              -73.9906592,
+              40.7375215
+            ],
+            [
+              -73.9906226,
+              40.7375726
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773528"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773534",
+        "addr:housenumber": "28",
+        "addr:postcode": "10003",
+        "addr:street": "East 20th Street",
+        "building": "yes",
+        "height": "19.2",
+        "nycdoitt:bin": "1016182"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9890421,
+              40.7384925
+            ],
+            [
+              -73.9890223,
+              40.7385199
+            ],
+            [
+              -73.9889088,
+              40.7386763
+            ],
+            [
+              -73.9890657,
+              40.7387421
+            ],
+            [
+              -73.9891658,
+              40.738604
+            ],
+            [
+              -73.9891989,
+              40.7385584
+            ],
+            [
+              -73.9890421,
+              40.7384925
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773534"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773536",
+        "addr:housenumber": "29",
+        "addr:postcode": "10003",
+        "addr:street": "East 19th Street",
+        "building": "yes",
+        "height": "35.6",
+        "nycdoitt:bin": "1016164"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9890966,
+              40.7382214
+            ],
+            [
+              -73.9889425,
+              40.7384338
+            ],
+            [
+              -73.9891348,
+              40.7385145
+            ],
+            [
+              -73.989142,
+              40.7385047
+            ],
+            [
+              -73.9892889,
+              40.7383021
+            ],
+            [
+              -73.9890966,
+              40.7382214
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773536"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773539",
+        "addr:housenumber": "30",
+        "addr:postcode": "10003",
+        "addr:street": "East 20th Street",
+        "building": "yes",
+        "height": "25.4",
+        "nycdoitt:bin": "1016181"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9888958,
+              40.7384668
+            ],
+            [
+              -73.9887518,
+              40.7386653
+            ],
+            [
+              -73.9888783,
+              40.7387184
+            ],
+            [
+              -73.9889088,
+              40.7386763
+            ],
+            [
+              -73.9890223,
+              40.7385199
+            ],
+            [
+              -73.9888958,
+              40.7384668
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773539"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773545",
+        "addr:housenumber": "35",
+        "addr:postcode": "10003",
+        "addr:street": "East 19th Street",
+        "building": "yes",
+        "height": "12.4",
+        "nycdoitt:bin": "1016165"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9888709,
+              40.7384163
+            ],
+            [
+              -73.9889181,
+              40.7384361
+            ],
+            [
+              -73.9889355,
+              40.7384434
+            ],
+            [
+              -73.9889425,
+              40.7384338
+            ],
+            [
+              -73.9890966,
+              40.7382214
+            ],
+            [
+              -73.9890319,
+              40.7381942
+            ],
+            [
+              -73.9888865,
+              40.7383948
+            ],
+            [
+              -73.9888709,
+              40.7384163
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773545"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773549",
+        "addr:city": "New York",
+        "addr:housenumber": "37",
+        "addr:postcode": "10003",
+        "addr:street": "East 18th Street",
+        "building": "yes",
+        "height": "45.8",
+        "name": "Dstillery",
+        "nycdoitt:bin": "1016148",
+        "office": "company",
+        "source": "Personal knowledge",
+        "website": "https://www.dstillery.com/"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9893156,
+              40.737834
+            ],
+            [
+              -73.989325,
+              40.737838
+            ],
+            [
+              -73.9893925,
+              40.7378666
+            ],
+            [
+              -73.9895505,
+              40.7376512
+            ],
+            [
+              -73.9893182,
+              40.7375526
+            ],
+            [
+              -73.9891796,
+              40.7377416
+            ],
+            [
+              -73.9893351,
+              40.7378075
+            ],
+            [
+              -73.9893156,
+              40.737834
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773549"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773550",
+        "addr:housenumber": "37",
+        "addr:postcode": "10003",
+        "addr:street": "East 19th Street",
+        "building": "yes",
+        "height": "12.4",
+        "nycdoitt:bin": "1016166"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9889691,
+              40.7381679
+            ],
+            [
+              -73.9888236,
+              40.7383684
+            ],
+            [
+              -73.9888865,
+              40.7383948
+            ],
+            [
+              -73.9890319,
+              40.7381942
+            ],
+            [
+              -73.9889691,
+              40.7381679
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773550"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773552",
+        "addr:housenumber": "38",
+        "addr:postcode": "10003",
+        "addr:street": "East 19th Street",
+        "building": "yes",
+        "height": "46.1",
+        "nycdoitt:bin": "1080755"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9892365,
+              40.7378968
+            ],
+            [
+              -73.989124,
+              40.7380502
+            ],
+            [
+              -73.9892798,
+              40.7381163
+            ],
+            [
+              -73.9892837,
+              40.738111
+            ],
+            [
+              -73.9893021,
+              40.7380858
+            ],
+            [
+              -73.9892886,
+              40.7380801
+            ],
+            [
+              -73.9893801,
+              40.7379554
+            ],
+            [
+              -73.9893897,
+              40.7379594
+            ],
+            [
+              -73.9894422,
+              40.7378878
+            ],
+            [
+              -73.9893925,
+              40.7378666
+            ],
+            [
+              -73.989325,
+              40.737838
+            ],
+            [
+              -73.9892711,
+              40.7379115
+            ],
+            [
+              -73.9892365,
+              40.7378968
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773552"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773553",
+        "addr:housenumber": "39",
+        "addr:postcode": "10003",
+        "addr:street": "East 19th Street",
+        "building": "yes",
+        "height": "33.2",
+        "nycdoitt:bin": "1016167"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9888932,
+              40.738136
+            ],
+            [
+              -73.9888851,
+              40.7381472
+            ],
+            [
+              -73.9887755,
+              40.7382983
+            ],
+            [
+              -73.9887477,
+              40.7383365
+            ],
+            [
+              -73.9888236,
+              40.7383684
+            ],
+            [
+              -73.9889691,
+              40.7381679
+            ],
+            [
+              -73.9888932,
+              40.738136
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773553"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773555",
+        "addr:city": "New York",
+        "addr:country": "US",
+        "addr:housenumber": "39",
+        "addr:postcode": "10003",
+        "addr:state": "NY",
+        "addr:street": "Union Square West",
+        "amenity": "fast_food",
+        "brand": "McDonald's",
+        "brand:wikidata": "Q38076",
+        "brand:wikipedia": "en:McDonald's",
+        "building": "yes",
+        "cuisine": "burger",
+        "height": "5.1",
+        "name": "McDonald's",
+        "nycdoitt:bin": "1016088",
+        "opening_hours": "Mo-Su 06:00-24:00",
+        "takeaway": "yes"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9905946,
+              40.7369445
+            ],
+            [
+              -73.9905425,
+              40.7370162
+            ],
+            [
+              -73.9908873,
+              40.737161
+            ],
+            [
+              -73.9909394,
+              40.7370893
+            ],
+            [
+              -73.9905946,
+              40.7369445
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773555"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773556",
+        "addr:housenumber": "40",
+        "addr:postcode": "10003",
+        "addr:street": "East 19th Street",
+        "building": "yes",
+        "height": "34.1",
+        "nycdoitt:bin": "1016153"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9891429,
+              40.7377915
+            ],
+            [
+              -73.9889902,
+              40.7379998
+            ],
+            [
+              -73.9891204,
+              40.738055
+            ],
+            [
+              -73.989124,
+              40.7380502
+            ],
+            [
+              -73.9892365,
+              40.7378968
+            ],
+            [
+              -73.9892732,
+              40.7378468
+            ],
+            [
+              -73.9891429,
+              40.7377915
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773556"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773561",
+        "addr:housenumber": "45",
+        "addr:postcode": "10003",
+        "addr:street": "East 18th Street",
+        "building": "yes",
+        "height": "13.2",
+        "nycdoitt:bin": "1016150"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.989189,
+              40.7374977
+            ],
+            [
+              -73.9890668,
+              40.7376644
+            ],
+            [
+              -73.989127,
+              40.7376899
+            ],
+            [
+              -73.9892493,
+              40.7375233
+            ],
+            [
+              -73.989189,
+              40.7374977
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773561"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773565",
+        "addr:housenumber": "5",
+        "addr:postcode": "10003",
+        "addr:street": "East 19th Street",
+        "building": "yes",
+        "height": "25.6",
+        "nycdoitt:bin": "1016158"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9906852,
+              40.7388956
+            ],
+            [
+              -73.9905495,
+              40.7390832
+            ],
+            [
+              -73.9905456,
+              40.7390885
+            ],
+            [
+              -73.9906278,
+              40.7391229
+            ],
+            [
+              -73.9907674,
+              40.73893
+            ],
+            [
+              -73.9906852,
+              40.7388956
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773565"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773567",
+        "addr:housenumber": "7",
+        "addr:postcode": "10003",
+        "addr:street": "East 19th Street",
+        "building": "yes",
+        "height": "20.1",
+        "nycdoitt:bin": "1016159"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9906087,
+              40.7388635
+            ],
+            [
+              -73.9904729,
+              40.7390512
+            ],
+            [
+              -73.9905495,
+              40.7390832
+            ],
+            [
+              -73.9906852,
+              40.7388956
+            ],
+            [
+              -73.9906087,
+              40.7388635
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773567"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773570",
+        "addr:housenumber": "859",
+        "addr:postcode": "10003",
+        "addr:street": "Broadway",
+        "building": "apartments",
+        "height": "14.7",
+        "nycdoitt:bin": "1016123"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9903667,
+              40.7373817
+            ],
+            [
+              -73.9905859,
+              40.7374747
+            ],
+            [
+              -73.9906678,
+              40.7375095
+            ],
+            [
+              -73.9907111,
+              40.7374492
+            ],
+            [
+              -73.9903848,
+              40.7373107
+            ],
+            [
+              -73.9903667,
+              40.7373817
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773570"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773571",
+        "addr:housenumber": "861",
+        "addr:postcode": "10003",
+        "addr:street": "Broadway",
+        "building": "apartments",
+        "height": "17.4",
+        "nycdoitt:bin": "1016124"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9903667,
+              40.7373817
+            ],
+            [
+              -73.9903485,
+              40.7374528
+            ],
+            [
+              -73.9905751,
+              40.7375029
+            ],
+            [
+              -73.9905859,
+              40.7374747
+            ],
+            [
+              -73.9903667,
+              40.7373817
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773571"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773572",
+        "addr:city": "New York",
+        "addr:housenumber": "862",
+        "addr:postcode": "10003",
+        "addr:street": "Broadway",
+        "building": "apartments",
+        "building:colour": "#826450",
+        "building:levels": "4",
+        "building:material": "brick",
+        "height": "14.7",
+        "nycdoitt:bin": "1016127",
+        "roof:material": "concrete",
+        "roof:shape": "flat"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9898939,
+              40.7371965
+            ],
+            [
+              -73.9898468,
+              40.737261
+            ],
+            [
+              -73.9901086,
+              40.7372935
+            ],
+            [
+              -73.9901011,
+              40.7372222
+            ],
+            [
+              -73.9898939,
+              40.7371965
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773572"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773573",
+        "addr:housenumber": "863",
+        "addr:postcode": "10003",
+        "addr:street": "Broadway",
+        "building": "apartments",
+        "height": "17.5",
+        "nycdoitt:bin": "1016125"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9903457,
+              40.7374521
+            ],
+            [
+              -73.990331,
+              40.7375086
+            ],
+            [
+              -73.9906226,
+              40.7375726
+            ],
+            [
+              -73.9906592,
+              40.7375215
+            ],
+            [
+              -73.9905751,
+              40.7375029
+            ],
+            [
+              -73.9903485,
+              40.7374528
+            ],
+            [
+              -73.9903457,
+              40.7374521
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773573"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773574",
+        "addr:housenumber": "864",
+        "addr:postcode": "10003",
+        "addr:street": "Broadway",
+        "building": "apartments",
+        "building:colour": "#907161",
+        "building:levels": "4",
+        "building:material": "brick",
+        "height": "14.7",
+        "nycdoitt:bin": "1016126",
+        "roof:material": "concrete",
+        "roof:shape": "flat"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9898468,
+              40.737261
+            ],
+            [
+              -73.9898139,
+              40.7373061
+            ],
+            [
+              -73.9897985,
+              40.7373273
+            ],
+            [
+              -73.9900993,
+              40.7373647
+            ],
+            [
+              -73.9901144,
+              40.7372943
+            ],
+            [
+              -73.9901086,
+              40.7372935
+            ],
+            [
+              -73.9898468,
+              40.737261
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773574"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773575",
+        "addr:housenumber": "865",
+        "addr:postcode": "10003",
+        "addr:street": "Broadway",
+        "building": "apartments",
+        "height": "21.5",
+        "nycdoitt:bin": "1016137"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.990331,
+              40.7375086
+            ],
+            [
+              -73.9903129,
+              40.7375794
+            ],
+            [
+              -73.9906646,
+              40.7376572
+            ],
+            [
+              -73.9906912,
+              40.7375876
+            ],
+            [
+              -73.9906226,
+              40.7375726
+            ],
+            [
+              -73.990331,
+              40.7375086
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773575"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773576",
+        "addr:city": "New York",
+        "addr:housenumber": "866",
+        "addr:postcode": "10003",
+        "addr:street": "Broadway",
+        "building": "apartments",
+        "building:colour": "#8B6A5B",
+        "building:levels": "4",
+        "building:material": "brick",
+        "height": "14.7",
+        "nycdoitt:bin": "1016136",
+        "roof:material": "concrete",
+        "roof:shape": "flat"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9897524,
+              40.7373904
+            ],
+            [
+              -73.9900785,
+              40.737431
+            ],
+            [
+              -73.9900849,
+              40.7374318
+            ],
+            [
+              -73.9900993,
+              40.7373647
+            ],
+            [
+              -73.9897985,
+              40.7373273
+            ],
+            [
+              -73.9897524,
+              40.7373904
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773576"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773577",
+        "addr:city": "New York",
+        "addr:housenumber": "868",
+        "addr:postcode": "10003",
+        "addr:street": "Broadway",
+        "building": "apartments",
+        "building:colour": "#95796E",
+        "building:levels": "4",
+        "building:material": "brick",
+        "height": "14.4",
+        "name": "The Dr. Martens Store",
+        "name:en": "The Dr. Martens Store",
+        "nycdoitt:bin": "1016135",
+        "roof:material": "concrete",
+        "roof:shape": "flat"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9897524,
+              40.7373904
+            ],
+            [
+              -73.9897047,
+              40.7374558
+            ],
+            [
+              -73.9899708,
+              40.7374889
+            ],
+            [
+              -73.9900636,
+              40.7375005
+            ],
+            [
+              -73.9900785,
+              40.737431
+            ],
+            [
+              -73.9897524,
+              40.7373904
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773577"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773579",
+        "building": "yes",
+        "height": "30.1",
+        "nycdoitt:bin": "1016146"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9897091,
+              40.7378312
+            ],
+            [
+              -73.9896752,
+              40.7379778
+            ],
+            [
+              -73.9899433,
+              40.7380137
+            ],
+            [
+              -73.9899728,
+              40.737892
+            ],
+            [
+              -73.9897462,
+              40.7378617
+            ],
+            [
+              -73.9897544,
+              40.7378505
+            ],
+            [
+              -73.9897091,
+              40.7378312
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773579"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773580",
+        "building": "yes",
+        "height": "30.5",
+        "nycdoitt:bin": "1080751"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9901852,
+              40.7380789
+            ],
+            [
+              -73.9901494,
+              40.7382318
+            ],
+            [
+              -73.9904131,
+              40.7383424
+            ],
+            [
+              -73.9904575,
+              40.7382812
+            ],
+            [
+              -73.9905266,
+              40.7382783
+            ],
+            [
+              -73.9905406,
+              40.7382841
+            ],
+            [
+              -73.9905718,
+              40.7382411
+            ],
+            [
+              -73.9904918,
+              40.7382075
+            ],
+            [
+              -73.9901852,
+              40.7380789
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773580"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773582",
+        "addr:housenumber": "9",
+        "addr:postcode": "10003",
+        "addr:street": "East 19th Street",
+        "building": "yes",
+        "height": "46.0",
+        "nycdoitt:bin": "1016160"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9904681,
+              40.7388021
+            ],
+            [
+              -73.9903294,
+              40.7389939
+            ],
+            [
+              -73.9904714,
+              40.7390533
+            ],
+            [
+              -73.9904729,
+              40.7390512
+            ],
+            [
+              -73.9906087,
+              40.7388635
+            ],
+            [
+              -73.9906101,
+              40.7388616
+            ],
+            [
+              -73.9904681,
+              40.7388021
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773582"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773594",
+        "building": "yes",
+        "height": "47.0",
+        "nycdoitt:bin": "1016155"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9907638,
+              40.7390699
+            ],
+            [
+              -73.9910808,
+              40.7392025
+            ],
+            [
+              -73.9910933,
+              40.7392078
+            ],
+            [
+              -73.99118,
+              40.7390879
+            ],
+            [
+              -73.9907756,
+              40.7389186
+            ],
+            [
+              -73.9907674,
+              40.73893
+            ],
+            [
+              -73.9906278,
+              40.7391229
+            ],
+            [
+              -73.9906261,
+              40.7391252
+            ],
+            [
+              -73.9907011,
+              40.7391566
+            ],
+            [
+              -73.9907255,
+              40.7391228
+            ],
+            [
+              -73.9907638,
+              40.7390699
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773594"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773598",
+        "building": "yes",
+        "height": "39.9",
+        "nycdoitt:bin": "1016187"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9904443,
+              40.7393705
+            ],
+            [
+              -73.9905226,
+              40.7394032
+            ],
+            [
+              -73.9905686,
+              40.7393397
+            ],
+            [
+              -73.9908856,
+              40.7394723
+            ],
+            [
+              -73.9909629,
+              40.7393656
+            ],
+            [
+              -73.990739,
+              40.7392719
+            ],
+            [
+              -73.9907293,
+              40.7392852
+            ],
+            [
+              -73.9906362,
+              40.7392462
+            ],
+            [
+              -73.9906459,
+              40.7392329
+            ],
+            [
+              -73.9906581,
+              40.739216
+            ],
+            [
+              -73.9905798,
+              40.7391832
+            ],
+            [
+              -73.9904443,
+              40.7393705
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773598"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773599",
+        "building": "retail",
+        "height": "35.3",
+        "nycdoitt:bin": "1016130",
+        "wikidata": "Q601881",
+        "wikipedia": "en:Century Building (17th Street, Manhattan)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9891686,
+              40.7370636
+            ],
+            [
+              -73.9891121,
+              40.7371412
+            ],
+            [
+              -73.9890382,
+              40.7372424
+            ],
+            [
+              -73.9890347,
+              40.7372472
+            ],
+            [
+              -73.9894122,
+              40.7374065
+            ],
+            [
+              -73.989416,
+              40.7374013
+            ],
+            [
+              -73.989737,
+              40.7369611
+            ],
+            [
+              -73.9897381,
+              40.7369596
+            ],
+            [
+              -73.9895144,
+              40.7368652
+            ],
+            [
+              -73.9893865,
+              40.7370405
+            ],
+            [
+              -73.9893224,
+              40.7371285
+            ],
+            [
+              -73.9891686,
+              40.7370636
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773599"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773602",
+        "addr:housenumber": "26",
+        "addr:street": "East 17th Street",
+        "building": "yes",
+        "height": "60.4",
+        "nycdoitt:bin": "1016089"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9910165,
+              40.7372153
+            ],
+            [
+              -73.9908873,
+              40.737161
+            ],
+            [
+              -73.9905425,
+              40.7370162
+            ],
+            [
+              -73.9904908,
+              40.7370875
+            ],
+            [
+              -73.9911219,
+              40.7373526
+            ],
+            [
+              -73.9912627,
+              40.7371586
+            ],
+            [
+              -73.9911839,
+              40.7371255
+            ],
+            [
+              -73.9912035,
+              40.7370986
+            ],
+            [
+              -73.9911509,
+              40.7370765
+            ],
+            [
+              -73.9911445,
+              40.7370738
+            ],
+            [
+              -73.9910787,
+              40.7371645
+            ],
+            [
+              -73.9910593,
+              40.7371564
+            ],
+            [
+              -73.9910165,
+              40.7372153
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773602"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773603",
+        "addr:housenumber": "35",
+        "addr:postcode": "10003",
+        "addr:street": "East 18th Street",
+        "amenity": "restaurant",
+        "building": "yes",
+        "height": "31.6",
+        "name": "ABC Kitchen",
+        "nycdoitt:bin": "1080754"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9893021,
+              40.7380858
+            ],
+            [
+              -73.9892837,
+              40.738111
+            ],
+            [
+              -73.989407,
+              40.7381634
+            ],
+            [
+              -73.9895549,
+              40.7379617
+            ],
+            [
+              -73.9895674,
+              40.7379447
+            ],
+            [
+              -73.9895415,
+              40.7379337
+            ],
+            [
+              -73.9895684,
+              40.7378971
+            ],
+            [
+              -73.9897017,
+              40.7377153
+            ],
+            [
+              -73.9895505,
+              40.7376512
+            ],
+            [
+              -73.9893925,
+              40.7378666
+            ],
+            [
+              -73.9894422,
+              40.7378878
+            ],
+            [
+              -73.9893897,
+              40.7379594
+            ],
+            [
+              -73.9893801,
+              40.7379554
+            ],
+            [
+              -73.9892886,
+              40.7380801
+            ],
+            [
+              -73.9893021,
+              40.7380858
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773603"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773607",
+        "building": "office",
+        "building:colour": "#B0A07F",
+        "building:levels": "6",
+        "building:material": "brick",
+        "height": "28.1",
+        "nycdoitt:bin": "1016128",
+        "roof:colour": "#E1E0CC",
+        "roof:material": "concrete",
+        "roof:shape": "flat"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9898351,
+              40.7369971
+            ],
+            [
+              -73.9898321,
+              40.7370012
+            ],
+            [
+              -73.989511,
+              40.7374414
+            ],
+            [
+              -73.9895063,
+              40.737448
+            ],
+            [
+              -73.9896624,
+              40.7375138
+            ],
+            [
+              -73.9897047,
+              40.7374558
+            ],
+            [
+              -73.9897524,
+              40.7373904
+            ],
+            [
+              -73.9897985,
+              40.7373273
+            ],
+            [
+              -73.9898139,
+              40.7373061
+            ],
+            [
+              -73.9897846,
+              40.7372937
+            ],
+            [
+              -73.9898645,
+              40.7371841
+            ],
+            [
+              -73.9898939,
+              40.7371965
+            ],
+            [
+              -73.9901011,
+              40.7372222
+            ],
+            [
+              -73.990107,
+              40.7372229
+            ],
+            [
+              -73.9900948,
+              40.737126
+            ],
+            [
+              -73.9900659,
+              40.7370945
+            ],
+            [
+              -73.9898351,
+              40.7369971
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773607"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773608",
+        "building": "yes",
+        "height": "41.6",
+        "nycdoitt:bin": "1080756"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9904701,
+              40.7383663
+            ],
+            [
+              -73.9904131,
+              40.7383424
+            ],
+            [
+              -73.9901494,
+              40.7382318
+            ],
+            [
+              -73.9900919,
+              40.7384542
+            ],
+            [
+              -73.9912698,
+              40.7389482
+            ],
+            [
+              -73.9914134,
+              40.7387501
+            ],
+            [
+              -73.9908101,
+              40.7384971
+            ],
+            [
+              -73.9908243,
+              40.7384775
+            ],
+            [
+              -73.9907928,
+              40.7384643
+            ],
+            [
+              -73.9909567,
+              40.7382381
+            ],
+            [
+              -73.9907373,
+              40.7381461
+            ],
+            [
+              -73.9906249,
+              40.7383012
+            ],
+            [
+              -73.9908124,
+              40.7383798
+            ],
+            [
+              -73.9907362,
+              40.738485
+            ],
+            [
+              -73.9905168,
+              40.738393
+            ],
+            [
+              -73.9905411,
+              40.7383594
+            ],
+            [
+              -73.9904905,
+              40.7383382
+            ],
+            [
+              -73.9904701,
+              40.7383663
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773608"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773609",
+        "building": "yes",
+        "height": "30.6",
+        "nycdoitt:bin": "1080750"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9902205,
+              40.7379294
+            ],
+            [
+              -73.9901852,
+              40.7380789
+            ],
+            [
+              -73.9904918,
+              40.7382075
+            ],
+            [
+              -73.9905832,
+              40.7380815
+            ],
+            [
+              -73.9902205,
+              40.7379294
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773609"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773614",
+        "building": "yes",
+        "building:colour": "#C46849",
+        "building:levels": "4",
+        "building:material": "brick",
+        "height": "15.3",
+        "nycdoitt:bin": "1016133",
+        "roof:material": "concrete",
+        "roof:shape": "flat"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9897582,
+              40.7375315
+            ],
+            [
+              -73.989744,
+              40.7375483
+            ],
+            [
+              -73.9900212,
+              40.7376652
+            ],
+            [
+              -73.9900441,
+              40.737567
+            ],
+            [
+              -73.9897582,
+              40.7375315
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773614"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773615",
+        "building": "retail",
+        "building:colour": "#BCC1BD",
+        "building:material": "glass",
+        "height": "14.2",
+        "nycdoitt:bin": "1016129",
+        "roof:material": "concrete",
+        "roof:shape": "flat"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.989737,
+              40.7369611
+            ],
+            [
+              -73.989416,
+              40.7374013
+            ],
+            [
+              -73.989511,
+              40.7374414
+            ],
+            [
+              -73.9898321,
+              40.7370012
+            ],
+            [
+              -73.989737,
+              40.7369611
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773615"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773619",
+        "building": "yes",
+        "height": "32.7",
+        "nycdoitt:bin": "1016154"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9895549,
+              40.7379617
+            ],
+            [
+              -73.989407,
+              40.7381634
+            ],
+            [
+              -73.9898599,
+              40.7383571
+            ],
+            [
+              -73.9899433,
+              40.7380137
+            ],
+            [
+              -73.9896752,
+              40.7379778
+            ],
+            [
+              -73.9895549,
+              40.7379617
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773619"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773620",
+        "building": "yes",
+        "height": "28.8",
+        "nycdoitt:bin": "1016185"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9902563,
+              40.7392043
+            ],
+            [
+              -73.9899285,
+              40.739067
+            ],
+            [
+              -73.9899186,
+              40.7391042
+            ],
+            [
+              -73.9899477,
+              40.7391573
+            ],
+            [
+              -73.9902107,
+              40.7392673
+            ],
+            [
+              -73.9902563,
+              40.7392043
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773620"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773623",
+        "building": "apartments",
+        "height": "38.2",
+        "nycdoitt:bin": "1016132"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9891121,
+              40.7371412
+            ],
+            [
+              -73.9890843,
+              40.7371295
+            ],
+            [
+              -73.9888659,
+              40.7370373
+            ],
+            [
+              -73.9887921,
+              40.7371385
+            ],
+            [
+              -73.9890382,
+              40.7372424
+            ],
+            [
+              -73.9891121,
+              40.7371412
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773623"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773625",
+        "building": "yes",
+        "height": "58.0",
+        "nycdoitt:bin": "1016145"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9915915,
+              40.7385044
+            ],
+            [
+              -73.9909567,
+              40.7382381
+            ],
+            [
+              -73.9907928,
+              40.7384643
+            ],
+            [
+              -73.9908243,
+              40.7384775
+            ],
+            [
+              -73.9908101,
+              40.7384971
+            ],
+            [
+              -73.9914134,
+              40.7387501
+            ],
+            [
+              -73.9915915,
+              40.7385044
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773625"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773626",
+        "building": "retail",
+        "height": "19.4",
+        "nycdoitt:bin": "1016122"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9904009,
+              40.7372566
+            ],
+            [
+              -73.9903848,
+              40.7373107
+            ],
+            [
+              -73.9907111,
+              40.7374492
+            ],
+            [
+              -73.990752,
+              40.7373921
+            ],
+            [
+              -73.9907562,
+              40.7373863
+            ],
+            [
+              -73.9904307,
+              40.7372481
+            ],
+            [
+              -73.9904009,
+              40.7372566
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773626"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773627",
+        "building": "apartments",
+        "height": "24.4",
+        "nycdoitt:bin": "1016138"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9909441,
+              40.737719
+            ],
+            [
+              -73.9906646,
+              40.7376572
+            ],
+            [
+              -73.9903129,
+              40.7375794
+            ],
+            [
+              -73.9902657,
+              40.7377625
+            ],
+            [
+              -73.9905922,
+              40.7378996
+            ],
+            [
+              -73.9907088,
+              40.737739
+            ],
+            [
+              -73.990919,
+              40.7377756
+            ],
+            [
+              -73.9909441,
+              40.737719
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773627"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773628",
+        "building": "yes",
+        "height": "27.5",
+        "nycdoitt:bin": "1016183"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9891658,
+              40.738604
+            ],
+            [
+              -73.9890657,
+              40.7387421
+            ],
+            [
+              -73.9890351,
+              40.7387842
+            ],
+            [
+              -73.9892725,
+              40.7388838
+            ],
+            [
+              -73.9892789,
+              40.738875
+            ],
+            [
+              -73.9894001,
+              40.738708
+            ],
+            [
+              -73.9894032,
+              40.7387036
+            ],
+            [
+              -73.9891658,
+              40.738604
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773628"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773631",
+        "building": "yes",
+        "height": "28.4",
+        "nycdoitt:bin": "1080760"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9902563,
+              40.7392043
+            ],
+            [
+              -73.9902107,
+              40.7392673
+            ],
+            [
+              -73.990292,
+              40.7393014
+            ],
+            [
+              -73.9904714,
+              40.7390533
+            ],
+            [
+              -73.9903294,
+              40.7389939
+            ],
+            [
+              -73.9899866,
+              40.7388504
+            ],
+            [
+              -73.9899285,
+              40.739067
+            ],
+            [
+              -73.9902563,
+              40.7392043
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773631"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773632",
+        "building": "yes",
+        "height": "38.8",
+        "nycdoitt:bin": "1016163"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9891493,
+              40.7385335
+            ],
+            [
+              -73.9894951,
+              40.7386787
+            ],
+            [
+              -73.9897445,
+              40.7387833
+            ],
+            [
+              -73.9898143,
+              40.7385226
+            ],
+            [
+              -73.9892889,
+              40.7383021
+            ],
+            [
+              -73.989142,
+              40.7385047
+            ],
+            [
+              -73.9891637,
+              40.7385137
+            ],
+            [
+              -73.9891493,
+              40.7385335
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773632"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773633",
+        "building": "yes",
+        "height": "31.6",
+        "nycdoitt:bin": "1016161"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9900405,
+              40.7386428
+            ],
+            [
+              -73.9900093,
+              40.7387656
+            ],
+            [
+              -73.9902818,
+              40.7388796
+            ],
+            [
+              -73.9902934,
+              40.7388637
+            ],
+            [
+              -73.9903111,
+              40.7388711
+            ],
+            [
+              -73.9903858,
+              40.7387677
+            ],
+            [
+              -73.9900691,
+              40.7386351
+            ],
+            [
+              -73.9900405,
+              40.7386428
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773633"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773634",
+        "building": "yes",
+        "height": "45.3",
+        "nycdoitt:bin": "1016151"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9885844,
+              40.7374087
+            ],
+            [
+              -73.9888545,
+              40.7375233
+            ],
+            [
+              -73.9890345,
+              40.7375997
+            ],
+            [
+              -73.989006,
+              40.7376386
+            ],
+            [
+              -73.9890668,
+              40.7376644
+            ],
+            [
+              -73.989189,
+              40.7374977
+            ],
+            [
+              -73.9886782,
+              40.7372809
+            ],
+            [
+              -73.9885844,
+              40.7374087
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773634"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773636",
+        "building": "yes",
+        "height": "18.6",
+        "nycdoitt:bin": "1016162"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9900093,
+              40.7387656
+            ],
+            [
+              -73.9899866,
+              40.7388504
+            ],
+            [
+              -73.9903294,
+              40.7389939
+            ],
+            [
+              -73.9904681,
+              40.7388021
+            ],
+            [
+              -73.9903858,
+              40.7387677
+            ],
+            [
+              -73.9903111,
+              40.7388711
+            ],
+            [
+              -73.9902934,
+              40.7388637
+            ],
+            [
+              -73.9902818,
+              40.7388796
+            ],
+            [
+              -73.9900093,
+              40.7387656
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773636"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773637",
+        "building": "office",
+        "height": "75.6",
+        "nycdoitt:bin": "1016131",
+        "wikidata": "Q5416984",
+        "wikipedia": "en:Everett Building (Manhattan)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9888535,
+              40.7370321
+            ],
+            [
+              -73.9888659,
+              40.7370373
+            ],
+            [
+              -73.9890843,
+              40.7371295
+            ],
+            [
+              -73.9892051,
+              40.736964
+            ],
+            [
+              -73.9893865,
+              40.7370405
+            ],
+            [
+              -73.9895144,
+              40.7368652
+            ],
+            [
+              -73.9895184,
+              40.7368598
+            ],
+            [
+              -73.989106,
+              40.7366858
+            ],
+            [
+              -73.9888535,
+              40.7370321
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773637"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773638",
+        "building": "apartments",
+        "building:colour": "#C57E5C",
+        "building:levels": "4",
+        "building:material": "brick",
+        "height": "14.6",
+        "nycdoitt:bin": "1016134",
+        "roof:material": "concrete",
+        "roof:shape": "flat"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9897582,
+              40.7375315
+            ],
+            [
+              -73.9900441,
+              40.737567
+            ],
+            [
+              -73.9900512,
+              40.7375679
+            ],
+            [
+              -73.9900656,
+              40.7375007
+            ],
+            [
+              -73.9900636,
+              40.7375005
+            ],
+            [
+              -73.9899708,
+              40.7374889
+            ],
+            [
+              -73.9897047,
+              40.7374558
+            ],
+            [
+              -73.9896624,
+              40.7375138
+            ],
+            [
+              -73.989744,
+              40.7375483
+            ],
+            [
+              -73.9897582,
+              40.7375315
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773638"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773640",
+        "building": "office",
+        "height": "52.1",
+        "nycdoitt:bin": "1016147"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9897017,
+              40.7377153
+            ],
+            [
+              -73.9895684,
+              40.7378971
+            ],
+            [
+              -73.9896389,
+              40.737927
+            ],
+            [
+              -73.9897091,
+              40.7378312
+            ],
+            [
+              -73.9897544,
+              40.7378505
+            ],
+            [
+              -73.9897462,
+              40.7378617
+            ],
+            [
+              -73.9899728,
+              40.737892
+            ],
+            [
+              -73.9899863,
+              40.7378361
+            ],
+            [
+              -73.9897017,
+              40.7377153
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773640"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/248773644",
+        "addr:housenumber": "230",
+        "addr:postcode": "10003",
+        "addr:street": "Park Avenue South",
+        "building": "commercial",
+        "height": "55.5",
+        "nycdoitt:bin": "1016152"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9888545,
+              40.7375233
+            ],
+            [
+              -73.9885844,
+              40.7374087
+            ],
+            [
+              -73.9883501,
+              40.7377281
+            ],
+            [
+              -73.9889902,
+              40.7379998
+            ],
+            [
+              -73.9891429,
+              40.7377915
+            ],
+            [
+              -73.9891601,
+              40.737768
+            ],
+            [
+              -73.9889535,
+              40.7376804
+            ],
+            [
+              -73.9889436,
+              40.7376939
+            ],
+            [
+              -73.9887802,
+              40.7376245
+            ],
+            [
+              -73.9888545,
+              40.7375233
+            ]
+          ]
+        ]
+      },
+      "id": "way/248773644"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/249657337",
+        "addr:housenumber": "23",
+        "addr:postcode": "10010",
+        "addr:street": "East 20th Street",
+        "building": "yes",
+        "height": "32.1",
+        "nycdoitt:bin": "1016202"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9892074,
+              40.7390337
+            ],
+            [
+              -73.9892009,
+              40.7390427
+            ],
+            [
+              -73.9890753,
+              40.7392156
+            ],
+            [
+              -73.9891373,
+              40.7392417
+            ],
+            [
+              -73.9892695,
+              40.7390598
+            ],
+            [
+              -73.9892074,
+              40.7390337
+            ]
+          ]
+        ]
+      },
+      "id": "way/249657337"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/249657339",
+        "addr:housenumber": "24",
+        "addr:postcode": "10010",
+        "addr:street": "East 21st Street",
+        "building": "yes",
+        "height": "30.2",
+        "nycdoitt:bin": "1016222"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9890381,
+              40.7392133
+            ],
+            [
+              -73.9889688,
+              40.7393086
+            ],
+            [
+              -73.988863,
+              40.7394542
+            ],
+            [
+              -73.9890156,
+              40.7395183
+            ],
+            [
+              -73.9890965,
+              40.7394069
+            ],
+            [
+              -73.9890409,
+              40.7393835
+            ],
+            [
+              -73.9890866,
+              40.7393208
+            ],
+            [
+              -73.9891342,
+              40.7393408
+            ],
+            [
+              -73.9891493,
+              40.7393199
+            ],
+            [
+              -73.9891826,
+              40.7392741
+            ],
+            [
+              -73.9891299,
+              40.7392519
+            ],
+            [
+              -73.9890381,
+              40.7392133
+            ]
+          ]
+        ]
+      },
+      "id": "way/249657339"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/249657340",
+        "addr:housenumber": "25",
+        "addr:postcode": "10010",
+        "addr:street": "East 20th Street",
+        "building": "yes",
+        "height": "15.7",
+        "nycdoitt:bin": "1016203"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9891376,
+              40.7390161
+            ],
+            [
+              -73.989012,
+              40.7391889
+            ],
+            [
+              -73.9890753,
+              40.7392156
+            ],
+            [
+              -73.9892009,
+              40.7390427
+            ],
+            [
+              -73.9891376,
+              40.7390161
+            ]
+          ]
+        ]
+      },
+      "id": "way/249657340"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/249657341",
+        "addr:housenumber": "27",
+        "addr:postcode": "10010",
+        "addr:street": "East 20th Street",
+        "building": "yes",
+        "height": "14.0",
+        "nycdoitt:bin": "1016204"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9890668,
+              40.7389816
+            ],
+            [
+              -73.988922,
+              40.7391808
+            ],
+            [
+              -73.9889954,
+              40.7392117
+            ],
+            [
+              -73.989012,
+              40.7391889
+            ],
+            [
+              -73.9891376,
+              40.7390161
+            ],
+            [
+              -73.9891402,
+              40.7390125
+            ],
+            [
+              -73.9890668,
+              40.7389816
+            ]
+          ]
+        ]
+      },
+      "id": "way/249657341"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/249657343",
+        "addr:housenumber": "29",
+        "addr:postcode": "10010",
+        "addr:street": "East 20th Street",
+        "building": "yes",
+        "height": "13.3",
+        "nycdoitt:bin": "1016205"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9890024,
+              40.7389497
+            ],
+            [
+              -73.988855,
+              40.7391526
+            ],
+            [
+              -73.988922,
+              40.7391808
+            ],
+            [
+              -73.9890668,
+              40.7389816
+            ],
+            [
+              -73.9890695,
+              40.7389779
+            ],
+            [
+              -73.9890024,
+              40.7389497
+            ]
+          ]
+        ]
+      },
+      "id": "way/249657343"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/249657344",
+        "addr:housenumber": "31",
+        "addr:postcode": "10010",
+        "addr:street": "East 20th Street",
+        "building": "yes",
+        "height": "13.3",
+        "name": "pizza fresca",
+        "name:en": "pizza fresca",
+        "nycdoitt:bin": "1016206"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9889365,
+              40.738922
+            ],
+            [
+              -73.9889332,
+              40.7389264
+            ],
+            [
+              -73.9887807,
+              40.7391363
+            ],
+            [
+              -73.9888467,
+              40.7391641
+            ],
+            [
+              -73.988855,
+              40.7391526
+            ],
+            [
+              -73.9890024,
+              40.7389497
+            ],
+            [
+              -73.9889365,
+              40.738922
+            ]
+          ]
+        ]
+      },
+      "id": "way/249657344"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/249657365",
+        "addr:housenumber": "902",
+        "addr:postcode": "10010",
+        "addr:street": "Broadway",
+        "building": "yes",
+        "height": "83.6",
+        "nycdoitt:bin": "1016201"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9892376,
+              40.739357
+            ],
+            [
+              -73.9890958,
+              40.7395521
+            ],
+            [
+              -73.9892521,
+              40.7396178
+            ],
+            [
+              -73.9894069,
+              40.7394048
+            ],
+            [
+              -73.9895512,
+              40.7394655
+            ],
+            [
+              -73.989627,
+              40.7392101
+            ],
+            [
+              -73.9892695,
+              40.7390598
+            ],
+            [
+              -73.9891373,
+              40.7392417
+            ],
+            [
+              -73.9891299,
+              40.7392519
+            ],
+            [
+              -73.9891826,
+              40.7392741
+            ],
+            [
+              -73.9891493,
+              40.7393199
+            ],
+            [
+              -73.9891573,
+              40.7393232
+            ],
+            [
+              -73.9892376,
+              40.739357
+            ]
+          ]
+        ]
+      },
+      "id": "way/249657365"
+    }
+  ]
+}

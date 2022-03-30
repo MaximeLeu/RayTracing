@@ -1,6 +1,7 @@
 import geopandas as gpd
 import numpy as np
 from shapely.geometry import Polygon as shPolygon
+from tqdm import tqdm
 
 from ..plotting import Plotable
 from .base import bounding_box
@@ -32,10 +33,13 @@ class Scene(Plotable):
     def from_geojson(
         filename, drop_missing_heights=True, default_height=10, center=True
     ):
+        bar = tqdm(total=6, desc="Reading and parsing file", leave=False)
         gdf = gpd.read_file(filename)
+        bar.update(1)
 
         # Only keeping polygons (sometimes points are given)
         gdf = gdf[[isinstance(g, shPolygon) for g in gdf["geometry"]]]
+        bar.update(1)
 
         if drop_missing_heights:
             gdf.dropna(subset=["height"], inplace=True)
@@ -45,9 +49,13 @@ class Scene(Plotable):
             else:
                 gdf["height"].fillna(value=default_height, inplace=True)
 
+        bar.update(1)
+
         gdf.to_crs(
             epsg=3035, inplace=True
         )  # To make buildings look more realistic, there may be a better choice :)
+
+        bar.update(1)
 
         if center:
             bounds = gdf.total_bounds
@@ -63,6 +71,8 @@ class Scene(Plotable):
 
         polyhedra = gdf.apply(func, axis=1).values.tolist()
 
+        bar.update(1)
+
         bounds = gdf.total_bounds.reshape(2, 2)
 
         points = np.zeros((4, 3), dtype=float)
@@ -73,5 +83,7 @@ class Scene(Plotable):
 
         ground_surface = Polygon(points)
         ground_surface.edges = []
+
+        bar.update(1)
 
         return Scene([ground_surface, *polyhedra])

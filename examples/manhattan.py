@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     simu = Simulation(scene, TX, RX)
 
-    simu.compute_paths(0)
+    # simu.compute_paths(0)
 
     simu.plot()
     simu.show()

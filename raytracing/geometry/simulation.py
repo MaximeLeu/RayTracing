@@ -1,9 +1,11 @@
 import pickle
+from collections import defaultdict
 from itertools import combinations_with_replacement, tee
 from math import comb
 
 import networkx as nx
 import numpy as np
+from pqdm.threads import pqdm
 from scipy.optimize import minimize
 from tqdm import tqdm, trange
 
@@ -103,6 +105,35 @@ def compute_path(start, end, interactions):
     return Path(path, start=start, end=end, res=sol, interact_list=interactions)
 
 
+def E_coef(path, f=1e9, c=3e8, e=1):
+    points = path.points
+    coef = 1
+    n = path.shape[0] - 3
+    for i, interaction in enumerate(path.interact_list):
+        in_vector = points[i + 1, :] - points[i, :]
+        out_vector = points[i + 2, :] - points[i + 1, :]
+
+        if isinstance(interaction, Surface):
+            pass
+            # Perfect reflection
+        elif isinstance(interaction, LinearEdge):
+            pass
+
+        if i == 0:
+            coef /= 4 * np.pi * np.linalg.norm(in_vector) * f / c
+
+        if i == n:
+            coef /= 4 * np.pi * np.linalg.norm(out_vector) * f / c
+
+    return coef
+
+    distances = np.diff(path.points, axis=0)
+    distances = np.linalg.norm(distances, axis=1)
+    fspl = (4 * np.pi * distances * f / c) ** 2
+    attenuation = np.prod(fspl)
+    return 1 / attenuation
+
+
 class Simulation(Plotable):
     def __init__(self, scene, TX, *RXS):
         super().__init__()
@@ -110,10 +141,20 @@ class Simulation(Plotable):
         self.scene = scene
         self.TX = TX
         self.RXS = RXS
-        self.paths = []
+        self.paths = defaultdict(list)
         self.domain = bounding_box(
             [scene.domain, TX.domain] + [RX.domain for RX in RXS]
         )
+
+    def power_at_rx(self):
+
+        paths = self.paths
+
+        power = 0
+        for path in paths:
+            power += E_coef(path) ** 2
+
+        return 10 * np.log10(power)
 
     def compute_paths(
         self,
@@ -195,35 +236,47 @@ class Simulation(Plotable):
 
         G = nx.DiGraph(visibility)
 
+        """
         all_simple_paths = list(
-            nx.all_simple_paths(G, source=n, target=n + 1, cutoff=max_interactions + 1)
+            tqdm(nx.all_simple_paths(G, source=n, target=n + 1, cutoff=max_interactions + 1), leave=False, desc="Generating all paths")
         )
+        """
 
-        def trace_ray(indices):
+        def trace_ray(RX):
             paths = []
 
-            for RX in self.RXS:
+            for indices in nx.all_simple_paths(
+                G, source=n, target=n + 1, cutoff=max_interactions + 1
+            ):
                 interact_list = [interactions[i] for i in indices[1:-1]]
                 path = compute_path(self.TX, RX, interact_list)
 
                 if path.is_valid() and not any(
                     surface.intersects(path.points) for surface in self.scene.surfaces
                 ):
-                    paths.appends(path)
+                    paths.append(path)
 
             return paths
 
-        # result = pqdm(all_simple_paths, trace_ray, n_jobs=16)
+        # result = pqdm(self.RXS, trace_ray, n_jobs=16, leave=False, desc="Launching rays towards RXS")
 
-        for indices in tqdm(all_simple_paths, leave=False, desc="Tracing rays"):
-            for RX in self.RXS:
+        # print(result)
+
+        for indices in tqdm(
+            nx.all_simple_paths(G, source=n, target=n + 1, cutoff=max_interactions + 1),
+            leave=False,
+            desc="Tracing rays",
+        ):
+            for k, RX in tqdm(
+                enumerate(self.RXS), leave=False, desc="Iterating through RXS..."
+            ):
                 interact_list = [interactions[i] for i in indices[1:-1]]
                 path = compute_path(self.TX, RX, interact_list)
 
                 if path.is_valid() and not any(
                     surface.intersects(path.points) for surface in self.scene.surfaces
                 ):
-                    self.paths.append(path)
+                    self.paths[k].append(path)
 
         """
         for i in trange(0, max_interactions + 1, leave=False):
@@ -252,8 +305,10 @@ class Simulation(Plotable):
 
     def plot(self):
         self.scene.on(self.ax).plot()
-        for path in self.paths:
-            path.on(self.ax).plot()
+
+        for paths in self.paths.values():
+            for path in paths:
+                path.on(self.ax).plot()
 
         self.TX.on(self.ax).plot(color="b")
 

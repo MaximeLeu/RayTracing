@@ -10,7 +10,7 @@ if __name__ == "__main__":
     )
     # scene = Scene([polyhedron])
 
-    TX = Point([20, 20, 10])
+    TX = Point([0, 40, 16])
     RX = Point([-20, 20, 2])
 
     # scene.add_object(...)
@@ -19,8 +19,10 @@ if __name__ == "__main__":
 
     simu = Simulation(scene, TX, RX)
 
-    simu.compute_paths(3)
-    simu.save_paths("paths_basic.pickle")
+    simu.compute_paths(2)
+    # simu.save_paths("paths_basic.pickle")
+
+    # print(simu.power_at_rx())
 
     simu.plot()
     simu.show()
