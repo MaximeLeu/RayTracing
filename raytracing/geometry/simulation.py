@@ -261,6 +261,10 @@ class Simulation(Plotable):
         # result = pqdm(self.RXS, trace_ray, n_jobs=16, leave=False, desc="Launching rays towards RXS")
 
         # print(result)
+        print("Computing count")
+        count = sum(1 for _ in nx.all_simple_paths(G, source=n, target=n + 1, cutoff=max_interactions + 1))
+
+        print("sum is:", count)
 
         for indices in tqdm(
             nx.all_simple_paths(G, source=n, target=n + 1, cutoff=max_interactions + 1),
