@@ -173,6 +173,10 @@ class Simulation(Plotable):
 
         visibility = np.zeros((n + 2, n + 2), dtype=bool)
 
+        broadway_vis = np.loadtxt("data/broadway_vis.txt", dtype=float).astype(bool)
+        visibility[:m, :m] = broadway_vis
+
+        
         for i, s1 in tqdm(
             enumerate(surfaces),
             total=m,
@@ -181,12 +185,14 @@ class Simulation(Plotable):
         ):
             surface_indices[s1] = i
             # For each other surface j, check if surface i can see j
+            """
             for j in range(i + 1, m):
                 s2 = surfaces[j]
                 if s1.can_see(s2):
                     visibility[i, j] = True
                     visibility[j, i] = True
-
+            """
+        
         for k in trange(
             m, n, leave=False, desc="Computing second part of visibility matrix"
         ):
