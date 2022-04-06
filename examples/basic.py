@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     simu = Simulation(scene, TX, RX)
 
-    simu.compute_paths(2)
+    simu.compute_paths(1)
     # simu.save_paths("paths_basic.pickle")
 
     # print(simu.power_at_rx())
