@@ -17,30 +17,20 @@ def cot(x):
 
 
 def F(x):
-    #print(x)
-    #x = atleast_1d(x)
-    #neg = x < 0
 
-    #x[neg] *= -1
+    factor = np.sqrt(np.pi / 2)
+    sqrtx = np.sqrt(x)
 
-    S, C = sc.fresnel(sqrt(2 / pi) * sqrt(x))
-    res = (
+    S, C = sc.fresnel(sqrtx / factor)
+
+    return (
         2j
-        * sqrt(x)
-        * exp(1j * x)
-        * (
-            (1 / 2 + 1j / 2)
-            * sqrt(pi / 2)
-            * ((-1 + 1j) * x * C + (1 + 1j) * sqrt(x**2) * S - 1j * x)
-        )
-        / x
+        * sqrtx
+        * np.exp(1j * x)
+        * (factor * ((1 - 1j) / 2 - C + 1j * S))
+        # We changed the parenthesis so that
+        # \sqrt{pi/2} now multiplies C and S
     )
-
-    #res[neg] = conj(res[neg])
-
-    #if x.size == 1:
-    #    return x[0]
-    return res
 
 
 def D_s_h(n, k, beta_0, phi, phi_p, Li, Lrn, Lro):
