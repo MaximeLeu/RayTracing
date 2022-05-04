@@ -7,5 +7,6 @@ from .geometry import (
     Simulation,
     Sphere,
     Vector,
+    Square,
 )
 from .plotting import new_2d_axes, new_3d_axes

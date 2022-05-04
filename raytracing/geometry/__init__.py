@@ -1,6 +1,6 @@
 from .path import Path
 from .point import Point
-from .polygon import Polygon
+from .polygon import Polygon, Square
 from .polyhedron import Polyhedron
 from .scene import Scene
 from .simulation import Simulation
