@@ -34,3 +34,4 @@ build/
 raytracing/__pycache__/
 .packages.json
 .uninstalled_packages.txt
+env/

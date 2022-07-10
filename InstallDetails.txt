@@ -1,0 +1,10 @@
+Stuff I have installed:
+
+------10/07/2022
+Atom
+python 3.10.4
+pip
+venv---> source env/bin/activate to activate the env
+which python to see if i am in the right environment
+QGIS
+
