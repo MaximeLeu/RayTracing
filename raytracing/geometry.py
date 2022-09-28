@@ -28,7 +28,7 @@ def cartesian_to_spherical(points):
     x, y, z = points.T
     hxy = np.hypot(x, y)
     r = np.hypot(hxy, z)
-    el = np.arctan2(z, hxy)
+    el = np.arctan2(hxy, z)
     az = np.arctan2(y, x)
     return az, el, r
 
