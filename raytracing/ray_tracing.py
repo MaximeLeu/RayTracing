@@ -33,7 +33,7 @@ class RayTracingProblem:
         self.emitter = emitter
         self.n_screens = n_screens
         self.place = place
-        self.polygons = np.array(place.get_polygons_list())
+        self.polygons = np.array(place.get_polygons_list(),dtype=object)
 
         if receivers is not None:
             self.place.add_set_of_points(receivers)

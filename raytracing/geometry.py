@@ -30,7 +30,7 @@ def cartesian_to_spherical(points):
     r = np.hypot(hxy, z)
     el = np.arctan2(hxy, z)
     az = np.arctan2(y, x)
-    return az, el, r
+    return az, el, r # phi, theta, r
 
 
 def normalize_path(points):
