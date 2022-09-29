@@ -21,7 +21,7 @@ import uuid
 import json
 from raytracing import file_utils
 from raytracing import container_utils
-
+from pathlib import Path
 
 @numba.njit(cache=True)
 def cartesian_to_spherical(points):
@@ -2231,3 +2231,47 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     place.polyhedra = polyhedra
 
     return place
+
+
+
+def preprocess_geojson(filename):
+    """
+    add random heights if there are none present.
+    save and load the new .geojson
+
+    :param filename: the filepath
+    :type filename: str
+    """
+    gdf = gpd.read_file(filename)
+    if not 'height' in gdf.columns:
+        minHeight=25
+        maxHeight=40
+        print("Missing height data, adding random heights between {} m and {} m".format(minHeight,maxHeight))
+        height=np.round(np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)),1)
+        gdf['height']=height
+        
+    with open('dataframe.geojson' , 'w') as file:
+        gdf.to_file(filename, driver="GeoJSON") 
+        
+        
+def sample_geojson(filename,nBuildings):
+    """
+    Samples the geojson such that it contains only nBuildings.
+    Saves the result into filename_sampled.geojson
+
+    :param filename: the filepath
+    :type filename: str
+    :param nBuildings: how many buildings to keep
+    :type nBuildings: int
+    :return: the sampled filepath
+    :rtype: str
+    """
+    
+    gdf = gpd.read_file(filename)
+    gdf=gdf.sample(nBuildings)
+    
+    p=Path(filename)
+    sampled_name=p.stem+"_sampled"+p.suffix
+    with open('dataframe.geojson' , 'w') as file:
+        gdf.to_file(sampled_name, driver="GeoJSON") 
+    return sampled_name
