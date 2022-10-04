@@ -74,10 +74,7 @@ if __name__ == '__main__':
         tx = tx.reshape(-1, 3)
         rx = rx.reshape(-1, 3)
         
-        
-        
-        
-        
+   
     # Adding receivers to place
     place.add_set_of_points(rx)
     ax = place.plot3d(ret=True)
@@ -98,39 +95,11 @@ if __name__ == '__main__':
     problem.solve(max_order=2)
     print(f'Took {time() - t:.4f} seconds to solve problem.')
     fig = plt.figure()
-    ax = fig.gca(projection="3d")
-
-
-#pour créer une sorte de heatmap en dessous du plot. Inutile.
-    # surface = place.surface
-    # domain = surface.get_domain()
-
-    # x = np.linspace(domain[0,0], domain[1,0], 100)
-    # y = np.linspace(domain[0,1], domain[1,1], 100)
-
-    # X, Y = np.meshgrid(x, y)
-    # Z = np.cos((X+50)/120)*np.cos((Y)/40)
-    # Z += 0.05 * np.random.random(Z.shape)
-    # C = X + 1j * Y
-    # for dc in [10 + 10j, 30 + 30j, 20 - 30j]:
-    #     A = C - dc
-    #     Z += 0.2 * np.exp(-np.real(A * np.conj(A)) / 20)
-
-    # it = np.nditer([X, Y, Z], [], [['readonly'], ['readonly'], ['writeonly']])
-
-    # surfaces = [place.polyhedra[0].get_polygons_list()[0], place.polyhedra[1].get_polygons_list()[0], place.polyhedra[2].get_polygons_list()[0]]
-    # for a, b, c in it:
-    #     point = np.array([a, b, c])
-    #     for surf in surfaces:
-    #         if surf.contains_point(point):
-    #             np.add(0, 0, out=c)
-    #             break
-
-    #ax.contourf(X, Y, Z, zdir="z", offset=-30)
-    
+    ax = fig.add_subplot(projection='3d')
     ax = problem.plot3d(ax=ax)
-
     problem.save('../data/problem.json')
+
+
 
     from raytracing.electromagnetism import compute_field_from_solution
 

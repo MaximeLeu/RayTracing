@@ -6,7 +6,7 @@ import numpy as np
 
 from collections import defaultdict
 from tqdm import tqdm
-
+import json
 
 class RayTracingProblem:
     """
@@ -221,7 +221,55 @@ class RayTracingProblem:
         }
 
         file_utils.json_save(filename, data, cls=geom.OrientedGeometryEncoder)
+        
+    def load(self,filename):
+        
+        #TODO load all the ray tracing problem argument (visibility matrix etc)
+        
+        #TODO use with open
+        reader=open(filename,"r")
+        dictionnary=json.load(reader)         
+        reader.close()
+        
+        
+        place=geom.OrientedPlace.from_json(data=dictionnary["place"])
+        self.place=place
+        
+        self.emitter=dictionnary["emitter"]
+        #convert indices from strings to ints
+        los={int(key):dictionnary['los'][key] for key in dictionnary['los']}
+        #convert lists to ndarrays
+        for receiver in range(0,len(los)):
+            los[receiver][0]=np.array(los[receiver][0])
+        self.los=los
+        
+        reflections={int(key):dictionnary['reflections'][key] for key in dictionnary['reflections']}
+        for receiver in range(0,len(reflections)):
+            reflections[receiver]={int(key):reflections[receiver][key] for key in reflections[receiver]}
+            reflections[receiver]=defaultdict(list,reflections[receiver])
+            for order in range(1,len(reflections[receiver])+1):
+                for ref in range(0,len(reflections[receiver][order])):
+                    reflections[receiver][order][ref]=(np.array(reflections[receiver][order][ref][0]),reflections[receiver][order][ref][1])
 
+        self.reflections=reflections
+        diffractions={int(key):dictionnary['diffractions'][key] for key in dictionnary['diffractions']}
+        for receiver in range(0,len(diffractions)):
+            diffractions[receiver]={int(key):diffractions[receiver][key] for key in diffractions[receiver]}
+            diffractions[receiver]=defaultdict(list,diffractions[receiver])
+            for order in range(1,len(diffractions[receiver])+1):
+                for diff in range(0,len(diffractions[receiver][order])):
+                    diffractions[receiver][order][diff]=(np.array(diffractions[receiver][order][diff][0]),
+                                                         diffractions[receiver][order][diff][1],
+                                                         tuple(diffractions[receiver][order][diff][2]),
+                                                         np.array(diffractions[receiver][order][diff][3])
+                                                         )
+        
+        self.diffractions=diffractions
+        self.polygons = np.array(place.get_polygons_list(),dtype=object)
+        return self
+        
+        
+        
     def plot3d(self, ax=None, ret=False, show_refl=True, show_diff=True):
         ax = plot_utils.get_3d_plot_ax(ax)
 

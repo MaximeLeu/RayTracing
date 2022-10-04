@@ -14,6 +14,7 @@ from shapely.geometry import Polygon as shPolygon
 from shapely.geometry import Point as shPoint
 import geopandas as gpd
 
+
 # Utils
 import itertools
 import pickle
@@ -22,6 +23,7 @@ import json
 from raytracing import file_utils
 from raytracing import container_utils
 from pathlib import Path
+
 
 @numba.njit(cache=True)
 def cartesian_to_spherical(points):
@@ -1429,14 +1431,15 @@ class OrientedPolygon(OrientedGeometry):
     :type attributes: any
     """
 
-    def __init__(self, points, **attributes):
+    def __init__(self, points, properties=None, building_id=None, part="side", **attributes):#TESTING
         super().__init__(**attributes)
         self.points = points.astype(float)
-
         self.parametric = None
         self.matrix = None
         self.shapely = None
-
+        self.properties=properties#None #TESTING
+        self.building_id=building_id#None
+        self.part=part #"side" #side by default, but changed when top or bottom
     def __len__(self):
         return self.points.shape[0]
 
@@ -1450,13 +1453,20 @@ class OrientedPolygon(OrientedGeometry):
         if geotype != 'polygon':
             raise ValueError(f'Cannot cast geotype {geotype} to polygon.')
         points = np.array(data.pop('points'))
-        return OrientedPolygon(points, **data)
+        properties = data.pop('properties') #TESTING
+        building_id = data.pop('building_id')
+        part=data.pop('part')
+        return OrientedPolygon(points,properties,building_id,part, **data) #todo TEST, probably properties etc are not loaded
 
+    
     def to_json(self, filename=None):
         data = dict(
             super().to_json(),
             geotype='polygon',
-            points=self.points
+            properties=self.properties, #TESTING
+            building_id=self.building_id,
+            part=self.part,
+            points=self.points,
         )
 
         if filename is not None:
@@ -1784,11 +1794,11 @@ class OrientedPolyhedron(OrientedGeometry):
     :type attributes: any
     """
 
-    def __init__(self, polygons, **attributes):
+    def __init__(self, polygons,building_type=None, **attributes):
         super().__init__(**attributes)
         self.aux_surface = OrientedSurface(polygons)
         self.polygons = self.aux_surface.polygons
-
+        self.building_type =building_type #TESTING
     def __len__(self):
         return len(self.polygons)
 
@@ -1801,13 +1811,15 @@ class OrientedPolyhedron(OrientedGeometry):
         geotype = data.pop('geotype')
         if geotype != 'polyhedron':
             raise ValueError(f'Cannot cast geotype {geotype} to polyhedron.')
+        building_type =data.pop("building_type") #TESTING
         polygons = [OrientedPolygon.from_json(data=poly_data) for poly_data in data.pop('polygons')]
-        return OrientedPolyhedron(polygons, **data)
+        return OrientedPolyhedron(polygons,building_type, **data)
 
     def to_json(self, filename=None):
         data = dict(
             super().to_json(),
             geotype='polyhedron',
+            building_type =self.building_type, #TESTING
             polygons=[
                 polygon.to_json() for polygon in self.polygons
             ]
@@ -1880,7 +1892,7 @@ class Building(OrientedPolyhedron):
     """
 
     @staticmethod
-    def by_polygon_and_height(polygon, height, make_ccw=True, keep_ground=True):
+    def by_polygon_and_height(polygon, height,building_id, make_ccw=True, keep_ground=True): #TESTING
         """
         Constructs a building from a 3D polygon on the ground.
 
@@ -1913,7 +1925,10 @@ class Building(OrientedPolyhedron):
                 bottom_points = bottom_points[::-1, :]
 
         top = OrientedPolygon(top_points)
+        top.part="top"
+        top.building_id=building_id
         bottom = OrientedPolygon(bottom_points)
+        bottom.part="bottom"
 
         if top.get_normal()[2] < 0:  # z component should be positive
             top.parametric = - top.parametric
@@ -1939,12 +1954,13 @@ class Building(OrientedPolyhedron):
             face_points = np.row_stack([A, C, D, B])
 
             polygon = OrientedPolygon(face_points)
+            polygon.building_id=building_id #TESTING
             polygons.append(polygon)
 
         return Building(polygons)
 
     @staticmethod
-    def by_polygon2d_and_height(polygon, height, make_ccw=True, keep_ground=False):
+    def by_polygon2d_and_height(polygon, height, building_id, make_ccw=True, keep_ground=False): #TESTING
         """
         Constructs a building from a 2D polygon.
 
@@ -1975,8 +1991,9 @@ class Building(OrientedPolyhedron):
         bottom_points = np.column_stack([x, y, z0])
 
         polygon = OrientedPolygon(bottom_points)
-
-        return Building.by_polygon_and_height(polygon, height, make_ccw=make_ccw, keep_ground=keep_ground)
+        polygon.building_id=building_id #TESTING
+        
+        return Building.by_polygon_and_height(polygon, height,building_id, make_ccw=make_ccw, keep_ground=keep_ground) #TESTING
 
 
 class Cube(OrientedPolyhedron):
@@ -1985,7 +2002,7 @@ class Cube(OrientedPolyhedron):
     """
 
     @staticmethod
-    def by_point_and_side_length(point, side_length):
+    def by_point_and_side_length(point, side_length,building_id=999):#TESTING
         """
         Creates a cube from an origin point and a side length.
 
@@ -2006,7 +2023,7 @@ class Cube(OrientedPolyhedron):
 
         polygon += point.reshape(1, 3)
 
-        building = Building.by_polygon_and_height(polygon, side_length)
+        building = Building.by_polygon_and_height(polygon, side_length,building_id)#TESTING
 
         return Cube(building.polygons)
 
@@ -2063,10 +2080,11 @@ class OrientedPlace(OrientedGeometry):
         if geotype != 'place':
             raise ValueError(f'Cannot cast geotype {geotype} to place.')
         surface = OrientedSurface.from_json(data=data.pop('surface'))
-        polyhedra = [OrientedPolyhedron.from_json(data=poly_data) for poly_data in data.pop('polyhedra')]
-        points = np.ndarray(data.pop('points'))
+        polyhedra = [OrientedPolyhedron.from_json(data=poly_data) for poly_data in data.pop('polyhedra')]   
+        points = np.array(data.pop('points'))
         return OrientedPlace(surface, polyhedra, points, **data)
 
+    
     def to_json(self, filename=None):
         data = dict(
             super().to_json(),
@@ -2194,7 +2212,7 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
 
     # Only keeping polygon (sometimes points are given)
     gdf = gdf[[isinstance(g, shPolygon) for g in gdf['geometry']]]
-
+    
     if drop_missing_heights:
         gdf.dropna(subset=['height'], inplace=True)
     else:
@@ -2211,12 +2229,12 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
         y = (bounds[1] + bounds[3]) / 2
 
         gdf['geometry'] = gdf['geometry'].translate(-x, -y)
-
+    
+    #properties={'mu':gdf['mu'], 'sigma':gdf['sigma'], 'epsilon':gdf['epsilon']}
     def func(series: gpd.GeoSeries):
-        return Building.by_polygon2d_and_height(series['geometry'], series['height'], keep_ground=False)
+        return Building.by_polygon2d_and_height(series['geometry'], series['height'],series['building_id'], keep_ground=False)
 
     polyhedra = gdf.apply(func, axis=1).values.tolist()
-
     bounds = gdf.total_bounds.reshape(2, 2)
 
     points = np.zeros((4, 3))
@@ -2224,12 +2242,10 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     points[1:3, 0] = bounds[1, 0]
     points[:2, 1] = bounds[0, 1]
     points[2:, 1] = bounds[1, 1]
-
     ground_surface = OrientedSurface(points)
-
     place = OrientedPlace(ground_surface)
     place.polyhedra = polyhedra
-
+    
     return place
 
 
@@ -2237,8 +2253,13 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
 def preprocess_geojson(filename):
     """
     add random heights if there are none present.
-    save and load the new .geojson
 
+    add random data about the polygons (mu,epsilon,sigma)
+    add random building types amongst "office","appartments","garage"
+    add building ids
+    
+    save and load the new .geojson
+    
     :param filename: the filepath
     :type filename: str
     """
@@ -2249,11 +2270,25 @@ def preprocess_geojson(filename):
         print("Missing height data, adding random heights between {} m and {} m".format(minHeight,maxHeight))
         height=np.round(np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)),1)
         gdf['height']=height
+
+    if not 'building_type' in gdf.columns:
+        types=["office","appartments","garage"]
+        print("Missing building_type data, randomly adding {} ".format(types))
+        names = [{}]*len(gdf)
+        for i in range(0,len(names)):
+            rand=np.random.randint(0,len(types)-1)
+            names[i]=types[rand]
+        gdf['building_type']=names
         
+    if not 'building_id' in gdf.columns:
+        tag=np.arange(0,len(gdf),1)
+        gdf['building_id']=tag
+
     with open('dataframe.geojson' , 'w') as file:
         gdf.to_file(filename, driver="GeoJSON") 
-        
-        
+      
+
+
 def sample_geojson(filename,nBuildings):
     """
     Samples the geojson such that it contains only nBuildings.
