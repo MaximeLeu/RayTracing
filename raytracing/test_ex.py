@@ -14,7 +14,6 @@ from electromagnetism import ElectromagneticField,compute_field_from_solution,my
 import json
 from raytracing import file_utils
 import geopandas as gpd
-from materials_properties import postprocess_problem
 from collections import defaultdict
 import pickle
 #driver code
@@ -24,7 +23,7 @@ if __name__ == '__main__':
 
     # 1. Load data
 
-    geometry = 'small'  # You can change to use another geometry
+    geometry = 'my_geometry'  # You can change to use another geometry
     geometry_filename=""
     if geometry == 'small':
         geometry_filename='../data/small.geojson'
@@ -97,7 +96,7 @@ if __name__ == '__main__':
     
     # Adding receivers to place
     place.add_set_of_points(rx)
-    place.add_set_of_points(rx2)
+    #place.add_set_of_points(rx2)
     
     ax = place.plot3d(ret=True)
     place.center_3d_plot(ax)
@@ -107,20 +106,20 @@ if __name__ == '__main__':
     
     #compute the rays
     problem = RayTracingProblem(tx, place)
-    problem.solve(max_order=2)
+    problem.solve(max_order=3)
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     ax = problem.plot3d(ax=ax)
     problem_path='../data/problem.json'
     problem.save(problem_path)
     
-    postprocess_problem(problem_path,geometry_filename)
-    updated_problem=problem.load(problem_path)
+    
+    #updated_problem=problem.load(problem_path)
     
     #compute E field
     #compute_field_from_solution(updated_problem, '../data/electromagnetism.json')
     
-    my_field_computation(updated_problem)
+    my_field_computation(problem)
     
     #all_receivers=problem.receivers
     #the_emitter=problem.emitter

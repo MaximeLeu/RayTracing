@@ -106,14 +106,14 @@ class ElectromagneticField:
             
             #parameters
             E=ElectromagneticField()
-            #wave impedance, i consider the first medium is always vacuum.
-            mu_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["mu"].values[0]
+            #wave impedance, I consider the first medium is always vacuum.
+            mu_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["mu"].values[0]*mu_0
             sigma_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["sigma"].values[0]
-            epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[0]
+            epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[0]*epsilon_0
             
-            mu_2=np.complex(reflection_polygon.properties['mu'])
+            mu_2=np.complex(reflection_polygon.properties['mu'])*mu_0
             sigma_2=np.complex(reflection_polygon.properties['sigma'])
-            epsilon_2=np.complex(reflection_polygon.properties['epsilon'])
+            epsilon_2=np.complex(reflection_polygon.properties['epsilon'])*epsilon_0
             
             eta_1=np.sqrt(1j*E.w*mu_1/(sigma_1+1j*E.w*epsilon_1))
             eta_2=np.sqrt(1j*E.w*mu_2/(sigma_2+1j*E.w*epsilon_2))
@@ -133,7 +133,7 @@ class ElectromagneticField:
             surface_normal=array_utils.normalize(reflection_polygon.get_normal())
             
             #incident and transmission angles
-            theta_1=np.arccos(np.dot(surface_normal, -si))
+            theta_1=-np.arccos(np.dot(surface_normal, si))
             theta_2=np.arcsin(np.sin(theta_1)*gamma_1/gamma_2)
             
             #fresnel reflection coefficients
@@ -157,7 +157,9 @@ class ElectromagneticField:
         return coeffs
     
     
-    
+    def diff(diff_path,rtp):
+        
+        return
         
         
     def reflect(self, reflection_path, surface_normal, surface_r_index=1/er):

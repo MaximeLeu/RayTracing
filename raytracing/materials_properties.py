@@ -10,68 +10,71 @@ Properties of various materials
 
 import pandas as pd
 import numpy as np
-import geopandas as gpd
-import json
+
 
 #relative permittivity= epsilon
 #relative permeability=mu
 #electrical conductivity=sigma
 
-mu_0=4*np.pi*10**(-7)
+#TODO: find correct relatives mu for each materials
 
 ITU="ITU-R P.2040-2"
 
+
+#!!! I am stocking relative values
 air={'material':"air",
  'epsilon':1,
- 'mu':mu_0,
+ 'mu':1,
  'sigma':0,
  'frequency_range_GHz':"0.001-100",
  'source':ITU}
 
 concrete={'material':"concrete",
  'epsilon':5.24+0j,
- 'mu':mu_0,
+ 'mu':1,
  'sigma':0.0462+0.7822j,
  'frequency_range_GHz':"1-100",
  'source':ITU}
 
 brick={'material':"brick",
  'epsilon':3.91+0j,
- 'mu':mu_0,
+ 'mu':1,
  'sigma':0.0238+0.16j,
  'frequency_range_GHz':"1-40",
  'source':ITU}
 
 wood={'material':"wood",
  'epsilon':1.99+0j,
- 'mu':mu_0,
+ 'mu':1,
  'sigma':0.0047+1.0718j,
  'frequency_range_GHz':"0.001-100",
  'source':ITU}
 
 glass={'material':"glass",
  'epsilon':6.31+0j,
- 'mu':mu_0,
+ 'mu':1,
  'sigma':0.0036+1.3394j,
  'frequency_range_GHz':"0.1-100",
  'source':ITU}
 
 metal={'material':"metal",
  'epsilon':1+0j,
- 'mu':mu_0,
+ 'mu':1,
  'sigma':10**7,
  'frequency_range_GHz':"1-100",
  'source':ITU}
 
 medium_dry_ground={'material':"medium_dry_ground",
  'epsilon':15-0.1j,
- 'mu':mu_0,
+ 'mu':1,
  'sigma':0.035+1.63j,
  'frequency_range_GHz':"1-10",
  'source':ITU}
 
 
 DF_PROPERTIES=pd.concat([pd.DataFrame.from_records([air,concrete,brick,wood,glass,metal,medium_dry_ground])])
+
+#TODO add road/ground properties
 
 def set_properties(building_type):
   
@@ -89,6 +92,8 @@ def set_properties(building_type):
             properties=create_dict("brick")  
         case "garage":
             properties=create_dict("concrete")
+        case "road":
+            properties=create_dict("concrete")
         case _:
             #if its none of the above
             print(f"Properties for the type {building_type} have not been specified, using concrete")
@@ -96,44 +101,6 @@ def set_properties(building_type):
     return properties
 
 
-
-def postprocess_problem(problem_file,geojson):
-    """
-    Add building properties and building type to the problem
-    They are needed for the E field computation
-    Parameters
-    ----------
-    problem : solved ray tracing problem.json
-
-    Returns None
-    -------
-    """
-    
-    filename=problem_file
-    reader=open(filename,"r")
-    data=json.load(reader)              
-    reader.close()
-    
-    gdf=gpd.read_file(geojson)
-    
-    polyhedra=data["place"]["polyhedra"]
-    for polyhedron in polyhedra:
-        the_id=polyhedron["polygons"][0]["building_id"]
-        the_type=gdf.loc[gdf["building_id"]==the_id]["building_type"].values[0]
-        polyhedron["building_type"]=the_type
-        properties=set_properties(the_type)
-                
-        for polygon in polyhedron["polygons"]:
-            polygon["properties"]=properties
-           
-    #setting properties of the ground surface
-    ground_properties=set_properties("office")
-    data["place"]["surface"]["polygons"][0]["properties"]=ground_properties
-    writer=open(filename,"w")
-    json.dump(data, writer,indent=4)
-    writer.close()
-
-    return
 
 
 

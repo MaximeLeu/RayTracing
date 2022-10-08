@@ -24,6 +24,7 @@ from raytracing import file_utils
 from raytracing import container_utils
 from pathlib import Path
 
+from materials_properties import set_properties
 
 @numba.njit(cache=True)
 def cartesian_to_spherical(points):
@@ -1431,13 +1432,13 @@ class OrientedPolygon(OrientedGeometry):
     :type attributes: any
     """
 
-    def __init__(self, points, properties=None, building_id=None, part="side", **attributes):#TESTING
+    def __init__(self, points, properties=None, building_id=None, part="side", **attributes):
         super().__init__(**attributes)
         self.points = points.astype(float)
         self.parametric = None
         self.matrix = None
         self.shapely = None
-        self.properties=properties#None #TESTING
+        self.properties=properties#None
         self.building_id=building_id#None
         self.part=part #"side" #side by default, but changed when top or bottom
     def __len__(self):
@@ -1463,7 +1464,7 @@ class OrientedPolygon(OrientedGeometry):
         data = dict(
             super().to_json(),
             geotype='polygon',
-            properties=self.properties, #TESTING
+            properties=self.properties,
             building_id=self.building_id,
             part=self.part,
             points=self.points,
@@ -1710,14 +1711,14 @@ class OrientedSurface(OrientedGeometry):
     :type attributes: any
     """
 
-    def __init__(self, polygons, **attributes):
+    def __init__(self, polygons, building_type="road", **attributes):
         super().__init__(**attributes)
 
         if type(polygons) != list:
             polygons = [polygons]
 
         if type(polygons[0]) == np.ndarray:
-            self.polygons = [OrientedPolygon(polygon)
+            self.polygons = [OrientedPolygon(points=polygon,properties=set_properties(building_type),building_id=-1,part="ground")
                              for polygon in polygons]
         elif isinstance(polygons[0], OrientedPolygon):
             self.polygons = polygons
@@ -1819,7 +1820,7 @@ class OrientedPolyhedron(OrientedGeometry):
         data = dict(
             super().to_json(),
             geotype='polyhedron',
-            building_type =self.building_type, #TESTING
+            building_type =self.building_type,
             polygons=[
                 polygon.to_json() for polygon in self.polygons
             ]
@@ -1892,7 +1893,7 @@ class Building(OrientedPolyhedron):
     """
 
     @staticmethod
-    def by_polygon_and_height(polygon, height,building_id, make_ccw=True, keep_ground=True): #TESTING
+    def by_polygon_and_height(polygon, height,building_id, make_ccw=True, keep_ground=True):
         """
         Constructs a building from a 3D polygon on the ground.
 
@@ -1954,13 +1955,13 @@ class Building(OrientedPolyhedron):
             face_points = np.row_stack([A, C, D, B])
 
             polygon = OrientedPolygon(face_points)
-            polygon.building_id=building_id #TESTING
+            polygon.building_id=building_id
             polygons.append(polygon)
 
         return Building(polygons)
 
     @staticmethod
-    def by_polygon2d_and_height(polygon, height, building_id, make_ccw=True, keep_ground=False): #TESTING
+    def by_polygon2d_and_height(polygon, height, building_id, make_ccw=True, keep_ground=False):
         """
         Constructs a building from a 2D polygon.
 
@@ -2242,10 +2243,22 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     points[1:3, 0] = bounds[1, 0]
     points[:2, 1] = bounds[0, 1]
     points[2:, 1] = bounds[1, 1]
-    ground_surface = OrientedSurface(points)
+    ground_surface = OrientedSurface(points,"road")
+    
     place = OrientedPlace(ground_surface)
     place.polyhedra = polyhedra
     
+    #from building id set building types:
+    for polyhedron in place.polyhedra:
+        the_id=polyhedron.polygons[0].building_id
+        the_type=gdf.loc[gdf["building_id"]==the_id]["building_type"].values[0]
+        polyhedron.building_type=the_type
+        #from building types set polygon properties
+        for polygon in polyhedron.polygons:
+            polygon.properties=set_properties(the_type)
+        
+    #to check everything is well set:    
+    #place.to_json("../data/the_generated_place.json")  
     return place
 
 
@@ -2271,6 +2284,7 @@ def preprocess_geojson(filename):
         height=np.round(np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)),1)
         gdf['height']=height
 
+    #TODO only add random building types when no building type is already there.
     if not 'building_type' in gdf.columns:
         types=["office","appartments","garage"]
         print("Missing building_type data, randomly adding {} ".format(types))
