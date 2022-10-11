@@ -15,6 +15,12 @@ from materials_properties import DF_PROPERTIES
 n_air = 1.00026825
 er = 4.44 + 1e-3j  #relative permittivity of material on which the wave reflects
 
+#I consider the first medium is always air.
+mu_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["mu"].values[0]*mu_0
+sigma_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["sigma"].values[0]
+epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[0]*epsilon_0
+
+
 class ElectromagneticField:
 
     def __init__(self, E=np.array([1, 0, 0], dtype=complex), f=1.8e9, v=c):
@@ -102,19 +108,16 @@ class ElectromagneticField:
                 DESCRIPTION the dyadic reflection coefficient of the path
            """
             #data:
-            reflection_polygon= rtp.polygons[surface_id]#where the reflection occured
+            reflection_polygon= rtp.polygons[surface_id]#polygon where the reflection occured
             
             #parameters
             E=ElectromagneticField()
-            #wave impedance, I consider the first medium is always vacuum.
-            mu_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["mu"].values[0]*mu_0
-            sigma_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["sigma"].values[0]
-            epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[0]*epsilon_0
             
             mu_2=np.complex(reflection_polygon.properties['mu'])*mu_0
             sigma_2=np.complex(reflection_polygon.properties['sigma'])
             epsilon_2=np.complex(reflection_polygon.properties['epsilon'])*epsilon_0
             
+            #wave impedance
             eta_1=np.sqrt(1j*E.w*mu_1/(sigma_1+1j*E.w*epsilon_1))
             eta_2=np.sqrt(1j*E.w*mu_2/(sigma_2+1j*E.w*epsilon_2))
             
@@ -132,13 +135,22 @@ class ElectromagneticField:
 
             surface_normal=array_utils.normalize(reflection_polygon.get_normal())
             
-            #incident and transmission angles
-            theta_1=-np.arccos(np.dot(surface_normal, si))
-            theta_2=np.arcsin(np.sin(theta_1)*gamma_1/gamma_2)
+            #incident angle and transmission angle
+            theta_1=-np.arccos(np.dot(surface_normal, si)) #incident angle
+            theta_2=np.arcsin(np.sin(theta_1)*gamma_1/gamma_2) #transmission angle from snell law
             
             #fresnel reflection coefficients
             r_par=(eta_2*np.cos(theta_1)-eta_1*np.cos(theta_2)) / (eta_2*np.cos(theta_1)+eta_1*np.cos(theta_2))
             r_per=(eta_2*np.cos(theta_2)-eta_1*np.cos(theta_1)) / (eta_2*np.cos(theta_2)+eta_1*np.cos(theta_1))
+            
+            roughness=float(reflection_polygon.properties['roughness'])
+            rayleigh_criterion= (roughness > E.lam/(8*np.cos(theta_1)))
+            if rayleigh_criterion:
+                print("applying scattering")
+                chi=np.exp(-2*E.k**2*roughness**2*np.cos(theta_1))
+                r_par=r_par*chi
+                r_per=r_per*chi
+            
             
             #dyadic reflection coeff
             e_per=array_utils.normalize(np.cross(-si, sr))
@@ -157,9 +169,7 @@ class ElectromagneticField:
         return coeffs
     
     
-    def diff(diff_path,rtp):
-        
-        return
+    
         
         
     def reflect(self, reflection_path, surface_normal, surface_r_index=1/er):
@@ -351,7 +361,131 @@ def my_reflect(previous_E,reflection_path,rtp):
         E=np.dot(E,R)*np.exp(-1j*previous_E.k*Sr)*Si/(Si+Sr)
     return ElectromagneticField(E, f=previous_E.f, v=previous_E.v)
 
+def my_diff(previous_E, diffraction_data,rtp):
+    """
+    Parameters
+    ----------
+    diffraction_path : TYPE
+        DESCRIPTION.
+    edge : TYPE
+        DESCRIPTION.
+    surface_1_normal : TYPE
+        DESCRIPTION.
+    surface_2_normal : TYPE
+        DESCRIPTION.
 
+    Returns
+    -------
+    None.
+
+    """
+    path,ref_surfaces_ids,diff_points,corner_points=diffraction_data
+    ref_path=path[0:-1] 
+    diff_path=path[0]#TODO: select 3 last points
+    
+    # Compute vectors from emitter to reflection point, then to diffraction point to receiver
+    vectors, norms = geom.normalize_path()
+    si = vectors[0, :]
+    Si = norms[0] #norm of incident ray
+    sd = vectors[1, :]
+    Sd = norms[1] #norm of diffracted ray
+    
+    polygon_1 = rtp.polygons[diff_points[0]]
+    polygon_2 = rtp.polygons[diff_points[1]]
+    edge= np.diff(corner_points, axis=0).reshape(-1)
+    
+    t = array_utils.normalize(edge) #TODO: is that correct??
+    
+    #TODO: probably can be simplified
+    phi_inc=np.cross(Si*si,t)
+    phi_inc=phi_inc/np.norm(phi_inc)
+    
+    phi_diff=np.cross(t,sd*Sd)
+    phi_diff=phi_diff/np.norm(phi_diff)
+    
+    beta_0_inc=np.cross(phi_inc,si*Si)
+    beta_0_diff=np.cross(phi_diff,sd*Sd)
+    
+
+    #parameters
+    E=ElectromagneticField()
+    
+    diffraction_polygon= polygon_1#TODO, what if they don't have the same properties?
+    
+    mu_2=np.complex(diffraction_polygon.properties['mu'])*mu_0
+    sigma_2=np.complex(diffraction_polygon.properties['sigma'])
+    epsilon_2=np.complex(diffraction_polygon.properties['epsilon'])*epsilon_0
+    
+    #wave impedance
+    eta_1=np.sqrt(1j*E.w*mu_1/(sigma_1+1j*E.w*epsilon_1))
+    eta_2=np.sqrt(1j*E.w*mu_2/(sigma_2+1j*E.w*epsilon_2))
+    
+       
+    #fresnel reflection  #TODO: are the angles correct?
+    r_par=(eta_2*np.cos(beta_0_inc)-eta_1*np.cos(beta_0_diff)) / (eta_2*np.cos(beta_0_inc)+eta_1*np.cos(beta_0_diff))
+    r_per=(eta_2*np.cos(beta_0_diff)-eta_1*np.cos(beta_0_inc)) / (eta_2*np.cos(beta_0_diff)+eta_1*np.cos(beta_0_inc))
+    
+    
+    #dyadic diffraction coefficient----------------------
+    #From "Propagation Modelling of Low Earth-Orbit Satellite Personal
+    # Communication Systems" C. Oestges
+    sin_beta_0=np.norm(np.cross(Si*si,t))
+    alpha=1 #interior angle of the wedge #TODO
+    n=2-alpha/np.pi
+    k=previous_E.k
+    
+    #efficiently computs the transition function, as demonstrated in
+    #https://eertmans.be/research/utd-transition-function/
+    def F(x):
+        factor = np.sqrt(np.pi / 2)
+        sqrtx = np.sqrt(x)
+        S, C = fresnel(sqrtx / factor)
+        transition_function=2j * sqrtx* np.exp(1j * x)* (factor * ((1 - 1j) / 2 - C + 1j * S))
+        return transition_function
+    
+    def A(x,sign):
+        match sign:
+            case "minus":
+                N=round((-pi+x)/(2*n*pi))
+            case "plus":
+                N=round((pi+x)/(2*n*pi))
+            case _:
+                raise ValueError('sign should either be plus or minus')                
+        result=2*(np.cos(n*pi*N-x/2))**2
+        return result
+    
+    common_factor=-np.exp(-1j*pi/4)/(2*n*np.sqrt(2*pi*k)*sin_beta_0)
+    L=(sin_beta_0**2)*Si*Sd/(Si+Sd) #TODO consider plane or spherical wave front???
+    
+    #components of the diffraction coefficient
+    cot1=1/np.tan((pi+(phi_diff-phi_inc))*1/(2*n))
+    cot2=1/np.tan((pi-(phi_diff-phi_inc))*1/(2*n))
+    cot3=1/np.tan((pi+(phi_diff+phi_inc))*1/(2*n))
+    cot4=1/np.tan((pi-(phi_diff+phi_inc))*1/(2*n))
+    
+    F1=F(k*L*A(phi_diff-phi_inc,"plus"))
+    F2=F(k*L*A(phi_diff-phi_inc,"minus"))
+    F3=F(k*L*A(phi_diff+phi_inc,"plus"))
+    F4=F(k*L*A(phi_diff+phi_inc,"minus"))
+    
+    D1=common_factor*cot1*F1
+    D2=common_factor*cot2*F2
+    D3=common_factor*cot3*F3
+    D4=common_factor*cot4*F4
+    
+    D_per=D1+D2+r_per*(D3+D4)
+    D_par=D1+D2+r_par*(D3+D4)
+    
+    #TODO eq8.31 of UTD book slightly different from claude thesis, check which is correct
+    D=-D_per*beta_0_inc*beta_0_diff - D_par*phi_inc*phi_diff #TODO
+        
+      
+    #field computation----------------------------------- 
+    E_0=previous_E.E #E reaching the first interaction point
+    E_i=my_reflect(E_0,[ref_path,ref_surfaces_ids],rtp) #E reaching the diffraction point
+    
+    E_i.E=E_i.E*D*np.sqrt(Si/(Sd*(Sd+Si)))*np.exp(-1j*E_i.k*Sd) #final field   
+    return E_i
 
 def my_field_computation(rtp):
     #TODO, given a complete path between TX and RX with whatever in between,
@@ -361,31 +495,40 @@ def my_field_computation(rtp):
     reflections = rtp.reflections
     diffractions = rtp.diffractions
     polygons = rtp.polygons
-    
-    
+     
     # computes field for each reflection and diffraction
     for receiver in range(0,len(rtp.place.set_of_points)):
         #compute field resulting from all reflections:         
         reflections_field=ElectromagneticField()
         reflections_field.E=0    
-        for order in range(1,len(reflections[receiver])+1):
+        for order in reflections[receiver]:
             for path in range(0,len(reflections[receiver][order])):
-                tx =reflections[receiver][order][path][0][0] #first point of the reflection
-                first_interaction=reflections[receiver][order][path][0][1] #second point of the path
+                the_path=reflections[receiver][order][path]
+                tx =the_path[0][0] #first point of the reflection
+                first_interaction=the_path[0][1] #second point of the path
                 assert(np.array_equal(rtp.emitter[0],tx))
                 E_initial=ElectromagneticField.from_path([tx,first_interaction])
-                this_E=my_reflect(E_initial,reflections[receiver][order][path],rtp)
+                this_E=my_reflect(E_initial,the_path,rtp)
                 reflections_field.E+=this_E.E
         print(f"field resulting from all reflections to receiver {receiver} is {reflections_field.E}")        
                 
     #     #compute all diffractions
-    #     for order in range(0,len(diffractions[receiver])):
-    #         for path in range(0,len(diffractions[receiver][order])):
-    #             #my_diffract
-    #             pass
-
-    
-    return
+        diffractions_field=ElectromagneticField()
+        diffractions_field.E=0
+        for order in range(0,len(diffractions[receiver])):     
+            for path in range(0,len(diffractions[receiver][order])):
+                the_path=reflections[receiver][order][path]
+                tx =the_path[0][0] #first point of the reflection
+                first_interaction=the_path[0][1] #second point of the path
+                E_initial=ElectromagneticField.from_path([tx,first_interaction])
+                
+                this_E=my_diff(E_initial,path,rtp)
+                diffractions_field.E+=this_E.E
+        print(f"field resulting from all diffractions to receiver {receiver} is {diffractions_field.E}")  
+    total_field=ElectromagneticField()
+    total_field.E=diffractions_field.E+reflections_field.E
+    print(f"Total field resulting to receiver {receiver} is {total_field.E}")  
+    return total_field
 
 
 def compute_field_from_solution(rtp, output):
