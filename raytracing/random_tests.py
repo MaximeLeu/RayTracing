@@ -10,7 +10,6 @@ import raytracing.geometry as geom
 import numpy as np
 from raytracing import plot_utils
 import matplotlib.pyplot as plt
-from electromagnetism import ElectromagneticField
 import json
 from raytracing import file_utils
 import geopandas as gpd
@@ -32,4 +31,12 @@ arr3=arr2[0]
 print("dot")
 a=np.array([1,1,1])
 b=np.array([2,3,4])
-print(a*b)
+print(b[0:-1])
+
+c=[0,1,2,3,4,5]
+print(c[-3:])
+
+a=[]
+a.append(1+2j)
+a.append(14)
+print(a)

@@ -111,9 +111,9 @@ def set_properties(building_type):
 
 
 
-
-pd.set_option("display.precision", 3)
-print(DF_PROPERTIES.to_latex(index=False))
+#to include into latex
+#pd.set_option("display.precision", 3)
+#print(DF_PROPERTIES.to_latex(index=False))
 
 #TODO add road/ground properties
 

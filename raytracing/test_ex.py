@@ -10,12 +10,9 @@ import raytracing.geometry as geom
 import numpy as np
 from raytracing import plot_utils
 import matplotlib.pyplot as plt
-from electromagnetism import ElectromagneticField,compute_field_from_solution,my_field_computation
-import json
+from electromagnetism import my_field_computation
 from raytracing import file_utils
-import geopandas as gpd
-from collections import defaultdict
-import pickle
+
 #driver code
 if __name__ == '__main__':
     
@@ -23,7 +20,7 @@ if __name__ == '__main__':
 
     # 1. Load data
 
-    geometry = 'my_geometry'  # You can change to use another geometry
+    geometry = 'small'  # You can change to use another geometry
     geometry_filename=""
     if geometry == 'small':
         geometry_filename='../data/small.geojson'
