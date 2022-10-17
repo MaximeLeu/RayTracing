@@ -35,3 +35,15 @@ raytracing/__pycache__/
 .packages.json
 .uninstalled_packages.txt
 env/
+
+data/dummy.json
+
+data/problem.json
+
+data/small.geojson
+
+data/TutorialTest/sciences.geojson
+
+raytracing/dataframe.geojson
+
+raytracing/sciences_sampled.geojson
