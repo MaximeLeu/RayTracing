@@ -18,7 +18,7 @@ epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[
 class ElectromagneticField:
 
     def __init__(self, E=np.array([1, 0, 0], dtype=complex), f=1.8e9, v=c):
-        self.E = E
+        self.E = np.array(E)
         self.f = f
         self.v = v
         self.k = 2 * pi * f / v
@@ -132,32 +132,35 @@ class ElectromagneticField:
             ei_par= array_utils.normalize(np.cross(e_per,si))
             er_par= array_utils.normalize(np.cross(e_per,-sr))
             
-            R=e_per*e_per*r_per - ei_par*er_par*r_par
+            R=e_per.reshape(3,1)@e_per.reshape(1,3)*r_per - ei_par.reshape(3,1)@er_par.reshape(1,3)*r_par #3x3 matrix
+            assert(R.shape==(3,3))
             return R,norms
         
-        
         paths=split_reflections_path(reflections_path)
-        
         for i in range(0,len(surfaces_ids)):
             reflection_polygon=rtp.polygons[surfaces_ids[i]]
             R,norms=dyadic_ref_coeff(paths[i],reflection_polygon)
             Si= norms[0]#norm of incident ray
             Sr= norms[1]#norm of reflected ray   
-            E_i.E=np.dot(E_i.E,R)*np.exp(-1j*E_i.k*Sr)*Si/(Si+Sr)
+            E_i.E=R@(E_i.E.reshape(3,1))*np.exp(-1j*E_i.k*Sr)*Si/(Si+Sr)
         return E_i
 
     def my_diff(E_i,diff_path,diff_surfaces_ids,corner_points,rtp):
         """
         Compute the E field at the end of a diffraction
         """
-
-        def diff_dyadic_components(Si,si,Sd,sd,t,phi_inc,phi_diff,k):
+        def diff_dyadic_components(Si,si,Sd,sd,e,k,phi_i_vv,phi_d_vv,diffraction_polygon):
             """
             Computes the 4 components of the dyadic diffraction coefficient
+            e: unit vector tangential to the edge
+            si=s' in McNamara= incident ray
+            sd=s in McNamara= diffracted ray
+            
             """   
             def F(x):
                 #efficiently computes the transition function, as demonstrated in
                 #https://eertmans.be/research/utd-transition-function/
+                #F is defined in Mc 4.72
                 factor = np.sqrt(np.pi / 2)
                 sqrtx = np.sqrt(x)
                 S, C = sc.special.fresnel(sqrtx / factor)
@@ -165,9 +168,10 @@ class ElectromagneticField:
                 return transition_function
             
             def A(x,sign):
+            #definition is given in MC 4.66
                 match sign:
                     case "minus":
-                        N=round((-pi+x)/(2*n*pi))
+                        N=round((-pi+x)/(2*n*pi)) #TODO n
                     case "plus":
                         N=round((pi+x)/(2*n*pi))
                     case _:
@@ -175,28 +179,61 @@ class ElectromagneticField:
                 result=2*(np.cos(n*pi*N-x/2))**2
                 return result
             
-            sin_beta_0=np.dual.norm(np.cross(Si*si,t))
-            alpha=1 #interior angle of the wedge #TODO
-            n=2-alpha/np.pi
+            def cot(x):
+                return 1/np.tan(x)
             
-            common_factor=-np.exp(-1j*pi/4)/(2*n*np.sqrt(2*pi*k)*sin_beta_0)
-            L=(sin_beta_0**2)*Si*Sd/(Si+Sd) #TODO consider plane or spherical wave front???
-              
-            cot1=1/np.tan((pi+(phi_diff-phi_inc))*1/(2*n))
-            cot2=1/np.tan((pi-(phi_diff-phi_inc))*1/(2*n))
-            cot3=1/np.tan((pi+(phi_diff+phi_inc))*1/(2*n))
-            cot4=1/np.tan((pi-(phi_diff+phi_inc))*1/(2*n))
+            #beta_0 and beta_0' have the same norm but are not the same vectors.
+            beta_0=np.arccos(np.dot(si,e)) #(scalar) angle between the incident ray and the edge (Mc 4.19)
             
-            F1=F(k*L*A(phi_diff-phi_inc,"plus"))
-            F2=F(k*L*A(phi_diff-phi_inc,"minus"))
-            F3=F(k*L*A(phi_diff+phi_inc,"plus"))
-            F4=F(k*L*A(phi_diff+phi_inc,"minus"))
+            assert(beta_0<=pi and beta_0>=0)
+            n_0=array_utils.normalize(diffraction_polygon.get_normal()) #(vector) unit vector normal to the 0-face
+            t_0=np.cross(n_0,e) #(vector) unit vector tangential to the O-face (Mc 6.8)
             
-            D1=common_factor*cot1*F1
-            D2=common_factor*cot2*F2
-            D3=common_factor*cot3*F3
-            D4=common_factor*cot4*F4
+            
+            #unit vector components of si and sd lying in the plane perpendicular to the edge (=s_t' and s_t in McNamara)
+            si_t=si-np.dot(si,e)*e 
+            si_t=si_t/np.dual.norm(si_t) #(vector) Mc 6.9
+            sd_t=sd-np.dot(sd,e)*e
+            sd_t=sd_t/np.dual.norm(sd_t) #(vector) Mc 6.10
+            
+            phi_i=pi-(pi-np.arccos(np.dot(-si_t,t_0)))*np.sign(np.dot(-si_t,n_0)) #(scalar) Mc 6.11 incident angle with respect to the O-face
+            phi_d=pi-(pi-np.arccos(np.dot(sd_t,t_0)))*np.sign(np.dot(si_t,n_0)) #(scalar) Mc 6.12 diffraction angle with respect to the O face
+            
+            phi_i=phi_d%(2*pi)#get back in the 0-2pi range
+            phi_d=phi_d%(2*pi)
+            print(f"phid {phi_d} phi_i {phi_i}")
+            #TODO phi_d and phi_i are somehow the same??? see text after 4.39
+            alpha=pi/2 #TODO (radians) interior angle of the wedge             
+            n=2-alpha/pi #doesn't need to be an integer (Mc 4.26)
+            assert(alpha<=pi) #we restrict ourselves to wedges with interior angles <=180
+            
+            # text right after Mc 6.12 for these asserts:
+            assert(phi_i>=0 and phi_i<=n*pi) 
+            assert(phi_d>=0 and phi_d<=n*pi)
+            
+            
+      
+            
+            #components of the diffraction coefficients:
+            common_factor=-np.exp(-1j*pi/4)/(2*n*np.sqrt(2*pi*k)*np.sin(beta_0)) #scalar
+            L=((np.sin(beta_0))**2)*Si*Sd/(Si+Sd) #Scalar Mc 6.26, I neglect the curvature of the edge.
+        
+            cot1=cot((pi+(phi_d-phi_i))*1/(2*n)) #scalar
+            cot2=cot((pi-(phi_d-phi_i))*1/(2*n))
+            cot3=cot((pi+(phi_d+phi_i))*1/(2*n))
+            cot4=cot((pi-(phi_d+phi_i))*1/(2*n))
+            
+            F1=F(k*L*A(phi_d-phi_i,"plus")) #scalar
+            F2=F(k*L*A(phi_d-phi_i,"minus"))
+            F3=F(k*L*A(phi_d+phi_i,"plus"))
+            F4=F(k*L*A(phi_d+phi_i,"minus"))
+            
+            D1=common_factor*cot1*F1 #scalar Mc 6.21
+            D2=common_factor*cot2*F2 #scalar Mc 6.22
+            D3=common_factor*cot3*F3 #scalar Mc 6.23
+            D4=common_factor*cot4*F4 #scalar Mc 6.24
             return D1,D2,D3,D4
+        
         
         # Compute vectors from emitter to reflection point, then to diffraction point to receiver
         vectors, norms = geom.normalize_path(diff_path)
@@ -209,41 +246,34 @@ class ElectromagneticField:
         polygon_2 = rtp.polygons[diff_surfaces_ids[1]]
         edge= np.diff(corner_points, axis=0).reshape(-1)
         
-        t = array_utils.normalize(edge) #TODO: vector tangential to the edge, is it correct?
-        
-        #TODO: probably can be simplified
-        #TODO how to get the scalar value of phi_inc and phi_diff
-        phi_inc=np.cross(Si*si,t)
-        phi_inc=phi_inc/np.dual.norm(phi_inc)
-        
-        phi_diff=np.cross(t,sd*Sd)
-        phi_diff=phi_diff/np.dual.norm(phi_diff)
-        
-        beta_0_inc=np.cross(phi_inc,si*Si)
-        beta_0_diff=np.cross(phi_diff,sd*Sd)
+        e = array_utils.normalize(edge) #TODO: vector tangential to the edge, is it correct?
         
         #parameters
         diffraction_polygon= polygon_1#TODO, what if they don't have the same properties?
         mu_2,sigma_2,epsilon_2,eta,gamma,roughness,surface_normal=ElectromagneticField.get_parameters(E_i,diffraction_polygon)
         
-        theta_i=1 #TODO use the right angles
+        theta_i=1 #TODO use the correct angles
         theta_t=1
         r_par,r_per=ElectromagneticField.fresnel_coeffs(E_i,eta[0],eta[1],theta_i,theta_t,roughness)
         
-        #dyadic diffraction coefficient----------------------
-        #From "Propagation Modelling of Low Earth-Orbit Satellite Personal
-        # Communication Systems" C. Oestges
-        print(f"phi_diff {phi_diff}, phi_inc {phi_inc}")
-        #TODO use scalar value of phi_diff and phi_inc here instead of vectors
-        D1,D2,D3,D4=diff_dyadic_components(Si,si,Sd,sd,t,np.dual.norm(phi_inc),np.dual.norm(phi_diff),E_i.k)
-        D_per=D1+D2+r_per*(D3+D4)
-        D_par=D1+D2+r_par*(D3+D4)
+        #dyadic diffraction coefficient:
+        phi_i_vv=np.cross(-e,si)
+        phi_i_vv=phi_i_vv/np.dual.norm(phi_i_vv) #(vector) Mc 6.2
+        phi_d_vv=np.cross(e,sd)
+        phi_d_vv=phi_d_vv/np.dual.norm(phi_d_vv) #(vector) Mc 6.4
         
-        #TODO eq8.31 of UTD book slightly different from claude thesis, check which is correct
-        D=-D_per*beta_0_inc*beta_0_diff - D_par*phi_inc*phi_diff #TODO
-            
+        D1,D2,D3,D4=diff_dyadic_components(Si,si,Sd,sd,e,E_i.k,phi_i_vv,phi_d_vv,diffraction_polygon)
+        
+        beta_0_i_vv=np.cross(phi_i_vv,si) # (vector) Mc 6.3
+        beta_0_d_vv=np.cross(phi_d_vv,sd) #(vector) Mc 6.5
+        
+        D_per=D1+D2+r_per*(D3+D4) #(scalar) Mc 6.20
+        D_par=D1+D2+r_par*(D3+D4) #(scalar) Mc 6.20
+        
+        D=beta_0_i_vv.reshape(3,1)@beta_0_d_vv.reshape(1,3)*(-D_per) - phi_i_vv.reshape(3,1)@phi_d_vv.reshape(1,3)*D_par # (3x3 matrix) Mc 6.19
+        assert(D.shape==(3,3))
         #field reaching receiver after a diffraction:
-        E_i.E=E_i.E*D*np.sqrt(Si/(Sd*(Sd+Si)))*np.exp(-1j*E_i.k*Sd) 
+        E_i.E=(E_i.E.reshape(1,3)@D)*np.sqrt(Si/(Sd*(Sd+Si)))*np.exp(-1j*E_i.k*Sd) #(vector) Mc 6.18
         return E_i
 
 def my_field_computation(rtp):

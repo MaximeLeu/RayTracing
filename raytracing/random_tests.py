@@ -40,3 +40,21 @@ a=[]
 a.append(1+2j)
 a.append(14)
 print(a)
+
+a=np.array([1,2,3])
+c=np.array([4,5,6])
+b=np.array([[1,2,3],[4,5,6],[7,8,9]])
+print(f"mult @ {a@b}")
+print(f"mult * {a*b}")
+print(f"a before {a}")
+res=a.reshape(3,1)@c.reshape(1,3)
+print(f"res {res}")
+res2=c.reshape(3,1)@a.reshape(1,3)
+print(f"res2 {res2}")
+
+t=5*np.pi/4
+print(t)
+print(t%(2*np.pi))
+assert(t%(2*np.pi)<np.pi)
+tt=t%np.pi
+print(f"tt {tt}")
