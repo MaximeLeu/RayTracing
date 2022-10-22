@@ -866,7 +866,7 @@ def polygon_visibility_vector(polygon_A, polygons, out=None, strict=False):
     # Tolerances : the lower, the more polygons are considered visible, but some badly
     tol_dz = 1e-4  # Tolerance on z coordinate variation
     tol_dot = 1e-4  # Tolerance on dot product result
-    tol_area = 1e-4
+    #tol_area = 1e-4
 
     # Output of data can be stored in a given array
     polygons = list(polygons)
@@ -879,7 +879,7 @@ def polygon_visibility_vector(polygon_A, polygons, out=None, strict=False):
     matrix_A = polygon_A.get_matrix().T
     centroid_A = polygon_A.get_centroid()
 
-    projected_polygon_A = polygon_A.translate(-centroid_A).project(matrix_A)
+    #projected_polygon_A = polygon_A.translate(-centroid_A).project(matrix_A)
     projected_polygons = [(i, polygon.translate(-centroid_A).project(matrix_A))
                           for i, polygon in enumerate(polygons) if polygon != polygon_A]
 
@@ -1072,7 +1072,7 @@ class OrientedGeometry(object):
         :rtype: OrientedGeometry
         """
         if not filename.endswith('.ogeom'):
-            raise ValueError(f'Can only read .ogeom files.')
+            raise ValueError(f'Can only read .ogeom files, you tried to read: {filename}')
 
         with open(filename, 'rb') as f:
             return pickle.load(f)
@@ -1458,16 +1458,15 @@ class OrientedPolygon(OrientedGeometry):
     :type attributes: any
     """
 
-    #TODO remove properties and part from arguments
-    def __init__(self, points, properties=None, part="side", **attributes):
+    def __init__(self, points, **attributes):
         super().__init__(**attributes)
         self.points = points.astype(float)
         self.parametric = None
         self.matrix = None
         self.shapely = None
-        self.properties=properties#None
+        self.properties=None #set at posteriori
         self.building_id= None #set at posteriori
-        self.part=part #"side" #side by default, but changed when top or bottom
+        self.part="side"  #changed when top or bottom
     def __len__(self):
         return self.points.shape[0]
 
@@ -1481,12 +1480,14 @@ class OrientedPolygon(OrientedGeometry):
         if geotype != 'polygon':
             raise ValueError(f'Cannot cast geotype {geotype} to polygon.')
         points = np.array(data.pop('points'))
-        properties = data.pop('properties') #TESTING
-        building_id = data.pop('building_id')
-        part=data.pop('part')
-        loaded_polygon=OrientedPolygon(points,properties,part, **data)
-        loaded_polygon.building_id=building_id
-        return loaded_polygon #todo TEST, probably properties etc are not loaded
+        loaded_polygon=OrientedPolygon(points, **data)
+        
+        loaded_polygon.part = data.pop('part') #TESTING
+        loaded_polygon.properties = data.pop('properties') #TESTING
+        loaded_polygon.building_id = data.pop('building_id')
+        
+        
+        return loaded_polygon #todo TEST
 
     
     def to_json(self, filename=None):
@@ -1774,8 +1775,12 @@ class OrientedSurface(OrientedGeometry):
             polygons = [polygons]
 
         if type(polygons[0]) == np.ndarray:
-            self.polygons = [OrientedPolygon(points=polygon,properties=set_properties(building_type),part="ground")
+            self.polygons = [OrientedPolygon(points=polygon)
                              for polygon in polygons]
+            for polygon in self.polygons:
+                polygon.properties=set_properties(building_type)
+                polygon.part="ground"
+                
         elif isinstance(polygons[0], OrientedPolygon):
             self.polygons = polygons
         else:
@@ -1869,7 +1874,6 @@ class OrientedPolyhedron(OrientedGeometry):
 
     def equals(self,polyhedron):
         #Two oriented polyhedrons are considered equal if their footprint match
-        #TODO: test
         return self.get_top_face().get_shapely().equals(polyhedron.get_top_face().get_shapely())
 
     @staticmethod
@@ -1938,12 +1942,11 @@ class OrientedPolyhedron(OrientedGeometry):
     
     def extend_polyhedron(self,meters):
         top=self.get_top_face().get_shapely() #get top face
-        #TODO does the resolution matter? probably causes the errors
         ext_top=top.buffer(meters, resolution=2, join_style=2, mitre_limit=1,single_sided=True) #extend top face
         #create extended polyhedron from top_face
         ext_points=np.array(shapely.geometry.mapping(ext_top)["coordinates"])[0]
         ext_points=np.c_[ext_points, np.zeros(len(ext_points))] #add some z coordinate
-        extended_polyhedron=Building.by_polygon_and_height(polygon=ext_points,height=10) #height and id don't matter
+        extended_polyhedron=Building.by_polygon_and_height(polygon=ext_points,height=10) #height don't matter
         return extended_polyhedron
     
 
@@ -2403,7 +2406,6 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
 
         gdf['geometry'] = gdf['geometry'].translate(-x, -y)
     
-    #properties={'mu':gdf['mu'], 'sigma':gdf['sigma'], 'epsilon':gdf['epsilon']}
     def func(series: gpd.GeoSeries):
         return Building.by_polygon2d_and_height(series['geometry'], series['height'], keep_ground=False)
 
@@ -2456,7 +2458,6 @@ def preprocess_geojson(filename):
         height=np.round(np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)),1)
         gdf['height']=height
 
-    #TODO only add random building types when no building type is already there.
     if not 'building_type' in gdf.columns:
         types=["office","appartments","garage"]
         print("Missing building_type data, randomly adding {} ".format(types))
