@@ -1,6 +1,7 @@
 from raytracing import array_utils
 from raytracing import geometry as geom
 import numpy as np
+import matplotlib.pyplot as plt
 from numpy.dual import norm
 
 import json
@@ -18,7 +19,7 @@ epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[
 class ElectromagneticField:
 
     def __init__(self, E=np.array([1, 0, 0], dtype=complex), f=1.8e9, v=c):
-        self.E = np.array(E)
+        self.E = E
         self.f = f
         self.v = v
         self.k = 2 * pi * f / v
@@ -62,6 +63,23 @@ class ElectromagneticField:
             r_per=r_per*chi
         return r_par,r_per
     
+    
+    def account_for_trees(E,points,place):
+        """
+        Attenuates the field if the path goes through a tree
+        :param E: electromagnetic field object
+        :type E: ElectromagneticField
+        :param points: two points describing line path
+        :type points: numpy.ndarray *shape=(2, 3)*
+        """
+        if place.obstructs_line_path(points):
+            print("tree in the way, attenuating")
+            attenuation=1 #TODO
+            E.E=E.E*attenuation
+        return E
+    
+       
+    
     def get_parameters(E,reflection_polygon):    
         mu_2=np.complex(reflection_polygon.properties['mu'])*mu_0
         sigma_2=np.complex(reflection_polygon.properties['sigma'])
@@ -86,14 +104,15 @@ class ElectromagneticField:
         """
         def split_reflections_path(reflections_path):
             """
-            given [[TX,R1,...RN,RX],[R1 surface id,...,RN surface id]]
-            Returns [[TX,R1,P1],...,[PN,RN,RX]],[id1,...,idN]
+            given [TX,R1,...RN,RX]
+            Returns [[TX,R1,P1],...,[PN,RN,RX]]
             """  
             points=reflections_path    
             paths=list()
             for i in range(0,len(points)-2):
                 paths.append(points[i:i+3])
             return paths
+        
         def dyadic_ref_coeff(path,reflection_polygon):
             """   
             Computes the dyadic reflection coefficient of the path
@@ -136,13 +155,20 @@ class ElectromagneticField:
             assert(R.shape==(3,3))
             return R,norms
         
+        
         paths=split_reflections_path(reflections_path)
         for i in range(0,len(surfaces_ids)):
             reflection_polygon=rtp.polygons[surfaces_ids[i]]
             R,norms=dyadic_ref_coeff(paths[i],reflection_polygon)
             Si= norms[0]#norm of incident ray
-            Sr= norms[1]#norm of reflected ray   
-            E_i.E=R@(E_i.E.reshape(3,1))*np.exp(-1j*E_i.k*Sr)*Si/(Si+Sr)
+            Sr= norms[1]#norm of reflected ray  
+            E_i=ElectromagneticField.account_for_trees(E_i,np.array([paths[i][0],paths[i][1]]),rtp.place) #account for TX-->ref
+            field=R@(E_i.E.reshape(3,1))*np.exp(-1j*E_i.k*Sr)*Si/(Si+Sr)
+            E_i.E=field.reshape(3,)
+
+        last_path=paths[-1]
+        last_path=np.array([last_path[1],last_path[2]])
+        E_i=ElectromagneticField.account_for_trees(E_i,last_path,rtp.place) #account for ref-->RX
         return E_i
 
     def my_diff(E_i,diff_path,diff_surfaces_ids,corner_points,rtp):
@@ -197,22 +223,26 @@ class ElectromagneticField:
             sd_t=sd_t/np.dual.norm(sd_t) #(vector) Mc 6.10
             
             phi_i=pi-(pi-np.arccos(np.dot(-si_t,t_0)))*np.sign(np.dot(-si_t,n_0)) #(scalar) Mc 6.11 incident angle with respect to the O-face
-            phi_d=pi-(pi-np.arccos(np.dot(sd_t,t_0)))*np.sign(np.dot(si_t,n_0)) #(scalar) Mc 6.12 diffraction angle with respect to the O face
-            
-            phi_i=phi_d%(2*pi)#get back in the 0-2pi range
+            phi_d=pi-(pi-np.arccos(np.dot(sd_t,t_0)))*np.sign(np.dot(sd_t,n_0)) #(scalar) Mc 6.12 diffraction angle with respect to the O-face
+            phi_i=phi_i%(2*pi)#get back in the 0-2pi range
             phi_d=phi_d%(2*pi)
-            print(f"phid {phi_d} phi_i {phi_i}")
+           
+            
             #TODO phi_d and phi_i are somehow the same??? see text after 4.39
             alpha=pi/2 #TODO (radians) interior angle of the wedge             
             n=2-alpha/pi #doesn't need to be an integer (Mc 4.26)
             assert(alpha<=pi) #we restrict ourselves to wedges with interior angles <=180
             
             # text right after Mc 6.12 for these asserts:
-            assert(phi_i>=0 and phi_i<=n*pi) 
-            assert(phi_d>=0 and phi_d<=n*pi)
-            
-            
-      
+                #TODO
+            print(f"si_t {si_t}, sd_t {sd_t}")
+            print(f"t_0 {t_0}, n_0 {n_0}")
+            print(f"dot {np.arccos(np.dot(-si_t,t_0))} dot2 {np.arccos(np.dot(sd_t,t_0))}")
+            print(f"phi_i {phi_i} phi_d {phi_d}")
+            print(f"n {n*pi}")
+            #assert(phi_i>=0 and phi_i<=n*pi)  #TODO
+            #assert(phi_d>=0 and phi_d<=n*pi) #TODO
+
             
             #components of the diffraction coefficients:
             common_factor=-np.exp(-1j*pi/4)/(2*n*np.sqrt(2*pi*k)*np.sin(beta_0)) #scalar
@@ -273,14 +303,32 @@ class ElectromagneticField:
         D=beta_0_i_vv.reshape(3,1)@beta_0_d_vv.reshape(1,3)*(-D_per) - phi_i_vv.reshape(3,1)@phi_d_vv.reshape(1,3)*D_par # (3x3 matrix) Mc 6.19
         assert(D.shape==(3,3))
         #field reaching receiver after a diffraction:
-        E_i.E=(E_i.E.reshape(1,3)@D)*np.sqrt(Si/(Sd*(Sd+Si)))*np.exp(-1j*E_i.k*Sd) #(vector) Mc 6.18
+        field=(E_i.E.reshape(1,3)@D)*np.sqrt(Si/(Sd*(Sd+Si)))*np.exp(-1j*E_i.k*Sd) #(vector) Mc 6.18
+        E_i.E=field.reshape(3,)
+        E_i=ElectromagneticField.account_for_trees(E_i,np.array([diff_path[1],diff_path[2]]),rtp.place)
         return E_i
+
+
+
+
 
 def my_field_computation(rtp):
     #Computes the resulting field at the receiver from all reflections and diffractions
     reflections = rtp.reflections
     diffractions = rtp.diffractions
     fields=[]
+    
+    #Add trees
+    trees=10
+    for i in range(0,trees):
+        rtp.place.add_tree(tree_size=2)    
+
+    fig = plt.figure("place with trees")
+    fig.set_dpi(300)
+    ax = fig.add_subplot(projection='3d')
+    rtp.place.center_3d_plot(ax)
+    ax = rtp.place.plot3d(ax=ax)    
+
     
     # computes field for each reflection and diffraction
     for receiver in range(0,len(rtp.place.set_of_points)):
@@ -319,11 +367,17 @@ def my_field_computation(rtp):
                 first_interaction=the_path[1] #second point of the path
                 
                 E_0=ElectromagneticField.from_path([tx,first_interaction])
-                E_i=ElectromagneticField.my_reflect(E_0,the_path_before_diff,the_reflection_surfaces_ids,rtp) #E reaching the diffraction point
+                assert len(the_path>=3), "path doesn't have the right shape"
+                if(len(the_path==3)):
+                    E_i=ElectromagneticField.account_for_trees(E_0,np.array([the_path[0],the_path[1]]),rtp.place)
+                else:
+                    #trees are accounted for directly in my_reflect()
+                    E_i=ElectromagneticField.my_reflect(E_0,the_path_before_diff,the_reflection_surfaces_ids,rtp) #E reaching the diffraction point
+          
                 this_E=ElectromagneticField.my_diff(E_i,the_diff_path,the_diff_surfaces_ids,the_corner_points,rtp)
                 diffractions_field.E+=this_E.E
                 
-         
+        
         total_field=ElectromagneticField()
         total_field.E=diffractions_field.E+reflections_field.E
         fields.append(total_field)

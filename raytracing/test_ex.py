@@ -98,12 +98,16 @@ if __name__ == '__main__':
     place.add_set_of_points(rx)
     #place.add_set_of_points(rx2)
     
-    # This plot is here to check that you geometry is correct. (TODO doesn't work)
-    #ax = place.plot3d(ret=True)
-    #place.center_3d_plot(ax)
-    #ax=plot_utils.add_points_to_3d_ax(ax=ax, points=tx, label="TX")
-    #plt.legend()
-    #plt.show()       
+   
+    # This plot is here to check that you geometry is correct.
+    fig = plt.figure()
+    fig.set_dpi(300)
+    ax = fig.add_subplot(projection='3d')
+    plot_utils.add_points_to_3d_ax(ax=ax, points=tx, label="TX")
+    place.center_3d_plot(ax)   
+    ax = place.plot3d(ax=ax)
+    plt.legend()
+    
     
     #compute the rays
     problem = RayTracingProblem(tx, place)

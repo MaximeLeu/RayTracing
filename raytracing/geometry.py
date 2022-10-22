@@ -12,10 +12,12 @@ from numba.types import UniTuple, float64, int64, string, boolean, Omitted, opti
 # Geometry libraries
 from shapely.geometry import Polygon as shPolygon
 from shapely.geometry import Point as shPoint
+import shapely
 import geopandas as gpd
 
 
 # Utils
+import matplotlib.pyplot as plt
 import itertools
 import pickle
 import uuid
@@ -23,8 +25,32 @@ import json
 from raytracing import file_utils
 from raytracing import container_utils
 from pathlib import Path
-
+import random
 from materials_properties import set_properties
+
+
+
+def pick_random_consecutive(choice,how_many):
+    #randomly picks howmany consecutive items from a list (the list cycles)
+    start = random.randint(0, len(choice) - 1)
+    return list(itertools.islice(itertools.cycle(choice), start, start + how_many))
+
+def random_point_on_line(P1,P2):
+    #gives a random point that is on the segment defined by P1 and P2
+    d=np.array(P2-P1)
+    k=random.uniform(0,1)
+    rand_point=P1+k*d
+    return rand_point
+
+
+def random_point_inside_polygon(number, polygon):
+    points = []
+    minx, miny, maxx, maxy = polygon.bounds
+    while len(points) < number:
+        pnt = shPoint(random.uniform(minx, maxx), random.uniform(miny, maxy))
+        if polygon.contains(pnt):
+            points.append(pnt)
+    return points
 
 @numba.njit(cache=True)
 def cartesian_to_spherical(points):
@@ -1432,14 +1458,15 @@ class OrientedPolygon(OrientedGeometry):
     :type attributes: any
     """
 
-    def __init__(self, points, properties=None, building_id=None, part="side", **attributes):
+    #TODO remove properties and part from arguments
+    def __init__(self, points, properties=None, part="side", **attributes):
         super().__init__(**attributes)
         self.points = points.astype(float)
         self.parametric = None
         self.matrix = None
         self.shapely = None
         self.properties=properties#None
-        self.building_id=building_id#None
+        self.building_id= None #set at posteriori
         self.part=part #"side" #side by default, but changed when top or bottom
     def __len__(self):
         return self.points.shape[0]
@@ -1457,7 +1484,9 @@ class OrientedPolygon(OrientedGeometry):
         properties = data.pop('properties') #TESTING
         building_id = data.pop('building_id')
         part=data.pop('part')
-        return OrientedPolygon(points,properties,building_id,part, **data) #todo TEST, probably properties etc are not loaded
+        loaded_polygon=OrientedPolygon(points,properties,part, **data)
+        loaded_polygon.building_id=building_id
+        return loaded_polygon #todo TEST, probably properties etc are not loaded
 
     
     def to_json(self, filename=None):
@@ -1692,6 +1721,18 @@ class Square(OrientedPolygon):
 
     @staticmethod
     def by_2_corner_points(points):
+        """
+        The points must be diagonally opposite and must define a flat plane
+        P1=[x,y,z]
+        points=[P1,P2]
+        """
+        P1=points[0]
+        P2=points[1]
+        assert np.array_equal(P1,P2)==False, "points must be different (P1=P2)"
+        assert (P1[2]==P2[2]), "points must define a plane (y1!=y2)"
+        assert P1[1]!=P2[1] and P1[0]!=P2[0],"points must be diagonally opposite"
+        
+        
         points = array_utils.sort_by_columns(points)
         p = np.empty((4, 3), dtype=float)
         p[:-2, :] = points[0, :]
@@ -1700,6 +1741,21 @@ class Square(OrientedPolygon):
         p[-1, 0] = points[0, 0]
         return Square(p)
 
+    def by_center_and_side(center,side,rotate=False):
+        #side is the length of the side
+        #rotate=True will randomly rotate the square
+        P1=np.array([center[0]+side/2,center[1]+side/2,center[2]])
+        P2=np.array([center[0]-side/2,center[1]-side/2,center[2]])
+        points=np.array([P1,P2])
+        square=Square.by_2_corner_points(points)
+        if rotate:  
+            angle=random.randint(0,90)
+            square=shapely.affinity.rotate(square.get_shapely(), angle, origin='center', use_radians=False) 
+            square=np.array(shapely.geometry.mapping(square)["coordinates"][0])
+            square=np.c_[square, np.ones(len(square))] #add some z coordinate
+        return Square(square)
+        
+        
 
 class OrientedSurface(OrientedGeometry):
     """
@@ -1718,7 +1774,7 @@ class OrientedSurface(OrientedGeometry):
             polygons = [polygons]
 
         if type(polygons[0]) == np.ndarray:
-            self.polygons = [OrientedPolygon(points=polygon,properties=set_properties(building_type),building_id=-1,part="ground")
+            self.polygons = [OrientedPolygon(points=polygon,properties=set_properties(building_type),part="ground")
                              for polygon in polygons]
         elif isinstance(polygons[0], OrientedPolygon):
             self.polygons = polygons
@@ -1794,17 +1850,27 @@ class OrientedPolyhedron(OrientedGeometry):
     :param attributes: attributes that will be stored with geometry
     :type attributes: any
     """
-
+    BUILDING_ID=0
+    
     def __init__(self, polygons,building_type=None, **attributes):
         super().__init__(**attributes)
         self.aux_surface = OrientedSurface(polygons)
         self.polygons = self.aux_surface.polygons
-        self.building_type =building_type #TESTING
+        self.building_type = building_type #TESTING
+        self.building_id=OrientedPolyhedron.BUILDING_ID
+        OrientedPolyhedron.BUILDING_ID=OrientedPolyhedron.BUILDING_ID+1
+        for polygon in self.polygons:
+            polygon.building_id=self.building_id
     def __len__(self):
         return len(self.polygons)
 
-    def __str__(self):
-        return f'Polyhedron({len(self)} polygons)'
+    def __str__(self): 
+        return f'Polyhedron({len(self)} polygons) id {self.building_id}, building_type {self.building_type}'
+
+    def equals(self,polyhedron):
+        #Two oriented polyhedrons are considered equal if their footprint match
+        #TODO: test
+        return self.get_top_face().get_shapely().equals(polyhedron.get_top_face().get_shapely())
 
     @staticmethod
     def from_json(data=None, filename=None):
@@ -1821,6 +1887,7 @@ class OrientedPolyhedron(OrientedGeometry):
             super().to_json(),
             geotype='polyhedron',
             building_type =self.building_type,
+            building_id=self.building_id,
             polygons=[
                 polygon.to_json() for polygon in self.polygons
             ]
@@ -1833,6 +1900,13 @@ class OrientedPolyhedron(OrientedGeometry):
 
     def get_polygons_iter(self):
         return iter(self.polygons)
+
+    def get_top_face(self):
+        for polygon in self.polygons:
+            if polygon.part=="top":
+                return polygon
+        assert 1==0, "could not get top face"
+        return
 
     def apply_on_points(self, func, *args, **kwargs):
         surface = self.aux_surface.apply_on_points(func, *args, **kwargs)
@@ -1849,7 +1923,29 @@ class OrientedPolyhedron(OrientedGeometry):
 
         if ret:
             return ax
-
+        
+    def overlap(self,polyhedron):
+        flag=False
+        candidate_top_face=polyhedron.get_top_face().get_shapely()
+        top_face=self.get_top_face().get_shapely()
+        if(top_face.intersects(candidate_top_face)==True):
+            flag=True
+        if(top_face.touches(candidate_top_face)==True):
+            #it's ok if the faces touch but do not intersect
+            flag=False
+        return flag
+    
+    
+    def extend_polyhedron(self,meters):
+        top=self.get_top_face().get_shapely() #get top face
+        #TODO does the resolution matter? probably causes the errors
+        ext_top=top.buffer(meters, resolution=2, join_style=2, mitre_limit=1,single_sided=True) #extend top face
+        #create extended polyhedron from top_face
+        ext_points=np.array(shapely.geometry.mapping(ext_top)["coordinates"])[0]
+        ext_points=np.c_[ext_points, np.zeros(len(ext_points))] #add some z coordinate
+        extended_polyhedron=Building.by_polygon_and_height(polygon=ext_points,height=10) #height and id don't matter
+        return extended_polyhedron
+    
 
 class Pyramid(OrientedPolyhedron):
     """
@@ -1893,7 +1989,7 @@ class Building(OrientedPolyhedron):
     """
 
     @staticmethod
-    def by_polygon_and_height(polygon, height,building_id, make_ccw=True, keep_ground=True):
+    def by_polygon_and_height(polygon, height, make_ccw=True, keep_ground=True):
         """
         Constructs a building from a 3D polygon on the ground.
 
@@ -1927,7 +2023,6 @@ class Building(OrientedPolyhedron):
 
         top = OrientedPolygon(top_points)
         top.part="top"
-        top.building_id=building_id
         bottom = OrientedPolygon(bottom_points)
         bottom.part="bottom"
 
@@ -1955,13 +2050,12 @@ class Building(OrientedPolyhedron):
             face_points = np.row_stack([A, C, D, B])
 
             polygon = OrientedPolygon(face_points)
-            polygon.building_id=building_id
             polygons.append(polygon)
 
         return Building(polygons)
 
     @staticmethod
-    def by_polygon2d_and_height(polygon, height, building_id, make_ccw=True, keep_ground=False):
+    def by_polygon2d_and_height(polygon, height, make_ccw=True, keep_ground=False):
         """
         Constructs a building from a 2D polygon.
 
@@ -1992,9 +2086,8 @@ class Building(OrientedPolyhedron):
         bottom_points = np.column_stack([x, y, z0])
 
         polygon = OrientedPolygon(bottom_points)
-        polygon.building_id=building_id #TESTING
         
-        return Building.by_polygon_and_height(polygon, height,building_id, make_ccw=make_ccw, keep_ground=keep_ground) #TESTING
+        return Building.by_polygon_and_height(polygon, height, make_ccw=make_ccw, keep_ground=keep_ground) #TESTING
 
 
 class Cube(OrientedPolyhedron):
@@ -2003,7 +2096,7 @@ class Cube(OrientedPolyhedron):
     """
 
     @staticmethod
-    def by_point_and_side_length(point, side_length,building_id=999):#TESTING
+    def by_point_and_side_length(point, side_length):
         """
         Creates a cube from an origin point and a side length.
 
@@ -2024,7 +2117,7 @@ class Cube(OrientedPolyhedron):
 
         polygon += point.reshape(1, 3)
 
-        building = Building.by_polygon_and_height(polygon, side_length,building_id)#TESTING
+        building = Building.by_polygon_and_height(polygon, side_length)#TESTING
 
         return Cube(building.polygons)
 
@@ -2191,6 +2284,85 @@ class OrientedPlace(OrientedGeometry):
         if ret:
             return ax
 
+    
+    def overlap_place(self,polyhedron):
+        """
+        determines if the polyhedron intersect any polyhedron of the place
+        the polyhedrons can touch, but not intersect.
+        Works by comparing if their top faces intersect (ignoring the z value)
+        """  
+        for the_polyhedron in self.polyhedra:   
+            if the_polyhedron.overlap(polyhedron):
+                return True
+        return False
+
+    def add_polyhedron(self, polyhedron, allow_overlap=False):
+
+        #adds a polyhedron to the polyhedra list
+        assert isinstance(polyhedron, OrientedPolyhedron), "given polyhedron is not of type OrientedPolyhedron"
+        if allow_overlap==False:
+            assert self.overlap_place(polyhedron)==False, "the polyhedron overlaps another one in the place"
+        self.polyhedra.append(polyhedron)
+        return
+
+
+
+
+    def add_tree(self,tree_size,how_close_to_buildings=2):
+        """       
+        Adds a tree at a random spot in the place. 
+        Crashes if there is not much more space left to put a tree
+        Parameters
+        ----------
+        tree_size : int, the side length of the square the tree fits in
+        how_close_to_buildings : int, the default is 2. how close a tree can be to any building
+        Returns
+        -------
+        None.
+        """
+        def create_tree(tree_spot,tree_size):
+            tree_height=random.uniform(10, 20)
+            tree_top=Square.by_center_and_side(tree_spot,tree_size,rotate=True).get_points()
+            tree=Building.by_polygon_and_height(tree_top, tree_height)
+            tree.building_type="tree"
+            return tree
+        
+        meters=how_close_to_buildings+tree_size/2
+        ground = self.surface.polygons[0].get_shapely()
+        zone=ground
+        for polyhedron in self.polyhedra:
+            the_ext_poly=polyhedron.extend_polyhedron(meters)
+            the_ext_top=the_ext_poly.get_top_face().get_shapely()
+            zone=zone.difference(the_ext_top)   
+        
+        tree_spot=random_point_inside_polygon(1, zone)[0]
+        tree_spot=np.array([tree_spot.x,tree_spot.y,0])
+        tree=create_tree(tree_spot,tree_size)
+        self.add_polyhedron(tree)
+        
+        # VISUALISATION
+        # extended_place=OrientedPlace(OrientedSurface(self.surface.polygons))
+        # if(isinstance(zone,shapely.geometry.MultiPolygon)):
+        #     zones=list(zone.geoms)  
+        #     for zone in zones:
+        #         zone_points=np.array(shapely.geometry.mapping(zone)["coordinates"])[0]
+        #         zone_points=np.c_[zone_points, np.zeros(len(zone_points))] #add some z coordinate
+        #         zone=Building.by_polygon_and_height(polygon=zone_points,height=25) #height doesn't matter
+        #         extended_place.add_polyhedron(zone,allow_overlap=True)
+        # else:
+        #     zone_points=np.array(shapely.geometry.mapping(zone)["coordinates"])[0]
+        #     zone_points=np.c_[zone_points, np.zeros(len(zone_points))] #add some z coordinate
+        #     zone=Building.by_polygon_and_height(polygon=zone_points,height=25) #height don't matter
+        #     extended_place.add_polyhedron(zone,allow_overlap=True)
+               
+        # fig = plt.figure("extended_place")
+        # fig.set_dpi(300)
+        # ax = fig.add_subplot(projection='3d')
+        # extended_place.center_3d_plot(ax)
+        # ax = extended_place.plot3d(ax=ax)  
+        return 
+
+
 
 def generate_place_from_rooftops_file(roof_top_file, center=True,
                                       drop_missing_heights=True,
@@ -2233,7 +2405,7 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     
     #properties={'mu':gdf['mu'], 'sigma':gdf['sigma'], 'epsilon':gdf['epsilon']}
     def func(series: gpd.GeoSeries):
-        return Building.by_polygon2d_and_height(series['geometry'], series['height'],series['building_id'], keep_ground=False)
+        return Building.by_polygon2d_and_height(series['geometry'], series['height'], keep_ground=False)
 
     polyhedra = gdf.apply(func, axis=1).values.tolist()
     bounds = gdf.total_bounds.reshape(2, 2)
@@ -2301,7 +2473,6 @@ def preprocess_geojson(filename):
     with open('dataframe.geojson' , 'w') as file:
         gdf.to_file(filename, driver="GeoJSON") 
       
-
 
 def sample_geojson(filename,nBuildings):
     """

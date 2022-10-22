@@ -15,46 +15,26 @@ from raytracing import file_utils
 import geopandas as gpd
 from shapely.geometry import Polygon as shPolygon
 from shapely.geometry import Point as shPoint
-from geometry import Building, OrientedSurface,OrientedPlace
+from geometry import Building, OrientedSurface,OrientedPlace,OrientedPolygon,Square
+import shapely
+import random
+import itertools
+plt.close('all')
 
-filename="../data/TutorialTest/sciences.geojson"
 
-arr=tuple([1,2])
-print(arr)
-lis=1,2
-print(lis)
-points=np.zeros((0, 3))
-print(points.shape[1] == 3)
-print(arr)
-arr2=np.array([[10.0, -3.0, 15.0], [10.0, -3.0, 15.0]])
-arr3=arr2[0]
-print("dot")
-a=np.array([1,1,1])
-b=np.array([2,3,4])
-print(b[0:-1])
+geometry_filename='../data/small.geojson'
+geom.preprocess_geojson(geometry_filename)
+original_place = geom.generate_place_from_rooftops_file(geometry_filename)
 
-c=[0,1,2,3,4,5]
-print(c[-3:])
 
-a=[]
-a.append(1+2j)
-a.append(14)
-print(a)
+for i in range (0,10):
+    original_place.add_tree(3)
 
-a=np.array([1,2,3])
-c=np.array([4,5,6])
-b=np.array([[1,2,3],[4,5,6],[7,8,9]])
-print(f"mult @ {a@b}")
-print(f"mult * {a*b}")
-print(f"a before {a}")
-res=a.reshape(3,1)@c.reshape(1,3)
-print(f"res {res}")
-res2=c.reshape(3,1)@a.reshape(1,3)
-print(f"res2 {res2}")
+#-------------------------------------------------------------
+fig = plt.figure("original place and computed zone")
+fig.set_dpi(300)
+ax = fig.add_subplot(projection='3d')
+original_place.center_3d_plot(ax)
+ax = original_place.plot3d(ax=ax)    
 
-t=5*np.pi/4
-print(t)
-print(t%(2*np.pi))
-assert(t%(2*np.pi)<np.pi)
-tt=t%np.pi
-print(f"tt {tt}")
+
