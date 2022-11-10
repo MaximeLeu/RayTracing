@@ -27,7 +27,7 @@ air={'material':"air",
  'epsilon':1,
  'mu':1,
  'sigma':0,
-  'roughness': 1 *10**(-6), #TODO find correct value
+  'roughness': None, #TODO find correct value
  'frequency_range_GHz':"0.001-100",
  'source':ITU}
 

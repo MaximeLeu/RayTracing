@@ -2,9 +2,9 @@ from raytracing import array_utils
 from raytracing import geometry as geom
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy.dual import norm
+import matplotlib.colors as mcolors
 
-import json
+import pandas as pd
 import scipy as sc
 from scipy.constants import c, mu_0, epsilon_0, pi
 from materials_properties import DF_PROPERTIES
@@ -47,8 +47,11 @@ class ElectromagneticField:
         eph = np.array([-sphi, cphi, 0])
         eth = np.array([ctheta * cphi, sphi * ctheta, -stheta])
 
+        eta=np.sqrt(mu_1/(epsilon_1)) #376.730 = free space impedance
+        assert eta>376 and eta<377, "strange free space impedance value"
+        
         EF = ElectromagneticField()
-        EF.E = np.exp(-1j*EF.k*d) * (eph + eth) / (4 * pi * d) # TODO missing x(-jk eta) ?
+        EF.E =1j*EF.k*eta*np.exp(-1j*EF.k*d) * (eph + eth) / (4 * pi * d)
         return EF
 
     def fresnel_coeffs(E,eta_1,eta_2,theta_i,theta_t,roughness):
@@ -132,9 +135,9 @@ class ElectromagneticField:
             #data:        
             E=ElectromagneticField()
             mu_2,sigma_2,epsilon_2,eta,gamma,roughness,surface_normal=ElectromagneticField.get_parameters(E,reflection_polygon)
-            
+            print(f"mu {mu_2} sigma_2 {sigma_2} epsilon_2 {epsilon_2} eta {eta} gamma {gamma}")
             #Compute vectors from emitter to reflection point,
-            #then to reflection point to receiver
+            #then from reflection point to receiver
             vectors = np.diff(path, axis=0)
             vectors, norms = geom.normalize_path(path)
             si = vectors[0, :] #normalised incident vector
@@ -145,9 +148,10 @@ class ElectromagneticField:
             theta_t=np.arcsin(np.sin(theta_i)*gamma[0]/gamma[1]) #transmission angle from snell law
             
             r_par,r_per=ElectromagneticField.fresnel_coeffs(E,eta[0],eta[1],theta_i,theta_t,roughness)
+            print(f"r_par {r_par} r_per {r_per}")
             
             #dyadic reflection coeff
-            e_per=array_utils.normalize(np.cross(-si, sr))
+            e_per=array_utils.normalize(np.cross(si, sr))
             ei_par= array_utils.normalize(np.cross(e_per,si))
             er_par= array_utils.normalize(np.cross(e_per,-sr))
             
@@ -163,9 +167,11 @@ class ElectromagneticField:
             Si= norms[0]#norm of incident ray
             Sr= norms[1]#norm of reflected ray  
             E_i=ElectromagneticField.account_for_trees(E_i,np.array([paths[i][0],paths[i][1]]),rtp.place) #account for TX-->ref
-            field=R@(E_i.E.reshape(3,1))*np.exp(-1j*E_i.k*Sr)*Si/(Si+Sr)
+            field=(E_i.E.reshape(1,3)@R)*np.exp(-1j*E_i.k*Sr)*Si/(Si+Sr)
+            #reflected field should be of lesser intensity than the incident field
+            assert np.linalg.norm(E_i.E)>=np.linalg.norm(field), f"incident field intensity {np.linalg.norm(E_i.E)} reflected field {np.linalg.norm(field)} dyadic coeff {R}"
             E_i.E=field.reshape(3,)
-
+            
         last_path=paths[-1]
         last_path=np.array([last_path[1],last_path[2]])
         E_i=ElectromagneticField.account_for_trees(E_i,last_path,rtp.place) #account for ref-->RX
@@ -175,18 +181,17 @@ class ElectromagneticField:
         """
         Compute the E field at the end of a diffraction
         """
-        def diff_dyadic_components(Si,si,Sd,sd,e,k,phi_i_vv,phi_d_vv,diffraction_polygon):
+        def diff_dyadic_components(Si,si,Sd,sd,e,k,diffraction_polygon,n):
             """
             Computes the 4 components of the dyadic diffraction coefficient
             e: unit vector tangential to the edge
             si=s' in McNamara= incident ray
             sd=s in McNamara= diffracted ray
-            
             """   
             def F(x):
-                #efficiently computes the transition function, as demonstrated in
+                #Exactly computes the transition function, as demonstrated in
                 #https://eertmans.be/research/utd-transition-function/
-                #F is defined in Mc 4.72
+                #F is defined in McNamara 4.72
                 factor = np.sqrt(np.pi / 2)
                 sqrtx = np.sqrt(x)
                 S, C = sc.special.fresnel(sqrtx / factor)
@@ -194,10 +199,10 @@ class ElectromagneticField:
                 return transition_function
             
             def A(x,sign):
-            #definition is given in MC 4.66
+            #definition is given in McNamara 4.66
                 match sign:
                     case "minus":
-                        N=round((-pi+x)/(2*n*pi)) #TODO n
+                        N=round((-pi+x)/(2*n*pi))
                     case "plus":
                         N=round((pi+x)/(2*n*pi))
                     case _:
@@ -207,46 +212,48 @@ class ElectromagneticField:
             
             def cot(x):
                 return 1/np.tan(x)
-            
-            #beta_0 and beta_0' have the same norm but are not the same vectors.
-            beta_0=np.arccos(np.dot(si,e)) #(scalar) angle between the incident ray and the edge (Mc 4.19)
-            
+                        
+            def distance_factor(Si,Sd,beta_0):
+                #L is a distance parameter depending on the type of illumination. 
+                #For spherical wave incidence :
+                L=((np.sin(beta_0))**2)*Si*Sd/(Si+Sd) #McNamara 6.26
+                return L
+                
+            #beta_0 and beta_0' are the same (keller diffraction law)
+            beta_0=np.arccos(np.dot(si,e)) #(scalar) angle between the incident ray and the edge (McNamara 4.19)
             assert(beta_0<=pi and beta_0>=0)
-            n_0=array_utils.normalize(diffraction_polygon.get_normal()) #(vector) unit vector normal to the 0-face
-            t_0=np.cross(n_0,e) #(vector) unit vector tangential to the O-face (Mc 6.8)
             
+            n_0=array_utils.normalize(diffraction_polygon.get_normal()) #(vector) unit vector normal to the 0-face
+            t_0=np.cross(n_0,e) #(vector) unit vector tangential to the O-face (McNamara 6.8) #TODO it e should be such that t points towards the 0 face, verify
+            
+            #assert diffraction_polygon.contains_point(t_0, check_in_plane=True, plane_tol=1e-8)
             
             #unit vector components of si and sd lying in the plane perpendicular to the edge (=s_t' and s_t in McNamara)
             si_t=si-np.dot(si,e)*e 
-            si_t=si_t/np.dual.norm(si_t) #(vector) Mc 6.9
+            si_t=si_t/np.linalg.norm(si_t) #(vector) McNamara 6.9
             sd_t=sd-np.dot(sd,e)*e
-            sd_t=sd_t/np.dual.norm(sd_t) #(vector) Mc 6.10
+            sd_t=sd_t/np.linalg.norm(sd_t) #(vector) McNamara 6.10
             
-            phi_i=pi-(pi-np.arccos(np.dot(-si_t,t_0)))*np.sign(np.dot(-si_t,n_0)) #(scalar) Mc 6.11 incident angle with respect to the O-face
-            phi_d=pi-(pi-np.arccos(np.dot(sd_t,t_0)))*np.sign(np.dot(sd_t,n_0)) #(scalar) Mc 6.12 diffraction angle with respect to the O-face
+            phi_i=pi-(pi-np.arccos(np.dot(-si_t,t_0)))*1 #np.sign(np.dot(-si_t,n_0)) #(scalar) McNamara 6.11 incident angle with respect to the O-face TODO
+            phi_d=pi-(pi-np.arccos(np.dot(sd_t,t_0)))*1 #np.sign(np.dot(sd_t,n_0)) #(scalar) McNamara 6.12 diffraction angle with respect to the O-face TODO
             phi_i=phi_i%(2*pi)#get back in the 0-2pi range
             phi_d=phi_d%(2*pi)
-           
-            
-            #TODO phi_d and phi_i are somehow the same??? see text after 4.39
-            alpha=pi/2 #TODO (radians) interior angle of the wedge             
-            n=2-alpha/pi #doesn't need to be an integer (Mc 4.26)
-            assert(alpha<=pi) #we restrict ourselves to wedges with interior angles <=180
+
             
             # text right after Mc 6.12 for these asserts:
                 #TODO
             print(f"si_t {si_t}, sd_t {sd_t}")
             print(f"t_0 {t_0}, n_0 {n_0}")
-            print(f"dot {np.arccos(np.dot(-si_t,t_0))} dot2 {np.arccos(np.dot(sd_t,t_0))}")
-            print(f"phi_i {phi_i} phi_d {phi_d}")
-            print(f"n {n*pi}")
-            #assert(phi_i>=0 and phi_i<=n*pi)  #TODO
-            #assert(phi_d>=0 and phi_d<=n*pi) #TODO
-
+            print(f"dot {np.sign(np.dot(-si_t,n_0))} dot2 {np.sign(np.dot(sd_t,n_0))}")
+            print(f"phi_i {phi_i*180/pi} phi_d {phi_d*180/pi}")
+            print(f"n {n}")
+            assert phi_i>=0 and phi_i<=n*pi , f"phi_i {phi_i*180/pi} but should lower than {n*pi*180/pi} because the wedge angle is {(2-n)*pi*180/pi}"#TODO
+            assert phi_d>=0 and phi_d<=n*pi, f"phi_d {phi_d*180/pi}" #TODO
+            #assert 1==2, f"phi_i={phi_i*180/pi} phi_d={phi_d*180/pi}"
             
             #components of the diffraction coefficients:
             common_factor=-np.exp(-1j*pi/4)/(2*n*np.sqrt(2*pi*k)*np.sin(beta_0)) #scalar
-            L=((np.sin(beta_0))**2)*Si*Sd/(Si+Sd) #Scalar Mc 6.26, I neglect the curvature of the edge.
+            L=distance_factor(Si,Sd,beta_0)
         
             cot1=cot((pi+(phi_d-phi_i))*1/(2*n)) #scalar
             cot2=cot((pi-(phi_d-phi_i))*1/(2*n))
@@ -258,12 +265,15 @@ class ElectromagneticField:
             F3=F(k*L*A(phi_d+phi_i,"plus"))
             F4=F(k*L*A(phi_d+phi_i,"minus"))
             
-            D1=common_factor*cot1*F1 #scalar Mc 6.21
-            D2=common_factor*cot2*F2 #scalar Mc 6.22
-            D3=common_factor*cot3*F3 #scalar Mc 6.23
-            D4=common_factor*cot4*F4 #scalar Mc 6.24
+            D1=common_factor*cot1*F1 #scalar McNamara 6.21
+            D2=common_factor*cot2*F2 #scalar McNamara 6.22
+            D3=common_factor*cot3*F3 #scalar McNamara 6.23
+            D4=common_factor*cot4*F4 #scalar McNamara 6.24
             return D1,D2,D3,D4
         
+        def spread_factor(Si,Sd):
+            #for spherical wave incidence on a straight edge:
+            return np.sqrt(Si/(Sd*(Sd+Si)))
         
         # Compute vectors from emitter to reflection point, then to diffraction point to receiver
         vectors, norms = geom.normalize_path(diff_path)
@@ -274,49 +284,90 @@ class ElectromagneticField:
         
         polygon_1 = rtp.polygons[diff_surfaces_ids[0]]
         polygon_2 = rtp.polygons[diff_surfaces_ids[1]]
-        edge= np.diff(corner_points, axis=0).reshape(-1)
         
-        e = array_utils.normalize(edge) #TODO: vector tangential to the edge, is it correct?
+        diffraction_polygon= polygon_1 #we define this as the 0-face.
+        
+        n_0=array_utils.normalize(diffraction_polygon.get_normal()) #(vector) unit vector normal to the 0 face
+        n_1=array_utils.normalize(polygon_2.get_normal()) #(vector) unit vector normal to the n face
+         
+        alpha=np.arccos(np.dot(n_0,n_1)) #angles between two planes = angles between their normals
+        n=2-alpha/pi #doesn't need to be an integer (McNamara 4.26)
+        assert alpha<=pi and n>=1 and n<=2, f"alpha= {alpha*180/pi}, we restrict ourselves to wedges with interior angles <=180"
+        edge= np.diff(corner_points, axis=0).reshape(-1)
+        e = edge/np.linalg.norm(edge)
+        
         
         #parameters
-        diffraction_polygon= polygon_1#TODO, what if they don't have the same properties?
+        
         mu_2,sigma_2,epsilon_2,eta,gamma,roughness,surface_normal=ElectromagneticField.get_parameters(E_i,diffraction_polygon)
         
-        theta_i=1 #TODO use the correct angles
-        theta_t=1
+        
+        beta_0=np.arccos(np.dot(si,e))
+        theta_i=beta_0
+        theta_t=np.arcsin(np.sin(theta_i)*gamma[0]/gamma[1]) #transmission angle from snell law
         r_par,r_per=ElectromagneticField.fresnel_coeffs(E_i,eta[0],eta[1],theta_i,theta_t,roughness)
+
         
-        #dyadic diffraction coefficient:
+        #diffraction coefficients:
+        D1,D2,D3,D4=diff_dyadic_components(Si,si,Sd,sd,e,E_i.k,diffraction_polygon,n)
+        D_per=D1+D2+r_per*(D3+D4) #(scalar) McNamara 6.20
+        D_par=D1+D2+r_par*(D3+D4) #(scalar) McNamara 6.20
+        
+        #Edge fixed coordinate system
         phi_i_vv=np.cross(-e,si)
-        phi_i_vv=phi_i_vv/np.dual.norm(phi_i_vv) #(vector) Mc 6.2
+        phi_i_vv=phi_i_vv/np.linalg.norm(phi_i_vv) #(vector) McNamara 6.2
         phi_d_vv=np.cross(e,sd)
-        phi_d_vv=phi_d_vv/np.dual.norm(phi_d_vv) #(vector) Mc 6.4
+        phi_d_vv=phi_d_vv/np.linalg.norm(phi_d_vv) #(vector) McNamara 6.4 
+        beta_0_i_vv=np.cross(phi_i_vv,si) 
+        beta_0_i_vv=beta_0_i_vv/np.linalg.norm(phi_i_vv)# (vector) McNamara 6.3
+        beta_0_d_vv=np.cross(phi_d_vv,sd) 
+        beta_0_d_vv=beta_0_d_vv/np.linalg.norm(phi_d_vv)#(vector) McNamara 6.5
         
-        D1,D2,D3,D4=diff_dyadic_components(Si,si,Sd,sd,e,E_i.k,phi_i_vv,phi_d_vv,diffraction_polygon)
-        
-        beta_0_i_vv=np.cross(phi_i_vv,si) # (vector) Mc 6.3
-        beta_0_d_vv=np.cross(phi_d_vv,sd) #(vector) Mc 6.5
-        
-        D_per=D1+D2+r_per*(D3+D4) #(scalar) Mc 6.20
-        D_par=D1+D2+r_par*(D3+D4) #(scalar) Mc 6.20
-        
-        D=beta_0_i_vv.reshape(3,1)@beta_0_d_vv.reshape(1,3)*(-D_per) - phi_i_vv.reshape(3,1)@phi_d_vv.reshape(1,3)*D_par # (3x3 matrix) Mc 6.19
+        #dyadic diffraction coefficient
+        D=beta_0_i_vv.reshape(3,1)@beta_0_d_vv.reshape(1,3)*(-D_per) - phi_i_vv.reshape(3,1)@phi_d_vv.reshape(1,3)*D_par # (3x3 matrix) McNamara 6.19
         assert(D.shape==(3,3))
+        
         #field reaching receiver after a diffraction:
-        field=(E_i.E.reshape(1,3)@D)*np.sqrt(Si/(Sd*(Sd+Si)))*np.exp(-1j*E_i.k*Sd) #(vector) Mc 6.18
+        field=(E_i.E.reshape(1,3)@D)*spread_factor(Si,Sd)*np.exp(-1j*E_i.k*Sd) #(vector) McNamara 6.18
+        #diffracted field should be less powerful than the incident field
+        assert np.linalg.norm(E_i.E)>=np.linalg.norm(field), f"incident field intensity {np.linalg.norm(E_i.E)} diffracted field {np.linalg.norm(field)} dyadic coeff {D}"
         E_i.E=field.reshape(3,)
         E_i=ElectromagneticField.account_for_trees(E_i,np.array([diff_path[1],diff_path[2]]),rtp.place)
         return E_i
 
 
 
-
-
+def plot_power_delay_profile(df_pdp):
+    df_pdp.sort_values(by=['path_power'],inplace=True)
+    print(df_pdp)
+    path_types=df_pdp['path_type'].unique()
+    
+    colors=list(mcolors.TABLEAU_COLORS) #10 different colors
+    assert len(path_types)<=len(colors), "too many path types, not enough colors for plotting power delay profile"
+    fig = plt.figure()
+    fig.set_dpi(300)
+    ax = fig.add_subplot(1, 1, 1)
+    count=0
+    for path_type in path_types:
+        data_for_type=df_pdp.loc[df_pdp['path_type'] == path_type]
+        color_for_type=colors[count]
+        count=count+1
+        ax.stem(data_for_type['time_to_receiver'].values, data_for_type['path_power'].values,color_for_type,label=path_type,basefmt=" ")
+       
+    ax.set_title('Power delay Profile')
+    ax.set_xlabel('time to reach receiver (s)')
+    ax.set_ylabel('amplitude')
+    ax.legend()  
+    return
+    
+    
 def my_field_computation(rtp):
     #Computes the resulting field at the receiver from all reflections and diffractions
     reflections = rtp.reflections
     diffractions = rtp.diffractions
     fields=[]
+    
+    df_pdp = pd.DataFrame(columns=['total_len','time_to_receiver','path_power','path_type'])  #dataframe useful for the power delay profile
     
     #Add trees
     trees=10
@@ -332,6 +383,8 @@ def my_field_computation(rtp):
     
     # computes field for each reflection and diffraction
     for receiver in range(0,len(rtp.place.set_of_points)):
+        
+        
         #compute field resulting from all reflections:         
         reflections_field=ElectromagneticField()
         reflections_field.E=0    
@@ -347,19 +400,22 @@ def my_field_computation(rtp):
                 this_E=ElectromagneticField.my_reflect(E_i,the_path,the_reflection_surfaces_ids,rtp)
                 reflections_field.E+=this_E.E
                 
+                path_length=geom.path_length(the_path)
+                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v,np.linalg.norm(this_E.E),'R'*order]
+                
+                
                 
         #compute all diffractions
         diffractions_field=ElectromagneticField()
-        diffractions_field.E=0
-        for order in range(0,len(diffractions[receiver])):     
+        diffractions_field.E=0     
+        for order in diffractions[receiver]:     
             for path in range(0,len(diffractions[receiver][order])):
-                the_data=diffractions[receiver][order][path]
+                the_data=diffractions[receiver][order][path]  
                 the_path=the_data[0]
                 the_reflection_surfaces_ids=the_data[1]
                 the_diff_surfaces_ids=the_data[2]
-                the_corner_points=the_data[3]
-                
-                #assumes diff always happen last
+                the_corner_points=the_data[3] 
+                #WARNING: assumes diff always happen last
                 the_path_before_diff=the_path[0:-1] 
                 the_diff_path=the_path[-3:]
                 
@@ -367,8 +423,8 @@ def my_field_computation(rtp):
                 first_interaction=the_path[1] #second point of the path
                 
                 E_0=ElectromagneticField.from_path([tx,first_interaction])
-                assert len(the_path>=3), "path doesn't have the right shape"
-                if(len(the_path==3)):
+                assert len(the_path)>=3, "path doesn't have the right shape"
+                if len(the_path)==3:
                     E_i=ElectromagneticField.account_for_trees(E_0,np.array([the_path[0],the_path[1]]),rtp.place)
                 else:
                     #trees are accounted for directly in my_reflect()
@@ -377,11 +433,20 @@ def my_field_computation(rtp):
                 this_E=ElectromagneticField.my_diff(E_i,the_diff_path,the_diff_surfaces_ids,the_corner_points,rtp)
                 diffractions_field.E+=this_E.E
                 
+                path_length=geom.path_length(the_path)
+                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v ,np.linalg.norm(this_E.E),'R'*(order-1)+'D']
+                
         
         total_field=ElectromagneticField()
         total_field.E=diffractions_field.E+reflections_field.E
         fields.append(total_field)
+        
+
         E_los=ElectromagneticField.from_path(rtp.los[receiver][0])
+       
+        path_length=geom.path_length(rtp.los[receiver][0])
+        df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v, np.linalg.norm(E_los.E),'LOS']
+        
         
         print("-----------------------------------------------------------")
         print(f"------------data for receiver {receiver}-------------------")
@@ -393,11 +458,13 @@ def my_field_computation(rtp):
         
         print("")
         print("amplitude of fields:")
-        print(f"from reflections {np.dual.norm(reflections_field.E)}")
-        print(f"from diffractions {np.dual.norm(diffractions_field.E)}")
-        print(f"total field {np.dual.norm(total_field.E)}")     
-        print(f"from LOS {np.dual.norm(E_los.E)}")
-                     
+        print(f"from reflections {np.linalg.norm(reflections_field.E)}")
+        print(f"from diffractions {np.linalg.norm(diffractions_field.E)}")
+        print(f"total field {np.linalg.norm(total_field.E)}")     
+        print(f"from LOS {np.linalg.norm(E_los.E)}")
+                    
+        plot_power_delay_profile(df_pdp)
+        
         
     return fields
 

@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.dual import norm
+from numpy.linalg import norm
 
 
 def normalize(array, axis=None):

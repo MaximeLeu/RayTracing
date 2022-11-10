@@ -3,7 +3,7 @@ from raytracing import plot_utils
 
 # Numerical libraries
 import numpy as np
-from numpy.dual import norm
+from numpy.linalg import norm
 from scipy.optimize import root
 from raytracing import array_utils
 import numba
@@ -2090,7 +2090,7 @@ class Building(OrientedPolyhedron):
 
         polygon = OrientedPolygon(bottom_points)
         
-        return Building.by_polygon_and_height(polygon, height, make_ccw=make_ccw, keep_ground=keep_ground) #TESTING
+        return Building.by_polygon_and_height(polygon, height, make_ccw=make_ccw, keep_ground=keep_ground)
 
 
 class Cube(OrientedPolyhedron):
@@ -2385,20 +2385,7 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     :rtype: OrientedPlace
     """
     gdf = gpd.read_file(roof_top_file)
-
-    # Only keeping polygon (sometimes points are given)
-    gdf = gdf[[isinstance(g, shPolygon) for g in gdf['geometry']]]
     
-    if drop_missing_heights:
-        gdf.dropna(subset=['height'], inplace=True)
-    else:
-        if 'height' not in gdf:
-            gdf['height'] = default_height
-        else:
-            gdf['height'].fillna(value=default_height, inplace=True)
-
-    gdf.to_crs(epsg=3035, inplace=True)  # To make buildings look more realistic, there may be a better choice :)
-
     if center:
         bounds = gdf.total_bounds
         x = (bounds[0] + bounds[2]) / 2
@@ -2421,10 +2408,12 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     
     place = OrientedPlace(ground_surface)
     place.polyhedra = polyhedra
-    
+   
+        
     #from building id set building types:
     for polyhedron in place.polyhedra:
         the_id=polyhedron.polygons[0].building_id
+        #find the line of gdf where building_id= the id, and extract the building type from that line
         the_type=gdf.loc[gdf["building_id"]==the_id]["building_type"].values[0]
         polyhedron.building_type=the_type
         #from building types set polygon properties
@@ -2437,7 +2426,7 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
 
 
 
-def preprocess_geojson(filename):
+def preprocess_geojson(filename,drop_missing_heights=False):
     """
     add random heights if there are none present.
 
@@ -2451,12 +2440,24 @@ def preprocess_geojson(filename):
     :type filename: str
     """
     gdf = gpd.read_file(filename)
-    if not 'height' in gdf.columns:
-        minHeight=25
-        maxHeight=40
-        print("Missing height data, adding random heights between {} m and {} m".format(minHeight,maxHeight))
-        height=np.round(np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)),1)
+     
+    # Only keeping polygon (sometimes points are given)
+    gdf = gdf[[isinstance(g, shPolygon) for g in gdf['geometry']]]
+    
+    minHeight=25
+    maxHeight=40
+    height=np.round(np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)),1)
+    if not 'height' in gdf.columns:  
+        print("Missing ALL height data, adding random heights between {} m and {} m".format(minHeight,maxHeight))    
         gdf['height']=height
+
+    if drop_missing_heights:
+        print("Missing SOME height data, dropping")
+        gdf.dropna(subset=['height'], inplace=True)
+    elif gdf['height'].isna().any():
+        how_many_missing=gdf['height'].isna().sum()
+        print(f"Missing {how_many_missing} height data, adding random heights between {minHeight} m and {maxHeight} m")
+        gdf['height'] = np.where(gdf['height'].isna(), np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)), gdf['height']) 
 
     if not 'building_type' in gdf.columns:
         types=["office","appartments","garage"]
@@ -2467,16 +2468,18 @@ def preprocess_geojson(filename):
             names[i]=types[rand]
         gdf['building_type']=names
         
-    if not 'building_id' in gdf.columns:
-        tag=np.arange(0,len(gdf),1)
-        gdf['building_id']=tag
-
+        
+    ids=np.arange(0,len(gdf),1)
+    gdf['building_id']=ids
+    gdf.to_crs(epsg=3035, inplace=True)  # To make buildings look more realistic, there may be a better choice :)    
+    
     with open('dataframe.geojson' , 'w') as file:
         gdf.to_file(filename, driver="GeoJSON") 
       
 
 def sample_geojson(filename,nBuildings):
     """
+    Must be done before calling preprocess_geojson
     Samples the geojson such that it contains only nBuildings.
     Saves the result into filename_sampled.geojson
 

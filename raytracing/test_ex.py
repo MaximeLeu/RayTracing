@@ -67,15 +67,15 @@ if __name__ == '__main__':
         ground = geom.Square.by_2_corner_points(np.array([[0, 0, 0], [70, 24, 0]]))
 
         place = geom.OrientedPlace(geom.OrientedSurface(ground), [building_1, building_2, building_3])
-        #dummy_filename=place.to_json(filename="../data/dummy.json")
-        #geom.preprocess_geojson(dummy_filename)
+        dummy_filename=place.to_json(filename="../data/dummy.json")
+        geom.preprocess_geojson(dummy_filename)
         
         
     elif geometry == 'my_geometry':
         geometry_filename="../data/TutorialTest/sciences.geojson"
-        
-        geom.preprocess_geojson(geometry_filename)
+        #geometry_filename="../data/lln.geojson"
         geometry_filename=geom.sample_geojson(geometry_filename,nBuildings=10)
+        geom.preprocess_geojson(geometry_filename)
         place = geom.generate_place_from_rooftops_file(geometry_filename)
 
         # 2. Create TX and RX
@@ -119,16 +119,6 @@ if __name__ == '__main__':
     problem_path='../data/problem.json'
     problem.save(problem_path)
     
-    
-    #updated_problem=problem.load(problem_path)
-    
-    #compute E field
-    #compute_field_from_solution(updated_problem, '../data/electromagnetism.json')
-    
+    #compute the fields
     my_field_computation(problem)
     
-    #all_receivers=problem.receivers
-    #the_emitter=problem.emitter
-    #problem.reflections[0][1] "first  order reflections reaching the first receiver"
-    #rtp.reflections[0][1][0] One of the first order reflection reaching the first receiver
-    #print(rtp.diffractions[0][2]) order 2 reflections reaching the first receiver"
