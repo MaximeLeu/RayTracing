@@ -16,9 +16,14 @@ import numpy as np
 #electrical conductivity=sigma
 #roughness describes the standard deviation of surface height in METERS
 
+#if required, the imaginary part of the relative permittivity  can be obtained:=17.98*sigma/f (see ITU)
+    
 #TODO: find correct relatives mu for each materials
 
+
+FREQUENCY=1e9
 ITU="ITU-R P.2040-2"
+
 
 
 #TODO find surface roughness values
@@ -32,39 +37,39 @@ air={'material':"air",
  'source':ITU}
 
 concrete={'material':"concrete",
- 'epsilon':5.24+0j,
+ 'epsilon':5.24,
  'mu':1,
- 'sigma':0.0462+0.7822j,
+ 'sigma':0.0462*(FREQUENCY/10e9)**0.7822,
  'roughness': 1 *10**(-6), #TODO find correct value
  'frequency_range_GHz':"1-100",
  'source':ITU}
 
 brick={'material':"brick",
- 'epsilon':3.91+0j,
+ 'epsilon':3.91,
  'mu':1,
- 'sigma':0.0238+0.16j,
+ 'sigma':0.0238*(FREQUENCY/10e9)**0.16,
  'roughness': 1 *10**(-6), #TODO find correct value
  'frequency_range_GHz':"1-40",
  'source':ITU}
 
 wood={'material':"wood",
- 'epsilon':1.99+0j,
+ 'epsilon':1.99,
  'mu':1,
- 'sigma':0.0047+1.0718j,
+ 'sigma':0.0047*(FREQUENCY/10e9)**1.0718,
  'roughness': 1 *10**(-6), #TODO find correct value
  'frequency_range_GHz':"0.001-100",
  'source':ITU}
 
 glass={'material':"glass",
- 'epsilon':6.31+0j,
+ 'epsilon':6.31,
  'mu':1,
- 'sigma':0.0036+1.3394j,
+ 'sigma':0.0036*(FREQUENCY/10e9)**1.3394,
  'roughness': 1 *10**(-6), #TODO find correct value
  'frequency_range_GHz':"0.1-100",
  'source':ITU}
 
 metal={'material':"metal",
- 'epsilon':1+0j,
+ 'epsilon':1,
  'mu':1,
  'sigma':10**7,
  'roughness': 1 *10**(-6), #TODO find correct value
@@ -72,9 +77,9 @@ metal={'material':"metal",
  'source':ITU}
 
 medium_dry_ground={'material':"medium_dry_ground",
- 'epsilon':15-0.1j,
+ 'epsilon':15*(FREQUENCY/10e9)**(-0.1),
  'mu':1,
- 'sigma':0.035+1.63j,
+ 'sigma':0.035*(FREQUENCY/10e9)**1.63,
  'roughness': 1 *10**(-6), #TODO find correct value
  'frequency_range_GHz':"1-10",
  'source':ITU}
@@ -82,8 +87,12 @@ medium_dry_ground={'material':"medium_dry_ground",
 
 DF_PROPERTIES=pd.concat([pd.DataFrame.from_records([air,concrete,brick,wood,glass,metal,medium_dry_ground])])
 
-
-
+#complex effective relative permittivity, as defined in ITU-R P.2040-2
+if not 'epsilon_eff' in DF_PROPERTIES.columns:
+    DF_PROPERTIES['epsilon_eff']=DF_PROPERTIES["epsilon"]-1j*17.98*DF_PROPERTIES["sigma"]/(FREQUENCY/10e9)
+    
+    
+print(DF_PROPERTIES['epsilon_eff'])
 def set_properties(building_type):
   
     def create_dict(material):
@@ -91,7 +100,8 @@ def set_properties(building_type):
         epsilon=str(DF_PROPERTIES.loc[DF_PROPERTIES["material"]==material]["epsilon"].values[0])
         sigma=str(DF_PROPERTIES.loc[DF_PROPERTIES["material"]==material]["sigma"].values[0])
         roughness=str(DF_PROPERTIES.loc[DF_PROPERTIES["material"]==material]["roughness"].values[0])
-        properties={"material":material, "mu":mu,"epsilon":epsilon,"sigma":sigma, "roughness":roughness}
+        epsilon_eff=str(DF_PROPERTIES.loc[DF_PROPERTIES["material"]==material]["epsilon_eff"].values[0])
+        properties={"material":material, "mu":mu,"epsilon":epsilon,"sigma":sigma, "roughness":roughness, "epsilon_eff":epsilon_eff}
         return properties
     
     match building_type:

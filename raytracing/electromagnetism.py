@@ -7,7 +7,7 @@ import matplotlib.colors as mcolors
 import pandas as pd
 import scipy as sc
 from scipy.constants import c, mu_0, epsilon_0, pi
-from materials_properties import DF_PROPERTIES
+from materials_properties import DF_PROPERTIES, FREQUENCY
 
 
 #I consider the first medium is always air.
@@ -18,7 +18,7 @@ epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[
 
 class ElectromagneticField:
 
-    def __init__(self, E=np.array([1, 0, 0], dtype=complex), f=1.8e9, v=c):
+    def __init__(self, E=np.array([1, 0, 0], dtype=complex), f=FREQUENCY, v=c):
         self.E = E
         self.f = f
         self.v = v
@@ -54,10 +54,17 @@ class ElectromagneticField:
         EF.E =1j*EF.k*eta*np.exp(-1j*EF.k*d) * (eph + eth) / (4 * pi * d)
         return EF
 
-    def fresnel_coeffs(E,eta_1,eta_2,theta_i,theta_t,roughness):
-        r_par=(eta_2*np.cos(theta_i)-eta_1*np.cos(theta_t)) / (eta_2*np.cos(theta_i)+eta_1*np.cos(theta_t))
-        r_per=(eta_2*np.cos(theta_t)-eta_1*np.cos(theta_i)) / (eta_2*np.cos(theta_t)+eta_1*np.cos(theta_i))
-  
+    def fresnel_coeffs(E,theta_i,roughness,epsilon_eff_2):
+        assert theta_i>0 and theta_i<pi/2, f"strange theta_i {theta_i*180/pi}"
+        #assuming the first medium is air
+        r_par=(epsilon_eff_2*np.cos(theta_i)-np.sqrt(epsilon_eff_2-(np.sin(theta_i))**2)) / (epsilon_eff_2*np.cos(theta_i)+np.sqrt(epsilon_eff_2-(np.sin(theta_i))**2))    #Rh 
+        r_per=(np.cos(theta_i)-np.sqrt(epsilon_eff_2-(np.sin(theta_i))**2)) / (np.cos(theta_i)+np.sqrt(epsilon_eff_2-(np.sin(theta_i))**2))    #Rs 
+        r_par=np.linalg.norm(r_par)
+        r_per=np.linalg.norm(r_per) #TODO take squared norm or norm?
+        
+        print(f"r_per {r_per} r_par {r_par}")
+        assert np.linalg.norm(r_par)<=1 and np.linalg.norm(r_per)<=1, f"fresnel coeffs norms are greater than 1 r_par {r_par} r_per {r_per}"
+        
         rayleigh_criterion= (roughness > E.lam/(8*np.cos(theta_i)))
         if rayleigh_criterion:
             print("applying scattering")
@@ -86,8 +93,12 @@ class ElectromagneticField:
     def get_parameters(E,reflection_polygon):    
         mu_2=np.complex(reflection_polygon.properties['mu'])*mu_0
         sigma_2=np.complex(reflection_polygon.properties['sigma'])
-        epsilon_2=np.complex(reflection_polygon.properties['epsilon'])*epsilon_0
+        epsilon_2=float(reflection_polygon.properties['epsilon'])*epsilon_0
         roughness=float(reflection_polygon.properties['roughness']) 
+        epsilon_eff_2=np.complex(reflection_polygon.properties['epsilon_eff']) #relative value
+        #mat2=reflection_polygon.properties['material']
+        #print(f"materials {mat2} epsilon_2 {epsilon_2/epsilon_0}")
+
         #wave impedance
         eta_1=np.sqrt(1j*E.w*mu_1/(sigma_1+1j*E.w*epsilon_1))
         eta_2=np.sqrt(1j*E.w*mu_2/(sigma_2+1j*E.w*epsilon_2))
@@ -98,7 +109,7 @@ class ElectromagneticField:
         gamma=[gamma_1,gamma_2] 
         
         surface_normal=array_utils.normalize(reflection_polygon.get_normal())
-        return mu_2,sigma_2,epsilon_2,eta,gamma,roughness,surface_normal
+        return mu_2,sigma_2,epsilon_2,epsilon_eff_2,eta,gamma,roughness,surface_normal
     
     def my_reflect(E_i,reflections_path,surfaces_ids,rtp):
         """
@@ -134,7 +145,7 @@ class ElectromagneticField:
            """
             #data:        
             E=ElectromagneticField()
-            mu_2,sigma_2,epsilon_2,eta,gamma,roughness,surface_normal=ElectromagneticField.get_parameters(E,reflection_polygon)
+            mu_2,sigma_2,epsilon_2,epsilon_eff_2,eta,gamma,roughness,surface_normal=ElectromagneticField.get_parameters(E,reflection_polygon)
             print(f"mu {mu_2} sigma_2 {sigma_2} epsilon_2 {epsilon_2} eta {eta} gamma {gamma}")
             #Compute vectors from emitter to reflection point,
             #then from reflection point to receiver
@@ -144,11 +155,8 @@ class ElectromagneticField:
             sr = vectors[1, :] #normalised reflected vector
 
             #incident angle and transmission angle
-            theta_i=-np.arccos(np.dot(surface_normal, si)) #incident angle
-            theta_t=np.arcsin(np.sin(theta_i)*gamma[0]/gamma[1]) #transmission angle from snell law
-            
-            r_par,r_per=ElectromagneticField.fresnel_coeffs(E,eta[0],eta[1],theta_i,theta_t,roughness)
-            print(f"r_par {r_par} r_per {r_per}")
+            theta_i=np.arccos(np.dot(surface_normal, -si)) #incident angle
+            r_par,r_per=ElectromagneticField.fresnel_coeffs(E,theta_i,roughness,epsilon_eff_2)
             
             #dyadic reflection coeff
             e_per=array_utils.normalize(np.cross(si, sr))
@@ -234,22 +242,16 @@ class ElectromagneticField:
             sd_t=sd-np.dot(sd,e)*e
             sd_t=sd_t/np.linalg.norm(sd_t) #(vector) McNamara 6.10
             
-            phi_i=pi-(pi-np.arccos(np.dot(-si_t,t_0)))*1 #np.sign(np.dot(-si_t,n_0)) #(scalar) McNamara 6.11 incident angle with respect to the O-face TODO
-            phi_d=pi-(pi-np.arccos(np.dot(sd_t,t_0)))*1 #np.sign(np.dot(sd_t,n_0)) #(scalar) McNamara 6.12 diffraction angle with respect to the O-face TODO
+            phi_i=pi-(pi-np.arccos(np.dot(-si_t,t_0)))*1 #TODO np.sign(np.dot(-si_t,n_0)) #(scalar) McNamara 6.11 incident angle with respect to the O-face 
+            phi_d=pi-(pi-np.arccos(np.dot(sd_t,t_0)))*1 #TODO np.sign(np.dot(sd_t,n_0)) #(scalar) McNamara 6.12 diffraction angle with respect to the O-face
             phi_i=phi_i%(2*pi)#get back in the 0-2pi range
             phi_d=phi_d%(2*pi)
 
             
             # text right after Mc 6.12 for these asserts:
-                #TODO
-            print(f"si_t {si_t}, sd_t {sd_t}")
-            print(f"t_0 {t_0}, n_0 {n_0}")
-            print(f"dot {np.sign(np.dot(-si_t,n_0))} dot2 {np.sign(np.dot(sd_t,n_0))}")
-            print(f"phi_i {phi_i*180/pi} phi_d {phi_d*180/pi}")
-            print(f"n {n}")
-            assert phi_i>=0 and phi_i<=n*pi , f"phi_i {phi_i*180/pi} but should lower than {n*pi*180/pi} because the wedge angle is {(2-n)*pi*180/pi}"#TODO
-            assert phi_d>=0 and phi_d<=n*pi, f"phi_d {phi_d*180/pi}" #TODO
-            #assert 1==2, f"phi_i={phi_i*180/pi} phi_d={phi_d*180/pi}"
+                #the angles cannot be in the wedge
+            assert phi_i>=0 and phi_i<=n*pi , f"phi_i {phi_i*180/pi} but should lower than {n*pi*180/pi} because the wedge angle is {(2-n)*pi*180/pi}"
+            assert phi_d>=0 and phi_d<=n*pi, f"phi_d {phi_d*180/pi}" 
             
             #components of the diffraction coefficients:
             common_factor=-np.exp(-1j*pi/4)/(2*n*np.sqrt(2*pi*k)*np.sin(beta_0)) #scalar
@@ -269,7 +271,7 @@ class ElectromagneticField:
             D2=common_factor*cot2*F2 #scalar McNamara 6.22
             D3=common_factor*cot3*F3 #scalar McNamara 6.23
             D4=common_factor*cot4*F4 #scalar McNamara 6.24
-            return D1,D2,D3,D4
+            return D1,D2,D3,D4,phi_i
         
         def spread_factor(Si,Sd):
             #for spherical wave incidence on a straight edge:
@@ -297,19 +299,18 @@ class ElectromagneticField:
         e = edge/np.linalg.norm(edge)
         
         
-        #parameters
+        #diffraction coefficients components:
+        D1,D2,D3,D4,phi_i=diff_dyadic_components(Si,si,Sd,sd,e,E_i.k,diffraction_polygon,n)
         
-        mu_2,sigma_2,epsilon_2,eta,gamma,roughness,surface_normal=ElectromagneticField.get_parameters(E_i,diffraction_polygon)
+        #fresnel
+        # mu_2,sigma_2,epsilon_2,epsilon_eff_2,eta,gamma,roughness,surface_normal=ElectromagneticField.get_parameters(E_i,diffraction_polygon)
+        # theta_i=phi_i is that true?
+        # r_par,r_per=ElectromagneticField.fresnel_coeffs(E_i,theta_i,roughness,epsilon_eff_2)
         
-        
-        beta_0=np.arccos(np.dot(si,e))
-        theta_i=beta_0
-        theta_t=np.arcsin(np.sin(theta_i)*gamma[0]/gamma[1]) #transmission angle from snell law
-        r_par,r_per=ElectromagneticField.fresnel_coeffs(E_i,eta[0],eta[1],theta_i,theta_t,roughness)
-
-        
-        #diffraction coefficients:
-        D1,D2,D3,D4=diff_dyadic_components(Si,si,Sd,sd,e,E_i.k,diffraction_polygon,n)
+        #TODO I consider the edge as a PEC
+        r_per=1
+        r_par=1
+        #diffraction coefficients  
         D_per=D1+D2+r_per*(D3+D4) #(scalar) McNamara 6.20
         D_par=D1+D2+r_par*(D3+D4) #(scalar) McNamara 6.20
         
