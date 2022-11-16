@@ -26,9 +26,12 @@ from raytracing import file_utils
 from raytracing import container_utils
 from pathlib import Path
 import random
-from materials_properties import set_properties
+from materials_properties import set_properties, MIN_TREE_HEIGHT,MAX_TREE_HEIGHT
 
 
+#midpoint between 2 points
+def midpoint(p1, p2):
+    return (p1+p2)/2
 
 def pick_random_consecutive(choice,how_many):
     #randomly picks howmany consecutive items from a list (the list cycles)
@@ -37,20 +40,13 @@ def pick_random_consecutive(choice,how_many):
 
 def random_point_on_line(P1,P2):
     #gives a random point that is on the segment defined by P1 and P2
-    d=np.array(P2-P1)
-    k=random.uniform(0,1)
+    d=np.array(P2-P1) 
+    length=norm(d)
+    d=d/length #unit direction vector from P1 to P2
+    k=random.uniform(0,length)
     rand_point=P1+k*d
     return rand_point
 
-
-def random_point_inside_polygon(number, polygon):
-    points = []
-    minx, miny, maxx, maxy = polygon.bounds
-    while len(points) < number:
-        pnt = shPoint(random.uniform(minx, maxx), random.uniform(miny, maxy))
-        if polygon.contains(pnt):
-            points.append(pnt)
-    return points
 
 @numba.njit(cache=True)
 def cartesian_to_spherical(points):
@@ -74,6 +70,26 @@ def normalize_path(points):
     vectors = np.diff(points, axis=0)
     n = norm(vectors, axis=1)
     return vectors / n.reshape(-1, 1), n
+
+
+def polygon_line_intersection(polygon,points):
+    #returns the point that is the intersection between the polygon and the line
+    #https://stackoverflow.com/questions/5666222/3d-line-plane-intersection
+    epsilon=1e-6    
+    normal=polygon.get_normal()
+    planePoint=polygon.points[1, :]
+
+    rayDirection = points[1]-points[0]
+    rayPoint = points[0]
+    ndotu = np.dot(rayDirection,normal) 
+    if abs(ndotu) < epsilon:
+        print ("no intersection or line is within plane")
+        return None
+    w = rayPoint - planePoint
+    si = -np.dot(w,normal) / ndotu
+    intersection = w + si * rayDirection + planePoint    
+    return intersection
+
 
 
 @numba.njit(cache=True)
@@ -401,8 +417,8 @@ def projection_matrix_from_vector(vector):
     # return np.row_stack([x, y, z]).T
     return matrix
 
-
-@numba.njit(numba.float64[:, :](numba.float64[:, :]), cache=True)
+#commented to TEST PARALLELIZATION
+@numba.njit(numba.float64[:, :](numba.float64[:, :]), cache=True)#,parallel = True)
 def projection_matrix_from_line_path(points):
     """
     Returns an orthogonal matrix which can be used to project any set of points in a coordinates system aligned with
@@ -413,6 +429,7 @@ def projection_matrix_from_line_path(points):
     :return: a matrix
     :rtype: numpy.ndarray *shape=(3, 3)*
     """
+
     A = points[0, :]
     B = points[1, :]
     V = B - A
@@ -800,7 +817,7 @@ def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_ed
     return points[1:, :], sol
 
 
-def polygons_obstruct_line_path(polygons, points):
+def polygons_obstruct_line_path(polygons, points, return_polygons=False):
     """
     Returns whether a line path is obstructed by any of the polygons.
 
@@ -809,11 +826,16 @@ def polygons_obstruct_line_path(polygons, points):
     :param points: two points describing line path
     :type points: numpy.ndarray *shape=(2, 3)*
     :return: True if any polygon intercepts the line path
+    :return_polygons: returns all the polygons intersecting the line path, sorted by building
     :rtype: bool
     """
+    assert len(points)==2,"wrong argument"
     A = points[0, :]
     B = points[1, :]
     V = B - A
+    #TEST PARALLELIZATION
+    #test=numba.njit(projection_matrix_from_line_path)
+    #matrix=test(points).T
     matrix = projection_matrix_from_line_path(points).T
 
     projected_points = project_points(points, matrix)
@@ -824,7 +846,11 @@ def polygons_obstruct_line_path(polygons, points):
     z_max = pB[2]
 
     tol = 1e-8
-
+    
+    if return_polygons:
+        obstructions=[]
+        pol=[]
+    
     for polygon in polygons:
         projected_polygon = polygon.project(matrix)
         domain = projected_polygon.get_domain()
@@ -836,9 +862,46 @@ def polygons_obstruct_line_path(polygons, points):
                 t = - (d + np.dot(A, normal)) / np.dot(V, normal)
 
                 if tol < t < 1 - tol:  # Is the polygon between A and B ?
-                    return True
+                    if not return_polygons:
+                        return True
+                    else:
+                        if len(pol)==0:
+                            pol.append(polygon)
+                        elif pol[0].building_id==polygon.building_id:
+                            pol.append(polygon)
+                        elif pol[0].building_id!=polygon.building_id:
+                            obstructions.append(pol)
+                            pol=[]
+    if return_polygons:
+        if len(pol)>0:
+            obstructions.append(pol)
+        return obstructions #[[pol_B1,pol_B1,...], [pol_B2,pol_B2,..],...]
+    else:
+        return False
 
-    return False
+#TODO
+def tree_obstruction_length(polygons, points):
+    """
+    Checks if polyhedrons obstructs a path between two points and
+    returns the lenght of the path that is going through the polyhedrons
+    """
+    obstructions=polygons_obstruct_line_path(polygons, points, return_polygons=True)      
+    if len(obstructions)==0:
+        #no obstruction
+        return 0
+    
+    length=[]
+    #print(obstructions)
+    for i in range(0,len(obstructions)):
+        if len(obstructions[i])==1:
+            print("diffraction on tree, ignoring")
+            continue
+        assert len(obstructions[i])==2, "Cannot handle concave geometries"
+        in_point=polygon_line_intersection(obstructions[i][0],points)
+        out_point=polygon_line_intersection(obstructions[i][1],points)
+        assert in_point is not None and out_point is not None, "computation error"
+        length.append(norm(in_point-out_point))                 
+    return length
 
 
 def polygon_visibility_vector(polygon_A, polygons, out=None, strict=False):
@@ -1861,7 +1924,7 @@ class OrientedPolyhedron(OrientedGeometry):
         super().__init__(**attributes)
         self.aux_surface = OrientedSurface(polygons)
         self.polygons = self.aux_surface.polygons
-        self.building_type = building_type #TESTING
+        self.building_type = building_type #TODO TESTING TODO
         self.building_id=OrientedPolyhedron.BUILDING_ID
         OrientedPolyhedron.BUILDING_ID=OrientedPolyhedron.BUILDING_ID+1
         for polygon in self.polygons:
@@ -2324,11 +2387,21 @@ class OrientedPlace(OrientedGeometry):
         None.
         """
         def create_tree(tree_spot,tree_size):
-            tree_height=random.uniform(10, 20)
+            tree_height=random.uniform(MIN_TREE_HEIGHT, MAX_TREE_HEIGHT)
             tree_top=Square.by_center_and_side(tree_spot,tree_size,rotate=True).get_points()
             tree=Building.by_polygon_and_height(tree_top, tree_height)
             tree.building_type="tree"
             return tree
+        
+        def random_point_inside_polygon(number, polygon):
+            #Only works on 2D shapely polygons
+            points = []
+            minx, miny, maxx, maxy = polygon.bounds
+            while len(points) < number:
+                pnt = shPoint(random.uniform(minx, maxx), random.uniform(miny, maxy))
+                if polygon.contains(pnt):
+                    points.append(pnt)
+            return points
         
         meters=how_close_to_buildings+tree_size/2
         ground = self.surface.polygons[0].get_shapely()

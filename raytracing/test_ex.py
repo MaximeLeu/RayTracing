@@ -4,14 +4,43 @@ Created on Thu Sep 29 18:33:28 2022
 
 @author: maxime
 """
+import ray #multithread
 
 from ray_tracing import RayTracingProblem
 import raytracing.geometry as geom
 import numpy as np
 from raytracing import plot_utils
 import matplotlib.pyplot as plt
-from electromagnetism import my_field_computation
+from electromagnetism import my_field_computation,EM_fields_plots,EM_fields_data
 from raytracing import file_utils
+
+
+ # This plot is here to check that you geometry is correct.
+def plot_place(place,tx):
+    fig = plt.figure("the place")
+    fig.set_dpi(300)
+    ax = fig.add_subplot(projection='3d')
+    plot_utils.add_points_to_3d_ax(ax=ax, points=tx, label="TX")
+    place.center_3d_plot(ax)   
+    ax = place.plot3d(ax=ax)
+    plt.legend()
+    plt.show(block=False)
+    plt.pause(0.001) 
+
+def plot_rays(problem):  
+    fig = plt.figure("Ray traced places",figsize=(8,5))
+    fig.set_dpi(300)
+    nplots=len(problem.receivers)
+    nrows,ncols=plot_utils.get_subplot_row_columns(nplots)
+    
+    for i in range(len(problem.receivers)):
+        ax = fig.add_subplot(nrows, ncols, i+1, projection = '3d') #total rows,total columns, index
+        ax = problem.plot3d(ax=ax,receiver_numbers=[i],ret=True)
+        ax.set_title('Ray tracing for RX'+str(i))
+    
+    plt.show(block=False)
+
+
 
 #driver code
 if __name__ == '__main__':
@@ -44,15 +73,14 @@ if __name__ == '__main__':
         rx = rx.reshape(-1, 3)
         
         #adding a second receiver
-        rx2 = ground_center + np.array([
-            [35, 5, 5],
-            [39, -5, 5],
-            [10, -3, -5]
-        ])
-        rx2 = rx2[2, :]
+        rx2 = ground_center + [35, 5, 5]
         rx2 = rx2.reshape(-1, 3)
-        
-        
+        place.add_set_of_points(rx)
+        place.add_set_of_points(rx2)
+        place.add_set_of_points(rx2)
+        place.add_set_of_points(rx2)
+        place.add_set_of_points(rx2)
+
     elif geometry == 'dummy': #TODO: doesn't work because not preprocessed
         tx = np.array([5., 12., 5.]).reshape(1, 3)
         rx = np.array([65., 12., 5.]).reshape(1, 3)
@@ -69,7 +97,7 @@ if __name__ == '__main__':
         place = geom.OrientedPlace(geom.OrientedSurface(ground), [building_1, building_2, building_3])
         dummy_filename=place.to_json(filename="../data/dummy.json")
         geom.preprocess_geojson(dummy_filename)
-        
+        place.add_set_of_points(rx)
         
     elif geometry == 'my_geometry':
         geometry_filename="../data/TutorialTest/sciences.geojson"
@@ -92,33 +120,46 @@ if __name__ == '__main__':
         rx = rx[2, :]
         tx = tx.reshape(-1, 3)
         rx = rx.reshape(-1, 3)
+        place.add_set_of_points(rx)
         
-    
-    # Adding receivers to place
-    place.add_set_of_points(rx)
-    #place.add_set_of_points(rx2)
+    elif geometry == 'levant':
+        geometry_filename='../data/place_levant.geojson'
+        geom.preprocess_geojson(geometry_filename)
+        place = geom.generate_place_from_rooftops_file(geometry_filename) 
+        # 2. Create TX and RX
+        tx = np.array([110,-40,35]).reshape(1, 3)
+        rx = np.array([-30,-46,2]).reshape(1, 3)
+        N=5 #how many rx to compute
+        for i in range(0,N):
+            rx +=np.array([20,0,0])
+            place.add_set_of_points(rx)
     
    
-    # This plot is here to check that you geometry is correct.
-    fig = plt.figure()
-    fig.set_dpi(300)
-    ax = fig.add_subplot(projection='3d')
-    plot_utils.add_points_to_3d_ax(ax=ax, points=tx, label="TX")
-    place.center_3d_plot(ax)   
-    ax = place.plot3d(ax=ax)
-    plt.legend()
-    
     
     #compute the rays
     problem = RayTracingProblem(tx, place)
     problem.solve(max_order=3)
-    fig = plt.figure()
-    fig.set_dpi(300)
-    ax = fig.add_subplot(projection='3d')
-    ax = problem.plot3d(ax=ax)
     problem_path='../data/problem.json'
     problem.save(problem_path)
     
+    
     #compute the fields
-    my_field_computation(problem)
+    df=my_field_computation(problem)
+    
+    #plots   
+    EM_fields_plots(df)    
+    EM_fields_data(df)
+    
+    plot_rays(problem)
+    plot_place(place,tx)
+
+
+
+
+
+
+
+
+
+    
     

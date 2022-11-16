@@ -15,6 +15,39 @@ anim = dict(
 )
 
 
+
+
+def get_subplot_row_columns(amount_of_plots):
+    match amount_of_plots:
+        case 1:
+            nrows=1
+            ncols=1
+        case 2:
+            nrows=1
+            ncols=2
+        case 3:
+            nrows=1
+            ncols=3
+        case 4:
+            nrows=2
+            ncols=2
+        case 5:
+            nrows=2
+            ncols=3
+        case 6:
+            nrows=2
+            ncols=3    
+        case _:
+            nrows=5
+            ncols=3
+            print(f"Please define adequate subplot settings when there are {amount_of_plots} plots")
+    
+    return nrows,ncols
+
+
+
+
+
 def get_2d_plot_ax(ax=None):
     """
     Returns axes on which 2D geometries can be plotted.

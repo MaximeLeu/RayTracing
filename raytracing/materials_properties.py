@@ -16,11 +16,12 @@ import numpy as np
 #electrical conductivity=sigma
 #roughness describes the standard deviation of surface height in METERS
 
-#if required, the imaginary part of the relative permittivity  can be obtained:=17.98*sigma/f (see ITU)
-    
 #TODO: find correct relatives mu for each materials
 
-
+N_TREES=10 #how many trees to add to the place
+MIN_TREE_HEIGHT=10
+MAX_TREE_HEIGHT=20
+TREE_SIZE=2
 FREQUENCY=1e9
 ITU="ITU-R P.2040-2"
 
@@ -89,10 +90,10 @@ DF_PROPERTIES=pd.concat([pd.DataFrame.from_records([air,concrete,brick,wood,glas
 
 #complex effective relative permittivity, as defined in ITU-R P.2040-2
 if not 'epsilon_eff' in DF_PROPERTIES.columns:
+    #if required, the imaginary part of the relative permittivity  can be obtained:=17.98*sigma/f (see ITU)
     DF_PROPERTIES['epsilon_eff']=DF_PROPERTIES["epsilon"]-1j*17.98*DF_PROPERTIES["sigma"]/(FREQUENCY/10e9)
     
     
-print(DF_PROPERTIES['epsilon_eff'])
 def set_properties(building_type):
   
     def create_dict(material):

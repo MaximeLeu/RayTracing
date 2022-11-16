@@ -223,19 +223,16 @@ class RayTracingProblem:
         file_utils.json_save(filename, data, cls=geom.OrientedGeometryEncoder)
         
     def load(self,filename):
-        
-        #TODO load all the ray tracing problem argument (visibility matrix etc)
-        
+        #TODO maybe use file_utils.load_json?
         #TODO use with open
         reader=open(filename,"r")
         dictionnary=json.load(reader)         
         reader.close()
         
-        
+        self.emitter=dictionnary["emitter"]
         place=geom.OrientedPlace.from_json(data=dictionnary["place"])
         self.place=place
-        
-        self.emitter=dictionnary["emitter"]
+         
         #convert indices from strings to ints
         los={int(key):dictionnary['los'][key] for key in dictionnary['los']}
         #convert lists to ndarrays
@@ -263,27 +260,30 @@ class RayTracingProblem:
                                                          tuple(diffractions[receiver][order][diff][2]),
                                                          np.array(diffractions[receiver][order][diff][3])
                                                          )
-        
         self.diffractions=diffractions
         self.polygons = np.array(place.get_polygons_list(),dtype=object)
+        self.n_screens=6 #TODO load correctly 
+        self.precompute() #compute the other arguments (visibility matrix etc)
+        
         return self
         
         
         
-    def plot3d(self, ax=None, ret=False, show_refl=True, show_diff=True):
+    def plot3d(self, ax=None, ret=False, show_refl=True, show_diff=True, receiver_numbers=None):
         ax = plot_utils.get_3d_plot_ax(ax)
-
         self.place.plot3d(ax=ax, points_kwargs=dict(color='k', s=20))
-
         plot_utils.add_points_to_3d_ax(ax, self.emitter, color='r', s=20)
         plot_utils.add_text_at_point_3d_ax(ax, self.emitter, 'TX')
 
         first = True
         handles = []
         labels = []
-
-        for r, _ in enumerate(self.receivers):
-
+        if receiver_numbers is not None:
+            receivers_to_plot=iter(list(receiver_numbers))
+        else:
+            receivers_to_plot=iter(list(range(len(self.receivers))))
+        
+        for r in receivers_to_plot:
             for line in self.los[r]:
                 line3D, = plot_utils.add_line_to_3d_ax(ax, line, color='b')
                 if first:
@@ -323,9 +323,8 @@ class RayTracingProblem:
                             handles.append(line3D)
                             labels.append(f'{order-1} reflect. and 1 diff.')
                             first = False
-
+            
         self.place.center_3d_plot(ax)
         ax.legend(handles, labels)
-
         if ret:
             return ax

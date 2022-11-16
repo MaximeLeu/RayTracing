@@ -3,11 +3,11 @@ from raytracing import geometry as geom
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-
+from raytracing import plot_utils
 import pandas as pd
 import scipy as sc
 from scipy.constants import c, mu_0, epsilon_0, pi
-from materials_properties import DF_PROPERTIES, FREQUENCY
+from materials_properties import DF_PROPERTIES, FREQUENCY,N_TREES,TREE_SIZE
 
 
 #I consider the first medium is always air.
@@ -63,7 +63,7 @@ class ElectromagneticField:
         r_per=np.linalg.norm(r_per) #TODO take squared norm or norm?
         
         print(f"r_per {r_per} r_par {r_par}")
-        assert np.linalg.norm(r_par)<=1 and np.linalg.norm(r_per)<=1, f"fresnel coeffs norms are greater than 1 r_par {r_par} r_per {r_per}"
+        assert r_par<=1 and r_per<=1, f"fresnel coeffs norms are greater than 1 r_par {r_par} r_per {r_per}"
         
         rayleigh_criterion= (roughness > E.lam/(8*np.cos(theta_i)))
         if rayleigh_criterion:
@@ -82,10 +82,18 @@ class ElectromagneticField:
         :param points: two points describing line path
         :type points: numpy.ndarray *shape=(2, 3)*
         """
-        if place.obstructs_line_path(points):
-            print("tree in the way, attenuating")
-            attenuation=1 #TODO
-            E.E=E.E*attenuation
+        length=geom.tree_obstruction_length(place.get_polygons_iter(), points)
+       
+        if np.sum(length)>0: 
+            #when multiple trees are in the way
+            print(f"{len(length)} trees in the way, attenuating, length: {length}")
+            for d in length:
+                #attenuation that adds to path loss
+                L_db=0.39*((FREQUENCY/10**6)**0.39)*d**0.25
+                attenuation=1/(10**(L_db/10)) #TODO   
+                print(f"attenuation: {L_db} dB, thus attenuation factor= {attenuation} ")
+                E.E=E.E*attenuation
+            
         return E
     
        
@@ -96,8 +104,6 @@ class ElectromagneticField:
         epsilon_2=float(reflection_polygon.properties['epsilon'])*epsilon_0
         roughness=float(reflection_polygon.properties['roughness']) 
         epsilon_eff_2=np.complex(reflection_polygon.properties['epsilon_eff']) #relative value
-        #mat2=reflection_polygon.properties['material']
-        #print(f"materials {mat2} epsilon_2 {epsilon_2/epsilon_0}")
 
         #wave impedance
         eta_1=np.sqrt(1j*E.w*mu_1/(sigma_1+1j*E.w*epsilon_1))
@@ -146,7 +152,6 @@ class ElectromagneticField:
             #data:        
             E=ElectromagneticField()
             mu_2,sigma_2,epsilon_2,epsilon_eff_2,eta,gamma,roughness,surface_normal=ElectromagneticField.get_parameters(E,reflection_polygon)
-            print(f"mu {mu_2} sigma_2 {sigma_2} epsilon_2 {epsilon_2} eta {eta} gamma {gamma}")
             #Compute vectors from emitter to reflection point,
             #then from reflection point to receiver
             vectors = np.diff(path, axis=0)
@@ -226,32 +231,29 @@ class ElectromagneticField:
                 #For spherical wave incidence :
                 L=((np.sin(beta_0))**2)*Si*Sd/(Si+Sd) #McNamara 6.26
                 return L
-                
+            
             #beta_0 and beta_0' are the same (keller diffraction law)
             beta_0=np.arccos(np.dot(si,e)) #(scalar) angle between the incident ray and the edge (McNamara 4.19)
             assert(beta_0<=pi and beta_0>=0)
             
             n_0=array_utils.normalize(diffraction_polygon.get_normal()) #(vector) unit vector normal to the 0-face
-            t_0=np.cross(n_0,e) #(vector) unit vector tangential to the O-face (McNamara 6.8) #TODO it e should be such that t points towards the 0 face, verify
-            
-            #assert diffraction_polygon.contains_point(t_0, check_in_plane=True, plane_tol=1e-8)
-            
+            t_0=np.cross(n_0,e) #(vector) unit vector tangential to the O-face (McNamara 6.8)
+
             #unit vector components of si and sd lying in the plane perpendicular to the edge (=s_t' and s_t in McNamara)
             si_t=si-np.dot(si,e)*e 
             si_t=si_t/np.linalg.norm(si_t) #(vector) McNamara 6.9
             sd_t=sd-np.dot(sd,e)*e
             sd_t=sd_t/np.linalg.norm(sd_t) #(vector) McNamara 6.10
             
-            phi_i=pi-(pi-np.arccos(np.dot(-si_t,t_0)))*1 #TODO np.sign(np.dot(-si_t,n_0)) #(scalar) McNamara 6.11 incident angle with respect to the O-face 
-            phi_d=pi-(pi-np.arccos(np.dot(sd_t,t_0)))*1 #TODO np.sign(np.dot(sd_t,n_0)) #(scalar) McNamara 6.12 diffraction angle with respect to the O-face
+            #TODO: ocasionnal problems with those angles, IDK why
+            phi_i=pi-(pi-np.arccos(np.dot(-si_t,t_0)))*np.sign(np.dot(-si_t,n_0)) #(scalar) McNamara 6.11 incident angle with respect to the O-face 
+            phi_d=pi-(pi-np.arccos(np.dot(sd_t,t_0)))*np.sign(np.dot(sd_t,n_0)) #(scalar) McNamara 6.12 diffraction angle with respect to the O-face
             phi_i=phi_i%(2*pi)#get back in the 0-2pi range
             phi_d=phi_d%(2*pi)
 
-            
             # text right after Mc 6.12 for these asserts:
-                #the angles cannot be in the wedge
-            assert phi_i>=0 and phi_i<=n*pi , f"phi_i {phi_i*180/pi} but should lower than {n*pi*180/pi} because the wedge angle is {(2-n)*pi*180/pi}"
-            assert phi_d>=0 and phi_d<=n*pi, f"phi_d {phi_d*180/pi}" 
+            assert phi_i>=0 and phi_i<=n*pi , f"phi_i ={phi_i*180/pi} cannot be inside the wedge, alpha={(2-n)*pi*180/pi}"
+            assert phi_d>=0 and phi_d<=n*pi, f"phi_d {phi_d*180/pi} cannot be inside the wedge, alpha={(2-n)*pi*180/pi}" 
             
             #components of the diffraction coefficients:
             common_factor=-np.exp(-1j*pi/4)/(2*n*np.sqrt(2*pi*k)*np.sin(beta_0)) #scalar
@@ -295,19 +297,22 @@ class ElectromagneticField:
         alpha=np.arccos(np.dot(n_0,n_1)) #angles between two planes = angles between their normals
         n=2-alpha/pi #doesn't need to be an integer (McNamara 4.26)
         assert alpha<=pi and n>=1 and n<=2, f"alpha= {alpha*180/pi}, we restrict ourselves to wedges with interior angles <=180"
+        
         edge= np.diff(corner_points, axis=0).reshape(-1)
         e = edge/np.linalg.norm(edge)
-        
+       
+        #ensuring that e is such that t_0 points towards the 0 face (McNamara 6.8)
+        t_0=np.cross(n_0,e) #(vector) unit vector tangential to the O-face (McNamara 6.8)
+        mid_edge=geom.midpoint(corner_points[0], corner_points[1])
+        if diffraction_polygon.contains_point(mid_edge+t_0*(1e-6), check_in_plane=True, plane_tol=1e-8)==False:
+            e=-e #flip edge orientation
+            t_0=np.cross(n_0,e)       
+        assert diffraction_polygon.contains_point(mid_edge+t_0*(1e-6), check_in_plane=True, plane_tol=1e-8), "edge is wrongly oriented"
         
         #diffraction coefficients components:
         D1,D2,D3,D4,phi_i=diff_dyadic_components(Si,si,Sd,sd,e,E_i.k,diffraction_polygon,n)
         
-        #fresnel
-        # mu_2,sigma_2,epsilon_2,epsilon_eff_2,eta,gamma,roughness,surface_normal=ElectromagneticField.get_parameters(E_i,diffraction_polygon)
-        # theta_i=phi_i is that true?
-        # r_par,r_per=ElectromagneticField.fresnel_coeffs(E_i,theta_i,roughness,epsilon_eff_2)
-        
-        #TODO I consider the edge as a PEC
+        #TODO: consider the edge as a other than a PEC
         r_per=1
         r_par=1
         #diffraction coefficients  
@@ -326,66 +331,32 @@ class ElectromagneticField:
         
         #dyadic diffraction coefficient
         D=beta_0_i_vv.reshape(3,1)@beta_0_d_vv.reshape(1,3)*(-D_per) - phi_i_vv.reshape(3,1)@phi_d_vv.reshape(1,3)*D_par # (3x3 matrix) McNamara 6.19
-        assert(D.shape==(3,3))
+        assert D.shape==(3,3), f"dyadic diffraction coefficient has wrong shape: D={D}"
         
         #field reaching receiver after a diffraction:
         field=(E_i.E.reshape(1,3)@D)*spread_factor(Si,Sd)*np.exp(-1j*E_i.k*Sd) #(vector) McNamara 6.18
         #diffracted field should be less powerful than the incident field
-        assert np.linalg.norm(E_i.E)>=np.linalg.norm(field), f"incident field intensity {np.linalg.norm(E_i.E)} diffracted field {np.linalg.norm(field)} dyadic coeff {D}"
+        assert np.linalg.norm(E_i.E)>=np.linalg.norm(field), f"Ed should be less powerful Ei but Ei={np.linalg.norm(E_i.E)} and Ed= {np.linalg.norm(field)} dyadic coeff {D}"
         E_i.E=field.reshape(3,)
         E_i=ElectromagneticField.account_for_trees(E_i,np.array([diff_path[1],diff_path[2]]),rtp.place)
         return E_i
 
-
-
-def plot_power_delay_profile(df_pdp):
-    df_pdp.sort_values(by=['path_power'],inplace=True)
-    print(df_pdp)
-    path_types=df_pdp['path_type'].unique()
-    
-    colors=list(mcolors.TABLEAU_COLORS) #10 different colors
-    assert len(path_types)<=len(colors), "too many path types, not enough colors for plotting power delay profile"
-    fig = plt.figure()
-    fig.set_dpi(300)
-    ax = fig.add_subplot(1, 1, 1)
-    count=0
-    for path_type in path_types:
-        data_for_type=df_pdp.loc[df_pdp['path_type'] == path_type]
-        color_for_type=colors[count]
-        count=count+1
-        ax.stem(data_for_type['time_to_receiver'].values, data_for_type['path_power'].values,color_for_type,label=path_type,basefmt=" ")
-       
-    ax.set_title('Power delay Profile')
-    ax.set_xlabel('time to reach receiver (s)')
-    ax.set_ylabel('amplitude')
-    ax.legend()  
-    return
     
     
 def my_field_computation(rtp):
     #Computes the resulting field at the receiver from all reflections and diffractions
     reflections = rtp.reflections
     diffractions = rtp.diffractions
-    fields=[]
     
-    df_pdp = pd.DataFrame(columns=['total_len','time_to_receiver','path_power','path_type'])  #dataframe useful for the power delay profile
+    df_pdp = pd.DataFrame(columns=['total_len','time_to_receiver','path_power','path_type','receiver'])  #dataframe storing all results
     
     #Add trees
-    trees=10
-    for i in range(0,trees):
-        rtp.place.add_tree(tree_size=2)    
-
-    fig = plt.figure("place with trees")
-    fig.set_dpi(300)
-    ax = fig.add_subplot(projection='3d')
-    rtp.place.center_3d_plot(ax)
-    ax = rtp.place.plot3d(ax=ax)    
-
+    for i in range(0,N_TREES):
+        rtp.place.add_tree(tree_size=TREE_SIZE)    
     
     # computes field for each reflection and diffraction
     for receiver in range(0,len(rtp.place.set_of_points)):
-        
-        
+ 
         #compute field resulting from all reflections:         
         reflections_field=ElectromagneticField()
         reflections_field.E=0    
@@ -402,9 +373,7 @@ def my_field_computation(rtp):
                 reflections_field.E+=this_E.E
                 
                 path_length=geom.path_length(the_path)
-                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v,np.linalg.norm(this_E.E),'R'*order]
-                
-                
+                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v,np.linalg.norm(this_E.E),'R'*order,receiver]
                 
         #compute all diffractions
         diffractions_field=ElectromagneticField()
@@ -435,47 +404,110 @@ def my_field_computation(rtp):
                 diffractions_field.E+=this_E.E
                 
                 path_length=geom.path_length(the_path)
-                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v ,np.linalg.norm(this_E.E),'R'*(order-1)+'D']
+                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v ,np.linalg.norm(this_E.E),'R'*(order-1)+'D',receiver]
                 
         
         total_field=ElectromagneticField()
         total_field.E=diffractions_field.E+reflections_field.E
-        fields.append(total_field)
-        
-
-        E_los=ElectromagneticField.from_path(rtp.los[receiver][0])
-       
-        path_length=geom.path_length(rtp.los[receiver][0])
-        df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v, np.linalg.norm(E_los.E),'LOS']
         
         
-        print("-----------------------------------------------------------")
-        print(f"------------data for receiver {receiver}-------------------")
-        print("-----------------------------------------------------------")
-        print(f"Field if there was a straigth line of sight {E_los.E}")
-        print(f"field resulting from all reflections is {reflections_field.E}")
-        print(f"field resulting from all diffractions is {diffractions_field.E}") 
-        print(f"Total field is {total_field.E}") 
-        
-        print("")
-        print("amplitude of fields:")
-        print(f"from reflections {np.linalg.norm(reflections_field.E)}")
-        print(f"from diffractions {np.linalg.norm(diffractions_field.E)}")
-        print(f"total field {np.linalg.norm(total_field.E)}")     
-        print(f"from LOS {np.linalg.norm(E_los.E)}")
+        LOS=(rtp.los[receiver]!=[])  
+        if LOS==True:
+            print("there is line of sight")
+            E_los=ElectromagneticField.from_path(rtp.los[receiver][0])
+            E_los=ElectromagneticField.account_for_trees(E_los,rtp.los[receiver][0],rtp.place)       
+            path_length=geom.path_length(rtp.los[receiver][0])       
+            df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v, np.linalg.norm(E_los.E),'LOS',receiver]
+            total_field.E+=E_los.E
+        else:
+            print("there is NO line of sight")
+            E_los=ElectromagneticField()
+            E_los.E=0
                     
-        plot_power_delay_profile(df_pdp)
+    return df_pdp
+
+
+
+    
+def EM_fields_data(df):
+    #df = pd.DataFrame(columns=['total_len','time_to_receiver','path_power','path_type','receiver'])
+    nreceivers=len(df['receiver'].unique())
+    for receiver in range(0,nreceivers):
+        print(f"------------data for receiver {receiver}-------------------")
         
+        this_df=df.loc[df['receiver'] == receiver]
+        if(this_df['path_type'].str.contains("LOS").any()):
+            los=this_df.loc[this_df['path_type'] == "LOS"]["path_power"].values
+            print("there is line of sight")
+            print(f"from LOS {los}")
+        else:
+            print('NO LINE OF SIGHT')
+            
+        total=np.sum(this_df["path_power"])
+        all_reflections = np.sum(this_df[this_df['path_type'].str.contains('R')]["path_power"])
+        all_diffractions = np.sum(this_df[this_df['path_type'].str.contains('D')]["path_power"])
+       
+        print(f"total field {total}")
+        print(f"from reflections {all_reflections}")
+        print(f"from diffractions {all_diffractions}")
         
-    return fields
+    
+    
+    
+#TODO
+def EM_fields_plots(df):
+    colors=list(mcolors.TABLEAU_COLORS) #10 different colors
+    
+    nreceivers=len(df['receiver'].unique())
+    nrows=nreceivers
+    ncols=2
+    
+    fig = plt.figure("EM fields data",figsize=(8,5))   
+    fig.set_dpi(150)
+    fig.subplots_adjust(hspace=.5)
+    
+    i=1
+    for receiver in range(0,nreceivers):
+        rx_df=df.loc[df['receiver'] == receiver]
 
+        path_types=rx_df['path_type'].unique()
+        assert len(path_types)<=len(colors), "too many path types, not enough colors for plotting power sources"
+        
+        ax1 = fig.add_subplot(nrows, ncols,i)
+        ax2 = fig.add_subplot(nrows, ncols,i+1)
+        i+=2
+        count=0
+        width = 0.35
+        for path_type in path_types:
+            data_for_type=rx_df.loc[rx_df['path_type'] == path_type]
+            total_power=np.sum(data_for_type['path_power'].values)
+            color_for_type=colors[count]
+            count=count+1
+            #total power from each source
+            ax1.bar(x=count, height=total_power,width=width,color=color_for_type,label=path_type)
+            #power delay profile
+            ax2.stem(data_for_type['time_to_receiver'].values, data_for_type['path_power'].values,color_for_type,label=path_type,basefmt=" ")
+            
+        x=np.arange(1,len(path_types)+1, 1)   
+        labels = path_types
+        ax1.set_xticks(x, labels)
+        ax1.set_title(f'Total power from sources RX{receiver}')
+        ax1.set_ylabel('amplitude') 
+        ax1.grid()
+        ax1.set_ylim(0,20)
+        
+        ax2.set_title(f'Power delay Profile RX{receiver}')
+        ax2.set_xlabel('time to reach receiver (s)')
+        ax2.set_ylabel('amplitude')
+        ax2.legend() 
+        ax2.grid()
+        ax2.set_ylim(0,20)
+    
+    
+    return
 
-
     
-    
-    
-    
-    
+   
     
     
     
