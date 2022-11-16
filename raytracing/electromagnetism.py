@@ -1,13 +1,16 @@
+#self written imports
 from raytracing import array_utils
 from raytracing import geometry as geom
+from materials_properties import DF_PROPERTIES, FREQUENCY,N_TREES,TREE_SIZE
+
+#packages
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from raytracing import plot_utils
 import pandas as pd
 import scipy as sc
 from scipy.constants import c, mu_0, epsilon_0, pi
-from materials_properties import DF_PROPERTIES, FREQUENCY,N_TREES,TREE_SIZE
+
 
 
 #I consider the first medium is always air.
@@ -348,15 +351,16 @@ def my_field_computation(rtp):
     reflections = rtp.reflections
     diffractions = rtp.diffractions
     
-    df_pdp = pd.DataFrame(columns=['total_len','time_to_receiver','path_power','path_type','receiver'])  #dataframe storing all results
+    df_pdp = pd.DataFrame(columns=['total_len','time_to_receiver','path_power','path_type','receiver','rx_id'])  #dataframe storing all results
     
     #Add trees
     for i in range(0,N_TREES):
         rtp.place.add_tree(tree_size=TREE_SIZE)    
     
     # computes field for each reflection and diffraction
-    for receiver in range(0,len(rtp.place.set_of_points)):
- 
+    #for receiver in range(0,len(rtp.place.set_of_points)):
+    for receiver in range(0,len(rtp.solved_receivers)):
+        rx=[rtp.solved_receivers[receiver]]
         #compute field resulting from all reflections:         
         reflections_field=ElectromagneticField()
         reflections_field.E=0    
@@ -373,7 +377,7 @@ def my_field_computation(rtp):
                 reflections_field.E+=this_E.E
                 
                 path_length=geom.path_length(the_path)
-                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v,np.linalg.norm(this_E.E),'R'*order,receiver]
+                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v,np.linalg.norm(this_E.E),'R'*order,rx,receiver]
                 
         #compute all diffractions
         diffractions_field=ElectromagneticField()
@@ -404,7 +408,7 @@ def my_field_computation(rtp):
                 diffractions_field.E+=this_E.E
                 
                 path_length=geom.path_length(the_path)
-                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v ,np.linalg.norm(this_E.E),'R'*(order-1)+'D',receiver]
+                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v ,np.linalg.norm(this_E.E),'R'*(order-1)+'D',rx,receiver]
                 
         
         total_field=ElectromagneticField()
@@ -417,7 +421,8 @@ def my_field_computation(rtp):
             E_los=ElectromagneticField.from_path(rtp.los[receiver][0])
             E_los=ElectromagneticField.account_for_trees(E_los,rtp.los[receiver][0],rtp.place)       
             path_length=geom.path_length(rtp.los[receiver][0])       
-            df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v, np.linalg.norm(E_los.E),'LOS',receiver]
+            print(f"fields Rx {rx}")
+            df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v, np.linalg.norm(E_los.E),'LOS',rx,receiver]
             total_field.E+=E_los.E
         else:
             print("there is NO line of sight")
@@ -431,11 +436,14 @@ def my_field_computation(rtp):
     
 def EM_fields_data(df):
     #df = pd.DataFrame(columns=['total_len','time_to_receiver','path_power','path_type','receiver'])
-    nreceivers=len(df['receiver'].unique())
+    nreceivers=len(df['rx_id'].unique())
     for receiver in range(0,nreceivers):
-        print(f"------------data for receiver {receiver}-------------------")
+        #rx_coord=df.loc[df['rx_id'] == receiver]['receiver'][0]
+        rx_coord=32
+        print(f"COOORS {rx_coord}")
+        print(f"------------data for receiver {receiver}, with coords {rx_coord}-------------------")
         
-        this_df=df.loc[df['receiver'] == receiver]
+        this_df=df.loc[df['rx_id'] == receiver]
         if(this_df['path_type'].str.contains("LOS").any()):
             los=this_df.loc[this_df['path_type'] == "LOS"]["path_power"].values
             print("there is line of sight")
@@ -458,7 +466,7 @@ def EM_fields_data(df):
 def EM_fields_plots(df):
     colors=list(mcolors.TABLEAU_COLORS) #10 different colors
     
-    nreceivers=len(df['receiver'].unique())
+    nreceivers=len(df['rx_id'].unique())
     nrows=nreceivers
     ncols=2
     
@@ -468,7 +476,7 @@ def EM_fields_plots(df):
     
     i=1
     for receiver in range(0,nreceivers):
-        rx_df=df.loc[df['receiver'] == receiver]
+        rx_df=df.loc[df['rx_id'] == receiver]
 
         path_types=rx_df['path_type'].unique()
         assert len(path_types)<=len(colors), "too many path types, not enough colors for plotting power sources"
@@ -501,9 +509,7 @@ def EM_fields_plots(df):
         ax2.set_ylabel('amplitude')
         ax2.legend() 
         ax2.grid()
-        ax2.set_ylim(0,20)
-    
-    
+        ax2.set_ylim(0,20)  
     return
 
     

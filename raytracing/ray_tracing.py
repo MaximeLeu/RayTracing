@@ -2,11 +2,18 @@ from raytracing import geometry as geom
 from raytracing import plot_utils
 from raytracing import file_utils
 
-import numpy as np
 
+import numpy as np
+import matplotlib.pyplot as plt
 from collections import defaultdict
 from tqdm import tqdm
 import json
+
+
+
+
+
+
 
 class RayTracingProblem:
     """
@@ -34,7 +41,7 @@ class RayTracingProblem:
         self.n_screens = n_screens
         self.place = place
         self.polygons = np.array(place.get_polygons_list(),dtype=object)
-
+        self.solved_receivers=None
         if receivers is not None:
             self.place.add_set_of_points(receivers)
 
@@ -127,16 +134,32 @@ class RayTracingProblem:
                geom.point_on_edge_(lines[-2, :], edge) and \
                not geom.polygons_obstruct_line_path(self.polygons, lines[-2:, :])
 
-    def solve(self, max_order=2):
+    def solve(self, max_order=2,receivers_indexs=None):
         emitter = self.emitter
-        receivers = self.receivers
+        #receivers = self.receivers
         indices = np.where(self.emitter_visibility)[0]
+
+     
+        if receivers_indexs is not None:
+            #solve only specified receivers
+            assert all(i < len(self.receivers) for i in receivers_indexs) ,f"provided RX indexs {receivers_indexs} but only {len(self.receivers)} RX exist"
+            receivers=[]
+            for index in receivers_indexs:
+                receivers.append(self.receivers[index])
+        else: 
+            #solve all receivers
+            receivers=self.receivers   
+        print(f"solving for the following receivers {receivers}")
 
         # Only reflections
         def recursive_reflections(polygons_indices, order):
             planes_parametric = [self.polygons[index].get_parametric() for index in polygons_indices]
-
+            idx=0
             for r, receiver in enumerate(receivers):
+                if receivers_indexs is not None:
+                    r=receivers_indexs[idx]
+                    idx+=1
+                
                 points, sol = geom.reflexion_points_from_origin_destination_and_planes(emitter, receiver, planes_parametric)
 
                 if not sol.success:
@@ -166,7 +189,11 @@ class RayTracingProblem:
         print('Iterating through all 1 diff.')
         for (i, j), edge in tqdm(self.sharp_edges.items()):
             if self.emitter_visibility[i] or self.emitter_visibility[j]:
+                idx=0
                 for r, receiver in enumerate(receivers):
+                    if receivers_indexs is not None:
+                        r=receivers_indexs[idx]
+                        idx+=1
                     points, sol = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(
                         emitter, receiver, [], edge
                     )
@@ -189,7 +216,12 @@ class RayTracingProblem:
             visible_polygons_indices = self.get_visible_polygons_indices(last_index)
 
             for edge_polygons, edge in self.sharp_edges[(*visible_polygons_indices, ...)]:
-                for r, receiver in enumerate(receivers):
+                idx=0
+                for r, receiver in enumerate(receivers):  
+                    if receivers_indexs is not None:
+                        r=receivers_indexs[idx]
+                        idx+=1
+                    
                     points, sol = geom.reflexion_points_and_diffraction_point_from_origin_destination_planes_and_edge(emitter, receiver, planes_parametric, edge)
 
                     if not sol.success:
@@ -210,10 +242,13 @@ class RayTracingProblem:
         print('Iterating through all n-1 reflect. and 1 diff.')
         for index in tqdm(indices):
             recursive_reflections_and_diffraction([index], 2)
+            
+        self.solved_receivers=receivers    
 
     def save(self, filename):
         data = {
             'place': self.place.to_json(),
+            'solved_receivers':self.solved_receivers,
             'emitter': self.emitter,
             'los': self.los,
             'reflections': self.reflections,
@@ -229,6 +264,7 @@ class RayTracingProblem:
         dictionnary=json.load(reader)         
         reader.close()
         
+        self.solved_receivers=dictionnary["solved_receivers"]
         self.emitter=dictionnary["emitter"]
         place=geom.OrientedPlace.from_json(data=dictionnary["place"])
         self.place=place
@@ -259,7 +295,7 @@ class RayTracingProblem:
                                                          diffractions[receiver][order][diff][1],
                                                          tuple(diffractions[receiver][order][diff][2]),
                                                          np.array(diffractions[receiver][order][diff][3])
-                                                         )
+                                                          )
         self.diffractions=diffractions
         self.polygons = np.array(place.get_polygons_list(),dtype=object)
         self.n_screens=6 #TODO load correctly 
@@ -269,7 +305,11 @@ class RayTracingProblem:
         
         
         
-    def plot3d(self, ax=None, ret=False, show_refl=True, show_diff=True, receiver_numbers=None):
+    def plot3d(self, ax=None, ret=False, show_refl=True, show_diff=True, receivers_indexs=None):
+        """
+        plot a single 3d plot with the ray paths
+
+        """
         ax = plot_utils.get_3d_plot_ax(ax)
         self.place.plot3d(ax=ax, points_kwargs=dict(color='k', s=20))
         plot_utils.add_points_to_3d_ax(ax, self.emitter, color='r', s=20)
@@ -278,8 +318,10 @@ class RayTracingProblem:
         first = True
         handles = []
         labels = []
-        if receiver_numbers is not None:
-            receivers_to_plot=iter(list(receiver_numbers))
+        
+        
+        if receivers_indexs is not None:
+            receivers_to_plot=iter(list(receivers_indexs))
         else:
             receivers_to_plot=iter(list(range(len(self.receivers))))
         
@@ -328,3 +370,26 @@ class RayTracingProblem:
         ax.legend(handles, labels)
         if ret:
             return ax
+        
+    def plot_rays(self):
+        """
+        plot the ray paths for each receivers in a different subplot
+        """
+        fig = plt.figure("Ray traced places",figsize=(8,5))
+        fig.set_dpi(300)
+        nplots=len(self.solved_receivers)
+        nrows,ncols=plot_utils.get_subplot_row_columns(nplots)
+        
+        for i in range(nplots):
+            ax = fig.add_subplot(nrows, ncols, i+1, projection = '3d') #total rows,total columns, index
+            ax = self.plot3d(ax=ax,receivers_indexs=[i],ret=True)
+            ax.set_title('Ray tracing for RX'+str(i))
+        
+        plt.show(block=False)
+        plt.pause(0.001) 
+         
+        
+        
+        
+        
+    

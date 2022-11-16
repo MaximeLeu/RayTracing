@@ -4,15 +4,16 @@ Created on Thu Sep 29 18:33:28 2022
 
 @author: maxime
 """
-import ray #multithread
-
+#self written imports
 from ray_tracing import RayTracingProblem
 import raytracing.geometry as geom
-import numpy as np
-from raytracing import plot_utils
-import matplotlib.pyplot as plt
+from raytracing import plot_utils,file_utils
 from electromagnetism import my_field_computation,EM_fields_plots,EM_fields_data
-from raytracing import file_utils
+
+#packages
+import numpy as np
+import matplotlib.pyplot as plt
+
 
 
  # This plot is here to check that you geometry is correct.
@@ -27,18 +28,7 @@ def plot_place(place,tx):
     plt.show(block=False)
     plt.pause(0.001) 
 
-def plot_rays(problem):  
-    fig = plt.figure("Ray traced places",figsize=(8,5))
-    fig.set_dpi(300)
-    nplots=len(problem.receivers)
-    nrows,ncols=plot_utils.get_subplot_row_columns(nplots)
-    
-    for i in range(len(problem.receivers)):
-        ax = fig.add_subplot(nrows, ncols, i+1, projection = '3d') #total rows,total columns, index
-        ax = problem.plot3d(ax=ax,receiver_numbers=[i],ret=True)
-        ax.set_title('Ray tracing for RX'+str(i))
-    
-    plt.show(block=False)
+
 
 
 
@@ -49,7 +39,7 @@ if __name__ == '__main__':
 
     # 1. Load data
 
-    geometry = 'small'  # You can change to use another geometry
+    geometry = 'my_geometry'  # You can change to use another geometry
     geometry_filename=""
     if geometry == 'small':
         geometry_filename='../data/small.geojson'
@@ -76,9 +66,6 @@ if __name__ == '__main__':
         rx2 = ground_center + [35, 5, 5]
         rx2 = rx2.reshape(-1, 3)
         place.add_set_of_points(rx)
-        place.add_set_of_points(rx2)
-        place.add_set_of_points(rx2)
-        place.add_set_of_points(rx2)
         place.add_set_of_points(rx2)
 
     elif geometry == 'dummy': #TODO: doesn't work because not preprocessed
@@ -138,11 +125,12 @@ if __name__ == '__main__':
     
     #compute the rays
     problem = RayTracingProblem(tx, place)
-    problem.solve(max_order=3)
+    problem.solve(max_order=3,receivers_indexs=None)
     problem_path='../data/problem.json'
     problem.save(problem_path)
     
-    
+
+
     #compute the fields
     df=my_field_computation(problem)
     
@@ -150,7 +138,7 @@ if __name__ == '__main__':
     EM_fields_plots(df)    
     EM_fields_data(df)
     
-    plot_rays(problem)
+    problem.plot_rays()
     plot_place(place,tx)
 
 

@@ -2508,7 +2508,6 @@ def preprocess_geojson(filename,drop_missing_heights=False):
     add building ids
     
     save and load the new .geojson
-    
     :param filename: the filepath
     :type filename: str
     """
