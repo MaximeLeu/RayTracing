@@ -12,9 +12,6 @@ import json
 
 
 
-
-
-
 class RayTracingProblem:
     """
     A ray tracing problem instance offers tools to find paths between a given emitter and receivers.
@@ -367,10 +364,13 @@ class RayTracingProblem:
                             first = False
             
         self.place.center_3d_plot(ax)
-        ax.legend(handles, labels)
+        #ax.legend(handles, labels)
         if ret:
             return ax
-        
+ 
+
+
+      
     def plot_rays(self):
         """
         plot the ray paths for each receivers in a different subplot
@@ -383,7 +383,8 @@ class RayTracingProblem:
         for i in range(nplots):
             ax = fig.add_subplot(nrows, ncols, i+1, projection = '3d') #total rows,total columns, index
             ax = self.plot3d(ax=ax,receivers_indexs=[i],ret=True)
-            ax.set_title('Ray tracing for RX'+str(i))
+            ax.set_title('RX'+str(i))
+        
         
         plt.show(block=False)
         plt.pause(0.001) 

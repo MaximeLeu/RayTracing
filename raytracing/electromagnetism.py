@@ -12,6 +12,7 @@ import scipy as sc
 from scipy.constants import c, mu_0, epsilon_0, pi
 
 
+DB_REFERENCE=1
 
 #I consider the first medium is always air.
 mu_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["mu"].values[0]*mu_0
@@ -122,7 +123,7 @@ class ElectromagneticField:
     
     def my_reflect(E_i,reflections_path,surfaces_ids,rtp):
         """
-        Compute the E field at the end of a reflection (reflection can be multiple)
+        Compute the E field at the end of a reflection (reflection can be multiple) in V/m
         E_i is the field at the first reflection point
         """
         def split_reflections_path(reflections_path):
@@ -195,7 +196,7 @@ class ElectromagneticField:
 
     def my_diff(E_i,diff_path,diff_surfaces_ids,corner_points,rtp):
         """
-        Compute the E field at the end of a diffraction
+        Compute the E field at the end of a diffraction in V/m
         """
         def diff_dyadic_components(Si,si,Sd,sd,e,k,diffraction_polygon,n):
             """
@@ -346,8 +347,8 @@ class ElectromagneticField:
 
     
     
-def my_field_computation(rtp):
-    #Computes the resulting field at the receiver from all reflections and diffractions
+def my_field_computation(rtp,save_name=None):
+    #Computes the resulting field at the receiver from all reflections and diffractions in V/m
     reflections = rtp.reflections
     diffractions = rtp.diffractions
     
@@ -360,7 +361,7 @@ def my_field_computation(rtp):
     # computes field for each reflection and diffraction
     #for receiver in range(0,len(rtp.place.set_of_points)):
     for receiver in range(0,len(rtp.solved_receivers)):
-        rx=[rtp.solved_receivers[receiver]]
+        rx=rtp.solved_receivers[receiver]
         #compute field resulting from all reflections:         
         reflections_field=ElectromagneticField()
         reflections_field.E=0    
@@ -377,7 +378,8 @@ def my_field_computation(rtp):
                 reflections_field.E+=this_E.E
                 
                 path_length=geom.path_length(the_path)
-                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v,np.linalg.norm(this_E.E),'R'*order,rx,receiver]
+                pretty_rx=np.array2string(rx,separator=',')
+                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v,np.linalg.norm(this_E.E),'R'*order,pretty_rx,(receiver)]
                 
         #compute all diffractions
         diffractions_field=ElectromagneticField()
@@ -408,7 +410,8 @@ def my_field_computation(rtp):
                 diffractions_field.E+=this_E.E
                 
                 path_length=geom.path_length(the_path)
-                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v ,np.linalg.norm(this_E.E),'R'*(order-1)+'D',rx,receiver]
+                pretty_rx=np.array2string(rx,separator=',')
+                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v ,np.linalg.norm(this_E.E),'R'*(order-1)+'D',pretty_rx,receiver]
                 
         
         total_field=ElectromagneticField()
@@ -422,25 +425,41 @@ def my_field_computation(rtp):
             E_los=ElectromagneticField.account_for_trees(E_los,rtp.los[receiver][0],rtp.place)       
             path_length=geom.path_length(rtp.los[receiver][0])       
             print(f"fields Rx {rx}")
-            df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v, np.linalg.norm(E_los.E),'LOS',rx,receiver]
+            pretty_rx=np.array2string(rx,separator=',')
+            df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v, np.linalg.norm(E_los.E),'LOS',pretty_rx,receiver]
             total_field.E+=E_los.E
         else:
             print("there is NO line of sight")
             E_los=ElectromagneticField()
             E_los.E=0
-                    
+                
+    if save_name is not None:
+        df_pdp.to_csv(f"../results/{save_name}",index=False)
     return df_pdp
 
 
 
+def vm_to_db(vm):
+    """
+    converts the unit V/m to dB micro V/m
+    """
+    #10**-6
+    db=20*np.log10(vm/DB_REFERENCE)
+    return db
+
+
+def db_to_vm(db):
+    """
+    converts the unit dB micro V/m to V/m
+    """
+    vm=DB_REFERENCE*10**(db/20)
+    return vm
     
 def EM_fields_data(df):
     #df = pd.DataFrame(columns=['total_len','time_to_receiver','path_power','path_type','receiver'])
     nreceivers=len(df['rx_id'].unique())
     for receiver in range(0,nreceivers):
-        #rx_coord=df.loc[df['rx_id'] == receiver]['receiver'][0]
-        rx_coord=32
-        print(f"COOORS {rx_coord}")
+        rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0][0]
         print(f"------------data for receiver {receiver}, with coords {rx_coord}-------------------")
         
         this_df=df.loc[df['rx_id'] == receiver]
@@ -455,11 +474,14 @@ def EM_fields_data(df):
         all_reflections = np.sum(this_df[this_df['path_type'].str.contains('R')]["path_power"])
         all_diffractions = np.sum(this_df[this_df['path_type'].str.contains('D')]["path_power"])
        
-        print(f"total field {total}")
-        print(f"from reflections {all_reflections}")
-        print(f"from diffractions {all_diffractions}")
+        print(f"total field {total} V/m")
+        print(f"from reflections {all_reflections} V/m")
+        print(f"from diffractions {all_diffractions} V/m")
         
-    
+        
+        print(f"total field {vm_to_db(total)} dB")
+        print(f"from reflections {vm_to_db(all_reflections)} dB")
+        print(f"from diffractions {vm_to_db(all_diffractions)} dB")
     
     
 #TODO
@@ -470,11 +492,12 @@ def EM_fields_plots(df):
     nrows=nreceivers
     ncols=2
     
-    fig = plt.figure("EM fields data",figsize=(8,5))   
+    fig = plt.figure("EM fields data",figsize=(16,5*nrows))    
     fig.set_dpi(150)
     fig.subplots_adjust(hspace=.5)
     
     i=1
+
     for receiver in range(0,nreceivers):
         rx_df=df.loc[df['rx_id'] == receiver]
 
@@ -483,36 +506,46 @@ def EM_fields_plots(df):
         
         ax1 = fig.add_subplot(nrows, ncols,i)
         ax2 = fig.add_subplot(nrows, ncols,i+1)
+        
+        
         i+=2
         count=0
         width = 0.35
         for path_type in path_types:
             data_for_type=rx_df.loc[rx_df['path_type'] == path_type]
             total_power=np.sum(data_for_type['path_power'].values)
+            total_power=vm_to_db(total_power)
             color_for_type=colors[count]
             count=count+1
             #total power from each source
             ax1.bar(x=count, height=total_power,width=width,color=color_for_type,label=path_type)
             #power delay profile
-            ax2.stem(data_for_type['time_to_receiver'].values, data_for_type['path_power'].values,color_for_type,label=path_type,basefmt=" ")
+            ax2.stem(data_for_type['time_to_receiver'].values, vm_to_db(data_for_type['path_power'].values),color_for_type,label=path_type,basefmt=" ")
             
+            
+        
+         
         x=np.arange(1,len(path_types)+1, 1)   
         labels = path_types
         ax1.set_xticks(x, labels)
         ax1.set_title(f'Total power from sources RX{receiver}')
-        ax1.set_ylabel('amplitude') 
+        ax1.set_ylabel('Received power [dB]') 
         ax1.grid()
-        ax1.set_ylim(0,20)
+        #ax1.set_ylim(0,20)
         
         ax2.set_title(f'Power delay Profile RX{receiver}')
         ax2.set_xlabel('time to reach receiver (s)')
-        ax2.set_ylabel('amplitude')
+        ax2.set_ylabel('Received power [dB]')
         ax2.legend() 
         ax2.grid()
-        ax2.set_ylim(0,20)  
-    return
+        #ax2.set_ylim(0,20) 
+        plt.savefig("../results/EM_plots'.pdf", dpi=300)
 
-    
+    return fig
+
+
+
+
    
     
     

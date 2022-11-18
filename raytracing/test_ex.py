@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
     # 1. Load data
 
-    geometry = 'my_geometry'  # You can change to use another geometry
+    geometry = 'small'  # You can change to use another geometry
     geometry_filename=""
     if geometry == 'small':
         geometry_filename='../data/small.geojson'
@@ -116,7 +116,7 @@ if __name__ == '__main__':
         # 2. Create TX and RX
         tx = np.array([110,-40,35]).reshape(1, 3)
         rx = np.array([-30,-46,2]).reshape(1, 3)
-        N=5 #how many rx to compute
+        N=1 #how many rx to compute
         for i in range(0,N):
             rx +=np.array([20,0,0])
             place.add_set_of_points(rx)
@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
 
     #compute the fields
-    df=my_field_computation(problem)
+    df=my_field_computation(problem,f'{geometry}.csv')
     
     #plots   
     EM_fields_plots(df)    

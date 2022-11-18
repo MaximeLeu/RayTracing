@@ -37,10 +37,11 @@ def get_subplot_row_columns(amount_of_plots):
         case 6:
             nrows=2
             ncols=3    
+        
         case _:
-            nrows=5
-            ncols=4
-            print(f"Please define adequate subplot settings when there are {amount_of_plots} plots")
+            nrows=6
+            ncols=6
+            print(f"plot_utils.py: Please define adequate subplot settings when there are {amount_of_plots} plots")
     
     return nrows,ncols
 
