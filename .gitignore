@@ -47,3 +47,10 @@ data/TutorialTest/sciences.geojson
 raytracing/dataframe.geojson
 
 raytracing/sciences_sampled.geojson
+
+
+results/
+
+raytracing/otherTest.py
+
+raytracing/random_tests.py

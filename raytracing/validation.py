@@ -13,6 +13,8 @@ import raytracing.geometry as geom
 from raytracing import plot_utils,file_utils
 from electromagnetism import my_field_computation,EM_fields_plots,EM_fields_data,vm_to_db
 
+from multithread_solve import multithread_solve_place
+
 #packages
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,44 +23,14 @@ import pandas as pd
 import csv
 
 
+MAXWELL_HEIGHT=40 #find it in the geojson
 
-MAXWELL_HEIGHT_CLAUDE=40
-CLAUDE_N_POINTS=10
-TX_CLAUDE = np.array([110,-40,MAXWELL_HEIGHT_CLAUDE+1.2]).reshape(1, 3)
 RX_HEIGHT=1.2
-
-
 ST_BARBE_COORD=np.array([-15,-46,RX_HEIGHT])
 MAXWELL_COORDINATES=np.array([80,-10,0])
 DIST=MAXWELL_COORDINATES[0]-ST_BARBE_COORD[0]
-print(f"MAXWELL: {MAXWELL_COORDINATES} barb: {ST_BARBE_COORD} dist: {DIST}" )
 
 
-
-def plot_place_claude():  
-    
-    #useful to get Maxwell's coordinates
-    geometry_filename='../data/place_levant.geojson'
-    geom.preprocess_geojson(geometry_filename)
-    place = geom.generate_place_from_rooftops_file(geometry_filename)
-    fig = plt.figure("the place")
-    fig.set_dpi(300)
-    ax = fig.add_subplot(projection='3d')
-    plot_utils.add_points_to_3d_ax(ax=ax, points=TX_CLAUDE, label="TX",marker='o')
-    
-   
-    rx= ST_BARBE_COORD
-    step=DIST/CLAUDE_N_POINTS
-    for receiver in range(CLAUDE_N_POINTS):
-        rx =rx+np.array([step,0,0])
-        rx=rx.reshape(-1, 3)
-        plot_utils.add_points_to_3d_ax(ax=ax, points=rx, label=f"RX{receiver}",marker='+')
-        
-        
-    place.center_3d_plot(ax)   
-    ax = place.plot3d(ax=ax)
-    plt.show(block=False)
-    plt.pause(0.001) 
 
 def read_csv(file):
     #using this https://apps.automeris.io/wpd/
@@ -71,7 +43,59 @@ def read_csv(file):
             y.append(float(row[1]))
     return x,y 
 
-def claude_comparison(df,freq):
+def create_place_claude(tx,npoints):
+    #create and show the place
+    print(f"MAXWELL: {MAXWELL_COORDINATES} barb: {ST_BARBE_COORD} dist: {DIST}" )
+    
+    geometry_filename='../data/place_levant.geojson'
+    geom.preprocess_geojson(geometry_filename)
+    place = geom.generate_place_from_rooftops_file(geometry_filename)
+    fig = plt.figure("the place")
+    fig.set_dpi(300)
+    ax = fig.add_subplot(projection='3d')
+    plot_utils.add_points_to_3d_ax(ax=ax, points=tx, label="TX",marker='o')
+    
+    rx= ST_BARBE_COORD
+    step=DIST/npoints
+    for receiver in range(npoints):
+        rx =rx+np.array([step,0,0])
+        rx=rx.reshape(-1, 3)
+        plot_utils.add_points_to_3d_ax(ax=ax, points=rx, label=f"RX{receiver}",marker='+')
+        place.add_set_of_points(rx)
+            
+    place.center_3d_plot(ax)   
+    ax = place.plot3d(ax=ax)
+    plt.show(block=False)
+    plt.pause(0.001) 
+    return place
+    
+
+
+def plot_claude_comparison(df,freq):
+    """
+    df: dataframe of the solved problem for the given frequency
+    frequency: either 12.5 or 30 GHz
+    """
+    def read_simu():
+        """
+        extracts x and y data from the dataframe
+        put x and y in same format as claude
+        """
+        nreceivers=len(df['rx_id'].unique())
+        simu_y=np.zeros(nreceivers)
+        simu_x=np.zeros(nreceivers)
+        for receiver in range(nreceivers):
+            rx_df=df.loc[df['rx_id'] == receiver]
+            simu_y[receiver]=vm_to_db(np.sum(rx_df['path_power'].values))
+            
+            rx_coord=(df.loc[df['rx_id'] == receiver]['receiver'].values[0]) #this is a string
+            rx_coord=rx_coord[1:-1] #remove brackets
+            rx_coord=np.fromstring(rx_coord, sep=',')
+            
+            dist_maxwell=np.linalg.norm(MAXWELL_COORDINATES-rx_coord) #distance between the receiver and the maxwell
+            simu_x[receiver]=dist_maxwell       
+        return simu_x, simu_y
+    
     if freq==12.5:
         #12.5 GHz
         x,y=read_csv("claude_12_feb.csv")
@@ -80,22 +104,8 @@ def claude_comparison(df,freq):
         #30GHz
         x,y=read_csv("claude_30_feb.csv")
         x1,y1=read_csv("claude_30_oct.csv")
-    
 
-    nreceivers=len(df['rx_id'].unique())
-    simu_y=np.zeros(nreceivers)
-    simu_x=np.zeros(nreceivers)
-    for receiver in range(nreceivers):
-        rx_df=df.loc[df['rx_id'] == receiver]
-        simu_y[receiver]=vm_to_db(np.sum(rx_df['path_power'].values))
-        
-        rx_coord=(df.loc[df['rx_id'] == receiver]['receiver'].values[0]) #this is a string
-        rx_coord=rx_coord[1:-1] #remove brackets
-        rx_coord=np.fromstring(rx_coord, sep=',')
-        
-        dist_maxwell=np.linalg.norm(MAXWELL_COORDINATES-rx_coord) #distance between the receiver and the maxwell
-        simu_x[receiver]=dist_maxwell
-       
+    simu_x,simu_y=read_simu()    
     fig = plt.figure(figsize=(20,20))
     ax = fig.add_subplot(1, 1, 1)
     ax.set_title(f'Comparison between measurements and simulation at {freq} GHz')
@@ -106,7 +116,7 @@ def claude_comparison(df,freq):
     ax.legend()
     plt.show() 
 
-def mani_comparison(df):
+def plot_mani_comparison(df):
     fig = plt.figure(figsize=(20,20))
     ax = fig.add_subplot(1, 1, 1)
     
@@ -132,11 +142,26 @@ def mani_comparison(df):
     plt.show()
     return
 
+
+
+
+#ALWAYS RESTART KERNEL BEFORE LAUNCH
 if __name__ == '__main__':
     plt.close('all')
+    TX_CLAUDE = np.array([110,-40,MAXWELL_HEIGHT+1.2]).reshape(1, 3)
     
-    geometry='small'
+    #care to go modify the E field frequency adequately in materials properties beforehand.
+    #restart kernel before attempting
+    solve=True 
+    place_claude=create_place_claude(TX_CLAUDE,npoints=15)
+    solved_em_path="../results/levant_claude_em_solved.csv"
     
-    df=pd.read_csv("../results/small.csv")
-    plot_place_claude()
-    claude_comparison(df,12.5)
+    
+    if solve==True:
+        solved_em_path,solved_rays_path= multithread_solve_place(place=place_claude,tx=TX_CLAUDE,save_name='levant_claude') 
+        
+    df=pd.read_csv(solved_em_path)
+    plot_claude_comparison(df,12.5)
+    
+    
+    

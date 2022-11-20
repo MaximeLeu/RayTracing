@@ -126,13 +126,13 @@ if __name__ == '__main__':
     #compute the rays
     problem = RayTracingProblem(tx, place)
     problem.solve(max_order=3,receivers_indexs=None)
-    problem_path='../data/problem.json'
+    problem_path='../results/problem.json'
     problem.save(problem_path)
     
 
 
     #compute the fields
-    df=my_field_computation(problem,f'{geometry}.csv')
+    df=my_field_computation(problem,f'../results/{geometry}.csv')
     
     #plots   
     EM_fields_plots(df)    

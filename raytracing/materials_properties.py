@@ -10,7 +10,7 @@ Properties of various materials
 
 import pandas as pd
 import numpy as np
-
+from scipy.constants import epsilon_0, pi
 #relative permittivity= epsilon
 #relative permeability=mu
 #electrical conductivity=sigma
@@ -22,7 +22,7 @@ N_TREES=10 #how many trees to add to the place
 MIN_TREE_HEIGHT=10
 MAX_TREE_HEIGHT=20
 TREE_SIZE=2
-FREQUENCY=12.5 #1e9
+FREQUENCY=12.5 *1e9 #in Hz #1e9
 ITU="ITU-R P.2040-2"
 
 
@@ -90,8 +90,8 @@ DF_PROPERTIES=pd.concat([pd.DataFrame.from_records([air,concrete,brick,wood,glas
 
 #complex effective relative permittivity, as defined in ITU-R P.2040-2
 if not 'epsilon_eff' in DF_PROPERTIES.columns:
-    #if required, the imaginary part of the relative permittivity  can be obtained:=17.98*sigma/f (see ITU)
-    DF_PROPERTIES['epsilon_eff']=DF_PROPERTIES["epsilon"]-1j*17.98*DF_PROPERTIES["sigma"]/(FREQUENCY/10e9)
+    #if required, the imaginary part of the relative permittivity  can be obtained:=17.98*sigma/f (see ITU), 17.98=1/2pi epsilon_0 *10e9
+    DF_PROPERTIES['epsilon_eff']=DF_PROPERTIES["epsilon"]-1j*DF_PROPERTIES["sigma"]/(epsilon_0*2*pi*FREQUENCY)
     
     
 def set_properties(building_type):

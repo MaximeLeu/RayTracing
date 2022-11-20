@@ -20,13 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-MAXWELL_COORDINATES=np.array([80,-10,0])
-
-    
-
-
-
-def multithread_solve_place(place,tx):
+def multithread_solve_place(place,tx,save_name):
     """
     Solves the place, using one CPU for each receiver.
     Saves the plots and dataframe in the results folder.
@@ -66,22 +60,27 @@ def multithread_solve_place(place,tx):
     pool.close() 
     pool.join()
     
+    solved_rays_path=f"../results/{save_name}_ray_solved.json"
+    solved_em_path=f'../results/{save_name}_em_solved.csv'
+    
     #merge the problems
     full_problem = RayTracingProblem(tx, place)
-    merge_solved_problems(full_problem, solved_problems, "../results/merged_problem.json")
+    merge_solved_problems(full_problem, solved_problems, solved_rays_path)
         
     #compute fields
-    fields=my_field_computation(full_problem,f'{geometry}.csv')
+    fields=my_field_computation(full_problem,solved_em_path)
     
     #plot full problem
     EM_fields_plots(fields)
     EM_fields_data(fields)
-    full_problem.plot_rays() 
-    return
+    full_problem.plot_rays()
+         
+    return solved_em_path,solved_rays_path
 
-if __name__ == "__main__":   
+if __name__ == "__main__":  
     plt.close('all')
     
+    #MAXWELL_COORDINATES=np.array([80,-10,0])
     #init problem
     N_points_small=30
     N_points_levant=5
@@ -117,7 +116,7 @@ if __name__ == "__main__":
             place.add_set_of_points(rx)
     
     
-    multithread_solve_place(place, tx)
+    multithread_solve_place(place, tx,"smallTest")
         
         
         
