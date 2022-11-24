@@ -11,7 +11,6 @@ import json
 
 
 
-
 class RayTracingProblem:
     """
     A ray tracing problem instance offers tools to find paths between a given emitter and receivers.
@@ -37,13 +36,14 @@ class RayTracingProblem:
         self.emitter = emitter
         self.n_screens = n_screens
         self.place = place
-        self.polygons = np.array(place.get_polygons_list(),dtype=object)
-        self.solved_receivers=None
+        self.polygons=None
+        self.receivers=np.array([])
+        if self.place is not None:
+            self.polygons = np.array(place.get_polygons_list(),dtype=object)
+            self.receivers = self.place.set_of_points
         if receivers is not None:
-            self.place.add_set_of_points(receivers)
-
-        self.receivers = self.place.set_of_points
-
+            self.place.add_set_of_points(receivers)    
+        self.solved_receivers=None
         self.visibility_matrix = None
         self.distance_to_screen = None
         self.emitter_visibility = None
@@ -61,7 +61,8 @@ class RayTracingProblem:
             r: defaultdict(list)
             for r in range(n)
         }
-        self.precompute()
+        if self.place is not None:
+            self.precompute()
 
     def precompute(self):
         """
@@ -242,7 +243,7 @@ class RayTracingProblem:
             
         self.solved_receivers=receivers    
 
-    def save(self, filename):
+    def save(self, filename): 
         data = {
             'place': self.place.to_json(),
             'solved_receivers':self.solved_receivers,
@@ -251,18 +252,19 @@ class RayTracingProblem:
             'reflections': self.reflections,
             'diffractions': self.diffractions
         }
-
-        file_utils.json_save(filename, data, cls=geom.OrientedGeometryEncoder)
-        
-    def load(self,filename):
-        #TODO maybe use file_utils.load_json?
-        #TODO use with open
+        #save in a readable json, loadable.
+        filename=filename if ".json" in filename else f'{filename}.json'
+        file_utils.json_save(filename, data, cls=geom.OrientedGeometryEncoder)   
+        return
+            
+    def load(self,filename):  
+        #TODO load correctly
         reader=open(filename,"r")
         dictionnary=json.load(reader)         
         reader.close()
-        
-        self.solved_receivers=dictionnary["solved_receivers"]
-        self.emitter=dictionnary["emitter"]
+        #dictionnary=file_utils.json_load(filename)
+        self.solved_receivers=np.array(dictionnary["solved_receivers"])
+        self.emitter=np.array(dictionnary["emitter"])
         place=geom.OrientedPlace.from_json(data=dictionnary["place"])
         self.place=place
          
@@ -270,7 +272,8 @@ class RayTracingProblem:
         los={int(key):dictionnary['los'][key] for key in dictionnary['los']}
         #convert lists to ndarrays
         for receiver in range(0,len(los)):
-            los[receiver][0]=np.array(los[receiver][0])
+            if los[receiver]!=[]:
+                los[receiver][0]=np.array(los[receiver][0])
         self.los=los
         
         reflections={int(key):dictionnary['reflections'][key] for key in dictionnary['reflections']}
@@ -289,14 +292,14 @@ class RayTracingProblem:
             for order in range(1,len(diffractions[receiver])+1):
                 for diff in range(0,len(diffractions[receiver][order])):
                     diffractions[receiver][order][diff]=(np.array(diffractions[receiver][order][diff][0]),
-                                                         diffractions[receiver][order][diff][1],
-                                                         tuple(diffractions[receiver][order][diff][2]),
-                                                         np.array(diffractions[receiver][order][diff][3])
+                                                          diffractions[receiver][order][diff][1],
+                                                          tuple(diffractions[receiver][order][diff][2]),
+                                                          np.array(diffractions[receiver][order][diff][3])
                                                           )
         self.diffractions=diffractions
         self.polygons = np.array(place.get_polygons_list(),dtype=object)
         self.n_screens=6 #TODO load correctly 
-        self.precompute() #compute the other arguments (visibility matrix etc)
+        #self.precompute() #compute the other arguments (visibility matrix etc)
         
         return self
         

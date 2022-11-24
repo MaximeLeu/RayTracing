@@ -11,3 +11,5 @@ sphinx
 sphinx-click
 sphinx-rtd-theme
 tqdm
+pathos
+pandas

@@ -36,7 +36,7 @@ def multithread_solve_place(place,tx,save_name):
         problem.solve(max_order=3,receivers_indexs=[rx])
         #if you want to save individual problems: problem.save(f"../data/problem{rx}.json")
         return problem
-    def merge_solved_problems(full_problem,solved_problems,save_path):
+    def merge_solved_problems(full_problem,solved_problems,save_name):
         #merge solved problems into one    
         for problem in solved_problems:
             #get solved problem index
@@ -48,8 +48,9 @@ def multithread_solve_place(place,tx,save_name):
             full_problem.reflections[index]=problem.reflections[index]
             full_problem.diffractions[index]=problem.diffractions[index] 
         full_problem.solved_receivers=full_problem.place.set_of_points
+        save_path=f"../results/{save_name}_ray_solved.json"
         full_problem.save(save_path)
-        return
+        return save_path
     
     #solve each receiver on separate CPU
     pool = Pool(N_CPU)
@@ -60,19 +61,18 @@ def multithread_solve_place(place,tx,save_name):
     pool.close() 
     pool.join()
     
-    solved_rays_path=f"../results/{save_name}_ray_solved.json"
     solved_em_path=f'../results/{save_name}_em_solved.csv'
     
     #merge the problems
     full_problem = RayTracingProblem(tx, place)
-    merge_solved_problems(full_problem, solved_problems, solved_rays_path)
+    solved_rays_path=merge_solved_problems(full_problem, solved_problems, save_name)
         
     #compute fields
-    fields=my_field_computation(full_problem,solved_em_path)
+    my_field_computation(full_problem,solved_em_path)
     
     #plot full problem
-    EM_fields_plots(fields)
-    EM_fields_data(fields)
+    EM_fields_plots(solved_em_path)
+    EM_fields_data(solved_em_path)
     full_problem.plot_rays()
          
     return solved_em_path,solved_rays_path

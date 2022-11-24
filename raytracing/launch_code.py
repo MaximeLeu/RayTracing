@@ -7,12 +7,13 @@ Created on Thu Sep 29 18:33:28 2022
 #self written imports
 from ray_tracing import RayTracingProblem
 import raytracing.geometry as geom
-from raytracing import plot_utils,file_utils
 from electromagnetism import my_field_computation,EM_fields_plots,EM_fields_data
+import file_utils,plot_utils
 
 #packages
 import numpy as np
 import matplotlib.pyplot as plt
+
 
 
 
@@ -129,18 +130,17 @@ if __name__ == '__main__':
     problem_path='../results/problem.json'
     problem.save(problem_path)
     
-
-
     #compute the fields
-    df=my_field_computation(problem,f'../results/{geometry}.csv')
-    
+    results_path=f'../results/{geometry}.csv'
+    df=my_field_computation(problem,results_path)
+
     #plots   
-    EM_fields_plots(df)    
-    EM_fields_data(df)
+    EM_fields_plots(results_path)    
+    EM_fields_data(results_path)
     
     problem.plot_rays()
     plot_place(place,tx)
-
+    
 
 
 
