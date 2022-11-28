@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as mplot3d
 import matplotlib.patches as patches
-
+import matplotlib.colors as mcolors
 # Numerical libraries
 import numpy as np
 
@@ -15,6 +15,18 @@ anim = dict(
 )
 
 
+
+
+def set_color_for_type(path_type,order):
+    colors=list(mcolors.TABLEAU_COLORS) #10 different colors 
+    all_types=["LOS","R","D","RR","RD","RRR","RRD","RRRR","RRRD"]
+    slicer=2*order+1
+    if(slicer>len(all_types) or slicer >len(colors)):
+        print(f"PLOTTING ERROR: {path_type} not enumerated or not enough colors")
+    types=all_types[0:slicer]
+    ind=types.index(path_type)
+    return colors[ind],ind,types
+    
 
 
 def get_subplot_row_columns(amount_of_plots):

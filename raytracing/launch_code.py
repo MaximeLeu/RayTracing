@@ -135,10 +135,10 @@ if __name__ == '__main__':
     df=my_field_computation(problem,results_path)
 
     #plots   
-    EM_fields_plots(results_path)    
+    EM_fields_plots(results_path,order=3,name=geometry)    
     EM_fields_data(results_path)
     
-    problem.plot_rays()
+    problem.plot_all_rays()
     plot_place(place,tx)
     
 

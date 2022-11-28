@@ -258,7 +258,8 @@ class RayTracingProblem:
         return
             
     def load(self,filename):  
-        #TODO load correctly
+        assert 1==2,"loading a problem from a json is not working"
+        #TODO load correctly, this does not work.
         reader=open(filename,"r")
         dictionnary=json.load(reader)         
         reader.close()
@@ -305,7 +306,7 @@ class RayTracingProblem:
         
         
         
-    def plot3d(self, ax=None, ret=False, show_refl=True, show_diff=True, receivers_indexs=None):
+    def plot3d(self, ax=None, ret=False, show_refl=True, show_diff=True, receivers_indexs=None,legend=False):
         """
         plot a single 3d plot with the ray paths
 
@@ -367,14 +368,14 @@ class RayTracingProblem:
                             first = False
             
         self.place.center_3d_plot(ax)
-        #ax.legend(handles, labels)
+        if legend:
+            ax.legend(handles, labels)
         if ret:
             return ax
- 
 
 
-      
-    def plot_rays(self):
+    
+    def plot_all_rays(self):
         """
         plot the ray paths for each receivers in a different subplot
         """
@@ -387,11 +388,10 @@ class RayTracingProblem:
             ax = fig.add_subplot(nrows, ncols, i+1, projection = '3d') #total rows,total columns, index
             ax = self.plot3d(ax=ax,receivers_indexs=[i],ret=True)
             ax.set_title('RX'+str(i))
-        
-        
+           
         plt.show(block=False)
         plt.pause(0.001) 
-         
+        return
         
         
         

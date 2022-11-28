@@ -20,6 +20,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+ORDER=3
+
 def multithread_solve_place(place,tx,save_name):
     """
     Solves the place, using one CPU for each receiver.
@@ -33,8 +35,7 @@ def multithread_solve_place(place,tx,save_name):
         """
         print(f"solving rx {rx}")
         problem = RayTracingProblem(tx, place)
-        problem.solve(max_order=3,receivers_indexs=[rx])
-        #if you want to save individual problems: problem.save(f"../data/problem{rx}.json")
+        problem.solve(max_order=ORDER,receivers_indexs=[rx])
         return problem
     def merge_solved_problems(full_problem,solved_problems,save_name):
         #merge solved problems into one    
@@ -66,14 +67,14 @@ def multithread_solve_place(place,tx,save_name):
     #merge the problems
     full_problem = RayTracingProblem(tx, place)
     solved_rays_path=merge_solved_problems(full_problem, solved_problems, save_name)
-        
+    full_problem.plot_all_rays()    
     #compute fields
     my_field_computation(full_problem,solved_em_path)
     
     #plot full problem
-    EM_fields_plots(solved_em_path)
+    EM_fields_plots(solved_em_path,order=ORDER,name=save_name)
     EM_fields_data(solved_em_path)
-    full_problem.plot_rays()
+    
          
     return solved_em_path,solved_rays_path
 
