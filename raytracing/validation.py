@@ -10,7 +10,7 @@ Created on Thu Nov 17 15:38:52 2022
 #self written imports
 import raytracing.geometry as geom
 from raytracing import plot_utils,file_utils
-from electromagnetism import compute_power
+from electromagnetism import FieldPower
 from electromagnetism import RX_GAIN,TX_GAIN
 
 from multithread_solve import multithread_solve_place
@@ -84,7 +84,7 @@ def plot_claude_comparison(df):
         simu_x=np.zeros(nreceivers)
         for receiver in range(nreceivers):
             rx_df=df.loc[df['rx_id'] == receiver]
-            simu_y[receiver]=compute_power(rx_df["field_strength"].values,STYLE=2)        
+            simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)        
             rx_coord=(df.loc[df['rx_id'] == receiver]['receiver'].values[0])        
             dist_maxwell=np.linalg.norm(MAXWELL_COORDINATES-rx_coord) #distance between the receiver and the maxwell
             simu_x[receiver]=dist_maxwell       
@@ -126,32 +126,6 @@ def plot_claude_comparison(df):
     ax.legend()
     plt.show() 
     return
-# def plot_mani_comparison(df):
-#     fig = plt.figure(figsize=(20,20))
-#     ax = fig.add_subplot(1, 1, 1)
-    
-#     GHZ=3.8
-#     x=np.arange(1,16,1)
-#     mani_y=np.array([-89,-83,-80,-79,-80,-82,-83,-91,-98,-90,-93,-90,-95,-95,-104])
-   
-#     nreceivers=len(df['rx_id'].unique())
-#     simu_y=np.zeros(nreceivers)
-#     for receiver in range(nreceivers):
-#         rx_df=df.loc[df['rx_id'] == receiver]
-#         #TODO correct
-#         simu_y[receiver]=to_db(np.sum(rx_df['path_power'].values))
-    
-#     ax.plot(x,simu_y,color='green', marker='o',label="simulated results")
-#     ax.plot(x, mani_y,color='blue', marker='o',label="mani measurements")
-      
-#     ax.set_title(f'Comparison between measurements and simulation at {GHZ} GHz')
-#     ax.set_ylabel('Received power [dB]') 
-#     ax.set_xlabel("measurement positions")
-#     ax.set_xlim(1,15)
-#     ax.grid()  
-#     ax.legend()
-#     plt.show()
-#     return
 
 def compare_claude_driver(solveRays=False,npoints=15):#,solveEM=True):    
     place_claude=create_place_claude(TX_CLAUDE,npoints=npoints)
@@ -215,7 +189,7 @@ def compare_small_PL_driver():
         simu_x[receiver]=d
         pr_pt=RX_GAIN*TX_GAIN*(c/(4*pi*d*FREQUENCY))**2 #pr/pt
         path_loss[receiver]=10*np.log10(pr_pt)
-        simu_y[receiver]=compute_power(rx_df["field_strength"].values,STYLE=2)
+        simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)
     
     fig = plt.figure(figsize=(20,20))
     ax = fig.add_subplot(1, 1, 1)
@@ -235,7 +209,7 @@ if __name__ == '__main__':
     #care to go modify the E field frequency adequately in materials properties as well beforehand.
     plt.close('all')
     
-    compare_claude_driver(solveRays=True,npoints=30)
+    #compare_claude_driver(solveRays=True,npoints=30)
     
-    #compare_small_PL_driver()
+    compare_small_PL_driver()
     
