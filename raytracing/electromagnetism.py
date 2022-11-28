@@ -3,11 +3,13 @@ from raytracing import array_utils
 from raytracing import geometry as geom
 from materials_properties import DF_PROPERTIES, FREQUENCY,N_TREES,TREE_SIZE
 import file_utils
+import plot_utils
+
+
 
 #packages
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import pandas as pd
 import scipy as sc
 from scipy.constants import c, mu_0, epsilon_0, pi
@@ -23,6 +25,7 @@ epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[
 TX_POWER=1 #initially radiated field strenght in W
 TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians 
 RX_GAIN=4*pi*1/((pi/9)**2) #20 degree beamwidth 
+#EIRP=TX_POWER*TX_GAIN
 
 
 class ElectromagneticField:
@@ -33,7 +36,7 @@ class ElectromagneticField:
         self.v = v
         self.k = 2 * pi * f / v
         self.w = 2 * pi * f
-        self.lam =v/f #lambda
+        self.lam =v/f 
 
     @staticmethod
     def from_path(path):
@@ -42,29 +45,11 @@ class ElectromagneticField:
         :param path: TX point and point of the first obstruction (or RX if line of sight)
         :type path: numpy.ndarray(shapely.geometry.Points) *shape=(2)
         """
+        #TODO: account for directivity here.
         vector, d = geom.normalize_path(path)
-        
-        # phi, theta, r = geom.cartesian_to_spherical(vector * d) #TODO, ca n'as pas de sens de convertir un vecteur en coordonnées sphériques?? Ca donne simplement sa norme..
-        # # Reference axis is z, not x, y plane
-        # theta -= pi / 2
-        # if theta < 0:
-        #     theta += 2 * pi
-        # cphi = np.cos(phi[0])
-        # sphi = np.sin(phi[0])
-        # ctheta = np.cos(theta[0])
-        # stheta = np.sin(theta[0])
-        
-        # #spherical unit vectors
-        # eph = np.array([-sphi, cphi, 0])
-        # eth = np.array([ctheta * cphi, sphi * ctheta, -stheta])
-        # eta=np.sqrt(mu_1/(epsilon_1)) #376.730 = free space impedance
-        # assert eta>376 and eta<377, "strange free space impedance value"
-        # #EF.E =1j*EF.k*eta*np.exp(-1j*EF.k*d) * (eph + eth) / (4 * pi * d)
-          
-        
         #assuming isotropic radiator:
         Z_0=120*pi
-        init=np.sqrt(2*Z_0*TX_POWER*TX_GAIN/(4*pi*1)) #2*sqrt(15) for TXpower=1       
+        init=np.sqrt(2*Z_0*TX_POWER*TX_GAIN/(4*pi*1)) #    
         E_0 = ElectromagneticField()
         E_0.E=np.array([init, 0, 0]) #initially radiated field strenght (V/m) (peak to peak)
         EF=ElectromagneticField()
@@ -80,7 +65,6 @@ class ElectromagneticField:
         r_per=(cosi-sqrt) / (cosi+sqrt)    #Rs 
         r_par=np.linalg.norm(r_par)
         r_per=np.linalg.norm(r_per)
-        print(f"rpar {r_par} r_per {r_per}")
         assert r_par<=1 and r_per<=1, f"fresnel coeffs are greater than 1: r_par {r_par} r_per {r_per}"
         
         rayleigh_criterion= (roughness > E.lam/(8*cosi))
@@ -160,7 +144,6 @@ class ElectromagneticField:
            """
             #data:        
             mu_2,sigma_2,epsilon_2,epsilon_eff_2,roughness,surface_normal=ElectromagneticField.get_parameters(reflection_polygon)
-            #print(f"mu_2, {mu_2} sigma_2 {sigma_2}, epsilon_2 {epsilon_2},epsilon_eff_2 {epsilon_eff_2},roughness {roughness}")
             #Compute vectors from emitter to reflection point,
             #then from reflection point to receiver
             vectors = np.diff(path, axis=0)
@@ -175,10 +158,6 @@ class ElectromagneticField:
             e_per=array_utils.normalize(np.cross(si, sr))
             ei_par= array_utils.normalize(np.cross(e_per,si))
             er_par= array_utils.normalize(np.cross(e_per,-sr))
-            
-            prod1=e_per.reshape(3,1)@e_per.reshape(1,3)
-            prod2=ei_par.reshape(3,1)@er_par.reshape(1,3)
-            print(f"prod1 {prod1} prod2 {prod2}")
             
             R=e_per.reshape(3,1)@e_per.reshape(1,3)*r_per - ei_par.reshape(3,1)@er_par.reshape(1,3)*r_par #3x3 matrix
             assert(R.shape==(3,3))
@@ -200,47 +179,10 @@ class ElectromagneticField:
         last_path=paths[-1] #[Tx,R,RX]
         last_path=np.array([last_path[1],last_path[2]]) #[R,RX]
         E_r=ElectromagneticField.account_for_trees(E_r,last_path,rtp.place) #account for ref-->RX
-        print(f"incident field strength {np.linalg.norm(E_i.E)} reflected field {np.linalg.norm(E_r.E)} dyadic {R}")
-        #print(f"IM incident field intensity {np.linalg.norm(E_i.E.imag)} reflected field {np.linalg.norm(field.imag)}")
-        
-        
-
-        # def explicit_compute(E_i):
-        #     paths=split_reflections_path(reflections_path)
-        #     E_test=ElectromagneticField()
-        #     E_test.E=E_i.E
-        #     for i in range(0,len(surfaces_ids)):
-        #         reflection_polygon=rtp.polygons[surfaces_ids[i]]
-        #         R,norms, e_per,ei_par, er_par,r_par,r_per =dyadic_ref_coeff(paths[i],reflection_polygon)
-        #         Si= norms[0]#norm of incident ray
-        #         Sr= norms[1]#norm of reflected ray  
-        #         E_test=ElectromagneticField.account_for_trees(E_test,np.array([paths[i][0],paths[i][1]]),rtp.place) #account for TX-->ref
-                
-        #         #other computation
-        #         cst=np.exp(-1j*E_i.k*Sr)*Si/(Si+Sr)
-        #         Er_par=np.dot(E_test.E,er_par)*cst*r_par
-        #         Er_per=np.dot(E_test.E,e_per)*cst*r_per
-        #         E_test.E=Er_par*er_par+Er_per*e_per
-        #         E_test.E=field.reshape(3,)   
-        #         assert np.linalg.norm(E_i.E)>=np.linalg.norm(E_test.E), f"incident field intensity {np.linalg.norm(E_i.E)} reflected field {np.linalg.norm(E_test.E)}"
-                
-        #     last_path=paths[-1]
-        #     last_path=np.array([last_path[1],last_path[2]])
-        #     E_test=ElectromagneticField.account_for_trees(E_test,last_path,rtp.place) #account for ref-->RX
-            
-        #     return E_test
-        
-        # E_test=explicit_compute(E_i)
-        # print(f"E using dyadic {np.linalg.norm(E_i.E)} and E using my compute {np.linalg.norm(E_test.E)}")
-        
         return E_r
 
 
-
-
-
-
-    def my_diff(E_i,diff_path,diff_surfaces_ids,corner_points,rtp):
+    def my_diff(E_i,diff_path,diff_surfaces_ids,corner_points,rtp,receiver):
         """
         Compute the E field at the end of a diffraction in V/m
         """
@@ -295,16 +237,24 @@ class ElectromagneticField:
             sd_t=sd-np.dot(sd,e)*e
             sd_t=sd_t/np.linalg.norm(sd_t) #(vector) McNamara 6.10
             
-            #TODO: ocasionnal problems with those angles, IDK why
+            
             phi_i=pi-(pi-np.arccos(np.dot(-si_t,t_0)))*np.sign(np.dot(-si_t,n_0)) #(scalar) McNamara 6.11 incident angle with respect to the O-face 
             phi_d=pi-(pi-np.arccos(np.dot(sd_t,t_0)))*np.sign(np.dot(sd_t,n_0)) #(scalar) McNamara 6.12 diffraction angle with respect to the O-face
             phi_i=phi_i%(2*pi)#get back in the 0-2pi range
             phi_d=phi_d%(2*pi)
 
             # text right after Mc 6.12 for these asserts:
-            assert phi_i>=0 and phi_i<=n*pi , f"phi_i ={phi_i*180/pi} cannot be inside the wedge, alpha={(2-n)*pi*180/pi}"
-            assert phi_d>=0 and phi_d<=n*pi, f"phi_d {phi_d*180/pi} cannot be inside the wedge, alpha={(2-n)*pi*180/pi}" 
-            
+            try:
+                assert phi_i>=0 and phi_i<=n*pi , f"phi_i ={phi_i*180/pi} cannot be inside the wedge, alpha={(2-n)*pi*180/pi}"
+                assert phi_d>=0 and phi_d<=n*pi, f"phi_d {phi_d*180/pi} cannot be inside the wedge, alpha={(2-n)*pi*180/pi}"      
+            except AssertionError:
+                print("ERROR: some diffracted rays may be inside the geometry, the receiver may be inside a building.")
+                fig2 = plt.figure(f"ERROR: Rays reaching RX{receiver} inside geometry",figsize=(8,5))
+                fig2.set_dpi(300)
+                ax = fig2.add_subplot(1, 1, 1, projection = '3d')
+                rtp.plot3d(ax=ax,receivers_indexs=[receiver],legend=True,show_refl=False)  
+                return 0,0,0,0
+                #raise
             #components of the diffraction coefficients:
             common_factor=-np.exp(-1j*pi/4)/(2*n*np.sqrt(2*pi*k)*np.sin(beta_0)) #scalar
             L=distance_factor(Si,Sd,beta_0)
@@ -323,7 +273,7 @@ class ElectromagneticField:
             D2=common_factor*cot2*F2 #scalar McNamara 6.22
             D3=common_factor*cot3*F3 #scalar McNamara 6.23
             D4=common_factor*cot4*F4 #scalar McNamara 6.24
-            return D1,D2,D3,D4,phi_i
+            return D1,D2,D3,D4#,phi_i
         
         def spread_factor(Si,Sd):
             #for spherical wave incidence on a straight edge:
@@ -344,9 +294,9 @@ class ElectromagneticField:
         n_0=array_utils.normalize(diffraction_polygon.get_normal()) #(vector) unit vector normal to the 0 face
         n_1=array_utils.normalize(polygon_2.get_normal()) #(vector) unit vector normal to the n face
          
-        alpha=np.arccos(np.dot(n_0,n_1)) #angles between two planes = angles between their normals
+        alpha=pi-np.arccos(np.dot(n_0,n_1)) #angles between two planes = pi-angles between their outwards normals
         n=2-alpha/pi #doesn't need to be an integer (McNamara 4.26)
-        assert alpha<=pi and n>=1 and n<=2, f"alpha= {alpha*180/pi}, we restrict ourselves to wedges with interior angles <=180"
+        assert alpha<pi and alpha>0 and n>=1 and n<=2, f"alpha= {alpha*180/pi}, we restrict ourselves to wedges with interior angles in 0,180"
         
         edge= np.diff(corner_points, axis=0).reshape(-1)
         e = edge/np.linalg.norm(edge)
@@ -360,9 +310,8 @@ class ElectromagneticField:
         assert diffraction_polygon.contains_point(mid_edge+t_0*(1e-6), check_in_plane=True, plane_tol=1e-8), "edge is wrongly oriented"
         
         #diffraction coefficients components:
-        D1,D2,D3,D4,phi_i=diff_dyadic_components(Si,si,Sd,sd,e,E_i.k,diffraction_polygon,n)
-        
-        #TODO: consider the edge as a other than a PEC
+        #D1,D2,D3,D4,phi_i=diff_dyadic_components(Si,si,Sd,sd,e,E_i.k,diffraction_polygon,n)
+        D1,D2,D3,D4=diff_dyadic_components(Si,si,Sd,sd,e,E_i.k,diffraction_polygon,n)
         r_per=1
         r_par=1
         #diffraction coefficients  
@@ -393,170 +342,293 @@ class ElectromagneticField:
 
     
     
-def my_field_computation(rtp,save_name="problem_fields"):
-    #Computes the resulting field at the receiver from all reflections and diffractions in V/m
-    reflections = rtp.reflections
-    diffractions = rtp.diffractions
     
-    df_pdp = pd.DataFrame(columns=['total_len','time_to_receiver','path_power','field_strength','path_type','receiver','rx_id'])  #dataframe storing all results
-    
-    #Add trees
-    for i in range(0,N_TREES):
-        rtp.place.add_tree(tree_size=TREE_SIZE)    
-      
-    # computes field for each reflection and diffraction
-    #for receiver in range(0,len(rtp.place.set_of_points)):
-    for receiver in range(0,len(rtp.solved_receivers)):
-        exist_path=False
-        rx=rtp.solved_receivers[receiver]
-        #compute field resulting from all reflections:         
-        reflections_field=ElectromagneticField()
-        reflections_field.E=0    
-        for order in reflections[receiver]:
-            for path in range(0,len(reflections[receiver][order])):
-                the_data=reflections[receiver][order][path]
-                the_path=the_data[0]
-                the_reflection_surfaces_ids=the_data[1]
-                tx =the_path[0] #first point of the reflection
-                first_interaction=the_path[1] #second point of the path
-                assert(np.array_equal(rtp.emitter[0],tx))
-                E_i=ElectromagneticField.from_path([tx,first_interaction])
-                this_E=ElectromagneticField.my_reflect(E_i,the_path,the_reflection_surfaces_ids,rtp)
-                reflections_field.E+=this_E.E
-                
-                path_length=geom.path_length(the_path)   
-                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v,np.linalg.norm(this_E.E),np.array(this_E.E,dtype=complex),'R'*order,rx,(receiver)]
-                exist_path=True
-                
-        #compute all diffractions
-        diffractions_field=ElectromagneticField()
-        diffractions_field.E=0     
-        for order in diffractions[receiver]:     
-            for path in range(0,len(diffractions[receiver][order])):
-                the_data=diffractions[receiver][order][path]  
-                the_path=the_data[0]
-                the_reflection_surfaces_ids=the_data[1]
-                the_diff_surfaces_ids=the_data[2]
-                the_corner_points=the_data[3] 
-                #WARNING: assumes diff always happen last
-                the_path_before_diff=the_path[0:-1] 
-                the_diff_path=the_path[-3:] #last 3 points
-                
-                tx =the_path[0] #first point of the reflection
-                first_interaction=the_path[1] #second point of the path
-                
-                E_0=ElectromagneticField.from_path([tx,first_interaction])
-                assert len(the_path)>=3, "path doesn't have the right shape"
-                if len(the_path)==3:
-                    #TX-diff-RX
-                    E_i=ElectromagneticField.account_for_trees(E_0,np.array([the_path[0],the_path[1]]),rtp.place)
-                else:
-                    #account for everything (reflections) happening before the diffraction
-                    #trees are accounted for directly in my_reflect()
-                    E_i=ElectromagneticField.my_reflect(E_0,the_path_before_diff,the_reflection_surfaces_ids,rtp) #E reaching the diffraction point
-          
-                #account for the diffraction
-                this_E=ElectromagneticField.my_diff(E_i,the_diff_path,the_diff_surfaces_ids,the_corner_points,rtp)
-                diffractions_field.E+=this_E.E
-                
-                path_length=geom.path_length(the_path)
-                df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v ,np.linalg.norm(this_E.E),np.array(this_E.E,dtype=complex),'R'*(order-1)+'D',rx,receiver]
-                exist_path=True
+class solved_field:
+    def __init__(self,path):
+        self.rx=path[-1]       
+        self.tx=path[0]
+        self.path=path
+        self.path_len=geom.path_length(path)
+        self.time=self.path_len/c
         
-        total_field=ElectromagneticField()
-        total_field.E=diffractions_field.E+reflections_field.E
+        self.path_type=None 
+        self.rx_id=None
+        self.field=None
         
-        #add LOS to total field
-        LOS=(rtp.los[receiver]!=[])  
-       
-        if LOS==True:
-            print("there is line of sight")
-            E_los=ElectromagneticField.from_path(rtp.los[receiver][0])
-            E_los=ElectromagneticField.account_for_trees(E_los,rtp.los[receiver][0],rtp.place)       
-            path_length=geom.path_length(rtp.los[receiver][0])       
-            print(f"fields Rx {rx}")
-            df_pdp.loc[len(df_pdp.index)] = [path_length,path_length/this_E.v, np.linalg.norm(E_los.E),np.array(E_los.E,dtype=complex),'LOS',rx,receiver]
-            exist_path=True
-            total_field.E+=E_los.E
-        else:
-            print("there is NO line of sight")
-            E_los=ElectromagneticField()
-            E_los.E=0
-         
-        if exist_path==False:
-            #if there was no path at all (no los, no reflection, no diffraction) between the RX and the TX
-            df_pdp.loc[len(df_pdp.index)] = [1,1,0,np.array([0,0,0],dtype=complex),'No_path_possible',rx,receiver]
-            
-            
-    file_utils.save_df(df_pdp,save_name)#saves into the result folder
-    return df_pdp
-
-
-
-def harvested_power(field_strength):
-    """
-    given the peak to peak amplitude of the field strength arriving at the receiver in volts/meter
-    returns the power extracted by the receiver antenna in Watts
-    """
-    lam=c/FREQUENCY
-    directivity=1 #1 for a perfectly isotropic antenna
-    impedance_mismatch=1 #perfect impedance matching
-    polarisation_eff=1 #perfect polarisation efficiency.
-    imperfections=directivity*impedance_mismatch*polarisation_eff
-    A_eff=imperfections*(lam**2)/(4*pi)*RX_GAIN
-    power_density=(field_strength**2)/(2*120*pi) #considering E peak to peak
-    
-    pr=power_density*A_eff
-    return pr
-
-
-def to_db(field_power):
-    """
-    converts given field power in watts to dB (normalised to TX_POWER)
-    """
-    #avoid computing log(0)
-    P=np.atleast_1d(field_power)
-    ind=np.where(P!=0)
-    db=np.ones(len(P))*np.NINF
-    for i in ind:
-        db[i]=10*np.log10(P[i]/TX_POWER) 
-    return db[0] if np.isscalar(field_power) else db
+        self.tx_el=None
+        self.tx_az=None
+        self.rx_el=None
+        self.rx_az=None
      
+    def compute_angles(self,RX_basis,TX_basis,tx):
+        second_point=self.path[1]
+        penultimate_point=self.path[-2] 
+        self.rx_el,self.rx_az=solved_field.antenna_incident_angles(RX_basis,penultimate_point-self.rx)
+        self.tx_el,self.tx_az=solved_field.antenna_incident_angles(TX_basis,second_point-tx)
+        return
     
-def compute_power(field_strength,STYLE=3):
-    #given list of field strength, compute received power in 3 ways
-    #makes it work when given np.array(1,2,3) instead of [np.array(1,2,3),...,np.array(3,4,5)]
-    if isinstance(field_strength[0],np.ndarray)==False:
-        field_strength=[field_strength]
+    
+    def my_field_computation(rtp,save_name="problem_fields"):
+        #Computes the resulting field at the receiver from all reflections and diffractions in V/m 
+       
+        #Add trees
+        for i in range(0,N_TREES):
+            rtp.place.add_tree(tree_size=TREE_SIZE)    
+            
+        def compute_LOS(receiver,rtp,the_df,solved_list):
+            #receiver is the index of the receiver NOT its coordinates 
+            rx=rtp.solved_receivers[receiver]
+            best = {'field': 0, 'path': None}
+            if rtp.los[receiver]!=[]:
+                print(f"RX {rx} is in LOS")
+                # tx=rtp.los[receiver][0][0]
+                # E_los=ElectromagneticField.from_path([tx,rx])
+                # E_los=ElectromagneticField.account_for_trees(E_los,rtp.los[receiver][0],rtp.place)       
+                # path_length=geom.path_length(rtp.los[receiver][0]) 
+                # the_df.loc[len(the_df.index)] = [path_length,path_length/E_los.v,np.array(E_los.E,dtype=complex),'LOS',rx,receiver,rx,tx,0,0,0,0] 
+                     
+                sol=solved_field(rtp.los[receiver][0])
+                sol.rx_id=receiver
+                sol.path_type="LOS"
+                
+                E_los=ElectromagneticField.from_path([tx,rx])
+                E_los=ElectromagneticField.account_for_trees(E_los,rtp.los[receiver][0],rtp.place)
+                sol.field=E_los.E
+                solved_list.append(sol)
+                
+                best['field']=np.linalg.norm(E_los.E)
+                best['path']=[tx,rx]
+                
+                return best
+            print(f"RX {rx} is in NLOS")
+            return best
+           
+        #TODO: account for trees for reflections, without duplicate in diffractions  
+        def compute_reflections(receiver,rtp,the_df,solved_list):
+            #rx=rtp.solved_receivers[receiver]
+            reflections = rtp.reflections
+            best = {'field': 0, 'path': None}
+            for order in reflections[receiver]:
+                for path in range(0,len(reflections[receiver][order])):
+                    the_data=reflections[receiver][order][path]
+                    the_path=the_data[0]
+                    the_reflection_surfaces_ids=the_data[1]
+                    tx =the_path[0]
+                    first_interaction=the_path[1] #second point of the path
+                    E_i=ElectromagneticField.from_path([tx,first_interaction])
+                    this_E=ElectromagneticField.my_reflect(E_i,the_path,the_reflection_surfaces_ids,rtp)          
+                    
+                    
+                    # path_length=geom.path_length(the_path)   
+                    # the_df.loc[len(the_df.index)] = [path_length,path_length/this_E.v,np.array(this_E.E,dtype=complex),'R'*order,rx,receiver,the_path[1],the_path[-2],0,0,0,0]
+                    
+                    sol=solved_field(the_path)
+                    sol.rx_id=receiver
+                    sol.path_type='R'*order
+                    sol.field=this_E.E
+                    solved_list.append(sol)
+                    
+                    this_strength=np.linalg.norm(this_E.E)
+                    if best['field']<this_strength:
+                        best['field']=this_strength
+                        best['path']=the_path
+            return best
+          
+        def compute_diffractions(receiver,rtp,the_df,solved_list): 
+            # rx=rtp.solved_receivers[receiver]
+            diffractions = rtp.diffractions
+            best = {'field': 0, 'path': None}
+            for order in diffractions[receiver]:     
+                for path in range(0,len(diffractions[receiver][order])):
+                    the_data=diffractions[receiver][order][path]  
+                    the_path=the_data[0]
+                    the_reflection_surfaces_ids=the_data[1]
+                    the_diff_surfaces_ids=the_data[2]
+                    the_corner_points=the_data[3] 
+                    #WARNING: assumes diff always happen last
+                    the_path_before_diff=the_path[0:-1] 
+                    the_diff_path=the_path[-3:] #last 3 points
+                    
+                    tx =the_path[0] #first point of the reflection
+                    first_interaction=the_path[1] #second point of the path
+                    
+                    E_0=ElectromagneticField.from_path([tx,first_interaction])
+                    assert len(the_path)>=3, "path doesn't have the right shape"
+                    if len(the_path)==3:
+                        #TX-diff-RX
+                        E_i=ElectromagneticField.account_for_trees(E_0,np.array([the_path[0],the_path[1]]),rtp.place)
+                    else:
+                        #account for everything (reflections) happening before the diffraction
+                        #trees are accounted for directly in my_reflect()
+                        E_i=ElectromagneticField.my_reflect(E_0,the_path_before_diff,the_reflection_surfaces_ids,rtp) #E reaching the diffraction point
+              
+                    #account for the diffraction
+                    this_E=ElectromagneticField.my_diff(E_i,the_diff_path,the_diff_surfaces_ids,the_corner_points,rtp,receiver)
+                    
+                    sol=solved_field(the_path)
+                    sol.rx_id=receiver
+                    sol.path_type='R'*(order-1)+'D'
+                    sol.field=this_E.E
+                    solved_list.append(sol)
+                    
+                    # path_length=geom.path_length(the_path)
+                    # the_df.loc[len(the_df.index)] = [path_length,path_length/this_E.v,np.array(this_E.E,dtype=complex),'R'*(order-1)+'D',rx,receiver,the_path[1],the_path[-2],0,0,0,0]
+                    this_strength=np.linalg.norm(this_E.E)
+                    if best['field']<this_strength:
+                        best['field']=this_strength
+                        best['path']=the_path
+            return best
+                
+        # computes everything
+        #df = pd.DataFrame(columns=['total_len','time_to_receiver','field_strength','path_type','receiver','rx_id','second_point','penultimate_point','tx_el','tx_az','rx_el','rx_az'])
+        solution=[]
+        for receiver in range(0,len(rtp.solved_receivers)):
+            print(f"EM SOLVING RECEIVER {receiver}")
+            #this_df = pd.DataFrame(columns=['total_len','time_to_receiver','field_strength','path_type','receiver','rx_id','second_point','penultimate_point','tx_el','tx_az','rx_el','rx_az']) #point transmitted, point arriving to rx
+            #init_len=len(this_df.index)
+            this_solved_list=[]
+            rx=rtp.solved_receivers[receiver]
+            best_los=compute_LOS(receiver, rtp,this_solved_list)#this_df)
+            best_ref=compute_reflections(receiver, rtp,this_solved_list)# this_df)
+            best_dif=compute_diffractions(receiver,rtp,this_solved_list)#this_df)
+            #end_len=len(this_df.index)   
+            #if len(solved_list)==0: #init_len==end_len:
+                #no path at all between the RX and the TX
+                #df.loc[len(df.index)] = [0,0,np.array([0,0,0],dtype=complex),'No_path_possible',rx,receiver,None,None,0,0,0,0]
+            #else:
+                
+            #check most powerful path and align antennas to it 
+            best_fields=np.array([best_los['field'],best_ref['field'],best_dif['field']])
+            best_paths=[best_los['path'],best_ref['path'],best_dif['path']]
+            winner=best_paths[np.argmax(best_fields)]
+            print(f"winner {winner}") 
+            #align antennas to best path
+            tx=winner[0]
+            RX_basis=antenna.align_antenna_to_point(pointA=rx,pointB=winner[-2]) #winner[-1]=rx, so we need winner[-2]
+            TX_basis=antenna.align_antenna_to_point(pointA=tx,pointB=winner[1])
+            
+            for sol in this_solved_list:
+                sol.compute_angles(RX_basis,TX_basis,tx)    
+                
+                #compute all angles
+                # for i in range(len(this_df.index)):     
+                #     second_point=this_df['second_point'][i]
+                #     penultimate_point=this_df['penultimate_point'][i]
+                #     rx_el,rx_az=antenna_incident_angles(RX_basis,penultimate_point-rx)
+                #     tx_el,tx_az=antenna_incident_angles(TX_basis,second_point-tx)
+                #     this_df['tx_el'][i]=tx_el
+                #     this_df['tx_az'][i]=tx_az
+                #     this_df['rx_el'][i]=rx_el
+                #     this_df['rx_az'][i]=rx_az    
+            solution.append(this_solved_list)
+            #df=pd.concat([df,this_df],ignore_index=True)    
+        #file_utils.save_df(df,save_name)#saves into the result folder
+        return solution
+             
+
+class field_power:
+    def harvested_power(field_strength):
+        """
+        given the peak to peak amplitude of the field strength arriving at the receiver in volts/meter
+        returns the power extracted by the receiver antenna in Watts
+        """
+        lam=c/FREQUENCY
+        directivity=1 #1 for a perfectly isotropic antenna
+        impedance_mismatch=1 #perfect impedance matching
+        polarisation_eff=1 #perfect polarisation efficiency.
+        imperfections=directivity*impedance_mismatch*polarisation_eff
+        A_eff=imperfections*(lam**2)/(4*pi)*RX_GAIN
+        power_density=(field_strength**2)/(2*120*pi) #considering E peak to peak
         
-    #sum of norms
-    field_strength=np.vstack(field_strength)
-    style1=np.sum(np.linalg.norm(field_strength,axis=1)) #real
-    style1=to_db(harvested_power(style1))
-    
-    #norm of sum
-    style2=np.linalg.norm(np.sum(field_strength)) #real
-    style2=to_db(harvested_power(style2))
-    
-    #sum of individual powers
-    #makes more sense to compare individual contributions
-    power=0
-    for i in range(len(field_strength)):   
-        style3=np.linalg.norm(field_strength[i])#real
-        style3=harvested_power(style3)
-        power+=style3        
-    style3=to_db(power)
-    if STYLE==1:
-        return style1
-    elif STYLE==2:
-        return style2
-    elif STYLE==3:
-        return style3
-    else:
-        return style1,style2,style3
+        pr=power_density*A_eff
+        return pr
 
 
+    def to_db(field_power):
+        """
+        converts given field power in watts to dB (normalised to TX_POWER)
+        """
+        #avoid computing log(0)
+        P=np.atleast_1d(field_power)
+        ind=np.where(P!=0)
+        db=np.ones(len(P))*np.NINF
+        for i in ind:
+            db[i]=10*np.log10(P[i]/TX_POWER) 
+        return db[0] if np.isscalar(field_power) else db
+         
+        
+    def compute_power(field_strength,STYLE=2):
+        #given list of field strength, compute received power in 3 ways
+        #makes it work when given np.array(1,2,3) instead of [np.array(1,2,3),...,np.array(3,4,5)]
+        if isinstance(field_strength[0],np.ndarray)==False:
+            field_strength=[field_strength]
+        #norm of sum: takes into account interferences
+        style1=np.linalg.norm(np.sum(field_strength)) #real
+        style1=field_power.to_db(field_power.harvested_power(style1))
+        
+        #sum of individual powers
+        #makes more sense to compare individual contributions
+        power=0
+        #TODO easier to do with:
+        #amplitude=this_df["field_strength"].apply(np.linalg.norm)
+        #most_powerful_path=np.argmax(amplitude)
+        for i in range(len(field_strength)):   
+            style2=np.linalg.norm(field_strength[i])#real
+            style2=field_power.harvested_power(style2)
+            power+=style2        
+        style2=field_power.to_db(power)
+        if STYLE==1:
+            return style1
+        elif STYLE==2:
+            return style2
+        else:
+            return style1,style2
 
+
+class antenna:
+    def align_antenna_to_point(pointA,pointB):
+        #pointA: the position of the antenna.
+        #pointB: the point towards it should point.
+        #points the antenna aperture towards point B from point A to point B
+        #returns the antenna basis, such that:
+            #new_z=(A to B) axis
+            #new_x= vector in aperture and parallel to ground.
+            #new_y= new_x cross new_z
+            
+        def parametric_from_normal_and_point(normal,point):
+            #Returns the parametric equation of the plane described its normal and a point.
+            #It will return all four coefficients such that: a*x + b*y + c*z + d = 0.
+            normal=normal/np.linalg.norm(normal)
+            a, b, c = normal
+            d=-np.dot(point, normal)
+            return a,b,c,d    
+        
+        normal=pointB-pointA
+        normal=normal/np.linalg.norm(normal)
+        a,b,c,d=parametric_from_normal_and_point(normal,pointA) #parametric equation of the aperture's plane  
+        new_z=normal
+        
+        g2=pointA[1]+1 #set arbitrarily
+        g3=pointA[2] #projection of x_axis on YZ is perp to Z
+        g1=(-d-c*g3-b*g2)/a #G must be in aperture plane
+        G=np.array([g1,g2,g3])
+        new_x=G-pointA
+        new_x=new_x/np.linalg.norm(new_x)
+        
+        new_y= np.cross(new_x,new_z)
+        new_y=new_y/np.linalg.norm(new_y)
+        return [new_x,new_y,new_z]
+
+    def antenna_incident_angles(antenna_basis,ray):
+        #given the antenna basis and the incoming ray 
+        #returns elevation and azimuth angles of incident path in radians 
+        ray=ray/np.linalg.norm(ray)
+        el=np.arccos(np.dot(ray,antenna_basis[1]))#angle between incoming ray and antenna y axis
+        az=np.arccos(np.dot(ray,antenna_basis[0]))#angle between incoming ray and antenna x axis
+        return el,az
+
+
+#TODO: fix
 def EM_fields_data(df_path):
     df=file_utils.load_df(df_path)
     nreceivers=len(df['rx_id'].unique())
@@ -569,29 +641,26 @@ def EM_fields_data(df_path):
             print("No path linking TX to RX was found for this receiver")
             continue     
         elif(this_df['path_type'].str.contains("LOS").any()):
-            los=this_df.loc[this_df['path_type'] == "LOS"]["path_power"].values[0]
             print("there is line of sight")      
         else:
             print('NO LINE OF SIGHT')
-            los=0
         
-        style1,style2,style3=compute_power(this_df['field_strength'].values,STYLE=4)
-        pure_reflections = np.sum(this_df[this_df['path_type'].str.contains('D|LOS',regex=True)==False]["path_power"])
-        pure_diffractions = np.sum(this_df[this_df['path_type'].str.contains('R|LOS',regex=True)==False]["path_power"])
-        mixed = np.sum(this_df[this_df['path_type'].str.contains('RD')]["path_power"])
-        print("All data for this receiver:")
+        style1,style2=compute_power(this_df['field_strength'].values,STYLE=4)
         print(this_df)
-        print(f"total field power style 1 {style1} dB style2 {style2} dB style3 {style3} dB ")
-        print(f"from LOS {los} V/m")
-        print(f"from PURE reflections {pure_reflections} V/m")
-        print(f"from PURE diffractions {pure_diffractions} V/m")
-        print(f"from paths with reflection(s) and diffraction {mixed} V/m")
-    
+        print(f"total field power style1 {style1} dB style2 {style2} dB ")
+        
+        #pure_reflections = np.sum(this_df[this_df['path_type'].str.contains('D|LOS',regex=True)==False]["path_power"])
+        #pure_diffractions = np.sum(this_df[this_df['path_type'].str.contains('R|LOS',regex=True)==False]["path_power"])
+        #mixed = np.sum(this_df[this_df['path_type'].str.contains('RD')]["path_power"])
+        # print(f"from LOS {los} V/m")
+        # print(f"from PURE reflections {pure_reflections} V/m")
+        # print(f"from PURE diffractions {pure_diffractions} V/m")
+        # print(f"from paths with reflection(s) and diffraction {mixed} V/m")
+    return
     
 #TODO
-def EM_fields_plots(df_path):
+def EM_fields_plots(df_path,order=3,name="notnamed"):
     df=file_utils.load_df(df_path)
-    colors=list(mcolors.TABLEAU_COLORS) #10 different colors  
     nreceivers=len(df['rx_id'].unique())
     nrows=nreceivers
     ncols=2
@@ -604,30 +673,25 @@ def EM_fields_plots(df_path):
     for receiver in range(0,nreceivers):
         rx_df=df.loc[df['rx_id'] == receiver]
         path_types=rx_df['path_type'].unique()
-        assert len(path_types)<=len(colors), "too many path types, not enough colors for plotting power sources"
         ax1 = fig.add_subplot(nrows, ncols,i)
         ax2 = fig.add_subplot(nrows, ncols,i+1)
         i+=2
-        count=0
         width = 0.35
         for path_type in path_types:
             data_for_type=rx_df.loc[rx_df['path_type'] == path_type]
-            color_for_type=colors[count]
-            count=count+1
+            color_for_type,position,ticks=plot_utils.set_color_for_type(path_type,order)
             #total power from each source
             power=compute_power(data_for_type['field_strength'].values) #receive power in dB    
-            ax1.bar(x=count, height=power,width=width,color=color_for_type,label=path_type)
+            ax1.bar(x=position, height=power,width=width,color=color_for_type,label=path_type)     
             #power delay profile
             nelem=len(data_for_type['field_strength'])
             individual_powers=np.zeros(nelem)
             for j in range(nelem):
-               individual_powers[j]=compute_power(data_for_type['field_strength'].values[j],STYLE=3)            
-            ax2.stem(data_for_type['time_to_receiver'].values, individual_powers,color_for_type,label=path_type,basefmt=" ")
-                     
-        x=np.arange(1,len(path_types)+1, 1)   
-        labels = path_types
-        ax1.set_xticks(x, labels)
+               individual_powers[j]=compute_power(data_for_type['field_strength'].values[j],STYLE=2)    
+            ax2.stem(data_for_type['time_to_receiver'].values, individual_powers,linefmt=color_for_type,label=path_type,basefmt=" ")
+                            
         ax1.set_title(f'Total power from sources RX{receiver}')
+        ax1.set_xticks(range(0,len(ticks)), ticks)
         ax1.set_ylabel('Received power [dB]') 
         ax1.grid()
  
@@ -636,8 +700,9 @@ def EM_fields_plots(df_path):
         ax2.set_ylabel('Received power [dB]')
         ax2.legend() 
         ax2.grid()
-        plt.savefig("../results/EM_plots'.pdf", dpi=300)
+        plt.savefig(f"../results/EM_plots_{name}'.pdf", dpi=300)
         plt.show()
+        
     return fig
 
 
