@@ -28,21 +28,26 @@ if __name__ == '__main__':
     place,tx,geometry=place_utils.create_small_place()  
     #place,tx,geometry=place_utils.create_levant_place()
     
-    #compute the rays
-    problem = RayTracingProblem(tx, place)
-    problem.solve(max_order=3,receivers_indexs=None)
-    problem_path=f'../results/{geometry}_launch.json'
-    problem.save(problem_path)
+    solve=True
     
-    #compute the fields
-    results_path=f'../results/{geometry}_launch.csv'
-    df=my_field_computation(problem,results_path)
+    if solve==True:
+        #compute the rays
+        problem = RayTracingProblem(tx, place)
+        problem.solve(max_order=3,receivers_indexs=None)
+        problem_path=f'../results/{geometry}_launch.json'
+        problem.save(problem_path)
+        
+        #compute the fields
+        results_path=f'../results/{geometry}_launch.csv'
+        df=my_field_computation(problem,results_path)
 
-    #plots   
-    EM_fields_plots(results_path,order=3,name=geometry)    
-    EM_fields_data(results_path)
+        #plots   
+        EM_fields_plots(results_path,order=3,name=geometry)    
+        EM_fields_data(results_path)
+        
+        problem.plot_all_rays()
     
-    problem.plot_all_rays()
+    
     
     
 

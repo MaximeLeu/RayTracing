@@ -34,32 +34,41 @@ def create_small_place(npoints=3):
     geometry_filename='../data/small.geojson'
     geom.preprocess_geojson(geometry_filename)
     place = geom.generate_place_from_rooftops_file(geometry_filename)
-    #add TX and RX 
-    ground_center = place.get_centroid()
-    tx = (ground_center + [-50, 5, 1]).reshape(1,3)
-    rx=ground_center
-    trans=np.array([10,5,0]).reshape(1,3)
+    #add TX and RX   
+    tx = np.array([3, 38, 18]).reshape(-1, 3)
+    rx=np.array([0,25,1.5]).reshape(-1,3)
     for i in range(npoints):
-        place.add_set_of_points(rx+trans*i)
+        place.add_set_of_points(rx)
+        rx =rx+np.array([0,-4,0])    
     #save and plot    
     place.to_json(filename="../data/small.json")
     plot_place(place,tx)
     return place,tx,geometry
 
 
-def create_levant_place(npoints=3):
+def create_levant_place(npoints=15):
     geometry="levant"
     #create place
     geometry_filename='../data/place_levant.geojson'
     geom.preprocess_geojson(geometry_filename)
-    place = geom.generate_place_from_rooftops_file(geometry_filename) 
+    place = geom.generate_place_from_rooftops_file(geometry_filename)
+    #constants required for TX and RX positions
+    ST_BARBE_COORD=np.array([-15,-46,0])
+    MAXWELL_COORDINATES=np.array([84,-46,0]) #careful not to put this point inside the maxwell
+    MAXWELL_HEIGHT=40 #find it in the geojson
+    RX_HEIGHT=1.2
+    TX_HEIGHT=3
     #add TX and RX
-    tx = np.array([110,-40,35]).reshape(1, 3)
-    rx = np.array([-30,-46,2]).reshape(1, 3)
-    for i in range(0,npoints):
-        rx +=np.array([20,0,0])
+    tx=(MAXWELL_COORDINATES+[5,0,MAXWELL_HEIGHT+TX_HEIGHT]).reshape(1, 3)
+    rx= (ST_BARBE_COORD+[0,0,RX_HEIGHT]).reshape(-1,3)
+    dist=MAXWELL_COORDINATES[0]-ST_BARBE_COORD[0]
+    step=dist/npoints
+    for receiver in range(npoints):
+        rx =(rx+np.array([step,0,0]))
+        #plot_utils.add_points_to_3d_ax(ax=ax, points=rx, label=f"RX{receiver}",marker='+')
         place.add_set_of_points(rx)
     #plot
+    print(f"MAXWELL: {MAXWELL_COORDINATES} barb: {ST_BARBE_COORD} distance maxwell-barb={dist} m" )
     plot_place(place,tx)
     return place,tx,geometry
 
@@ -91,6 +100,7 @@ def create_dummy_place():
     plot_place(place,tx)
     return place, tx, geometry
 
+
 def create_two_rays_place():
     geometry="two_rays"
     #add ground
@@ -100,8 +110,8 @@ def create_two_rays_place():
     #create place
     place = geom.OrientedPlace(geom.OrientedSurface(ground))
     #add TX and RX
-    rx = place.get_centroid().reshape(1,3)
-    tx = np.array([5., 12., 5.]).reshape(1, 3)
+    rx = place.get_centroid().reshape(1,3)+[0,0,5]
+    tx = np.array([5., 12., 15.]).reshape(1, 3)
     place.add_set_of_points(rx)
     #save and plot
     place.to_json(filename="../data/two_rays.json")    
