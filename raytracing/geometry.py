@@ -879,7 +879,6 @@ def polygons_obstruct_line_path(polygons, points, return_polygons=False):
     else:
         return False
 
-#TODO
 def tree_obstruction_length(polygons, points):
     """
     Checks if polyhedrons obstructs a path between two points and
@@ -1924,7 +1923,7 @@ class OrientedPolyhedron(OrientedGeometry):
         super().__init__(**attributes)
         self.aux_surface = OrientedSurface(polygons)
         self.polygons = self.aux_surface.polygons
-        self.building_type = building_type #TODO TESTING TODO
+        self.building_type = building_type
         self.building_id=OrientedPolyhedron.BUILDING_ID
         OrientedPolyhedron.BUILDING_ID=OrientedPolyhedron.BUILDING_ID+1
         for polygon in self.polygons:

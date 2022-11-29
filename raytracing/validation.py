@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Nov 17 15:38:52 2022
-
+Code to validate the program
 @author: max
 """
 
@@ -209,7 +209,7 @@ if __name__ == '__main__':
     #care to go modify the E field frequency adequately in materials properties as well beforehand.
     plt.close('all')
     
-    #compare_claude_driver(solveRays=True,npoints=30)
+    compare_claude_driver(solveRays=True,npoints=31)
     
-    compare_small_PL_driver()
+    #compare_small_PL_driver()
     

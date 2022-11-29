@@ -9,7 +9,6 @@ Properties of various materials
 """
 
 import pandas as pd
-import numpy as np
 from scipy.constants import epsilon_0, pi
 #relative permittivity= epsilon
 #relative permeability=mu

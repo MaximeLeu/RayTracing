@@ -10,25 +10,20 @@ MAKE SURE TO RESTART KERNEL BEFORE EVERY RUN, OTHERWISE IT CRASHES!
 
 #self written imports
 from ray_tracing import RayTracingProblem
-import raytracing.geometry as geom
 from electromagnetism import my_field_computation,EM_fields_plots,EM_fields_data
-
+import place_utils
 
 #packages
 from pathos.multiprocessing import ProcessingPool as Pool
-import numpy as np
 import matplotlib.pyplot as plt
 
 
-ORDER=3
-
-def multithread_solve_place(place,tx,save_name):
+def multithread_solve_place(place,tx,save_name,N_CPU=16,ORDER=3):
     """
     Solves the place, using one CPU for each receiver.
     Saves the plots and dataframe in the results folder.
     place: place with all the receivers added
     """
-    N_CPU=16
     def compute_single_receiver(rx):
         """
         Solves the problem for the specified receiver index
@@ -79,45 +74,12 @@ def multithread_solve_place(place,tx,save_name):
     return solved_em_path,solved_rays_path
 
 if __name__ == "__main__":  
+    #To test if it works
     plt.close('all')
+    place,tx,geometry=place_utils.create_small_place(npoints=30)
+    #place,tx,geometry=place_utils.create_levant_place(npoints=15)
     
-    #MAXWELL_COORDINATES=np.array([80,-10,0])
-    #init problem
-    N_points_small=30
-    N_points_levant=5
-    geometry = 'small' 
-    
-    if geometry == 'small':
-        geometry_filename='../data/small.geojson' 
-        geom.preprocess_geojson(geometry_filename)
-        place = geom.generate_place_from_rooftops_file(geometry_filename)
-        
-        #add tx 
-        ground_center = place.get_centroid()
-        tx = ground_center + [-50, 5, 1]
-        tx=tx.reshape(1,3)
-
-        #add rx
-        N_points=N_points_small
-        rx=ground_center
-        trans=np.array([10,5,0]).reshape(1,3)
-        for i in range(N_points):
-            place.add_set_of_points(rx+trans*i)
-    
-    elif geometry == 'levant':
-        geometry_filename='../data/place_levant.geojson'
-        geom.preprocess_geojson(geometry_filename)
-        place = geom.generate_place_from_rooftops_file(geometry_filename) 
-        # 2. Create TX and RX
-        tx = np.array([110,-40,35]).reshape(1, 3)
-        rx = np.array([-30,-46,2]).reshape(1, 3)
-        N_points=N_points_levant #how many rx to compute
-        for i in range(0,N_points):
-            rx +=np.array([20,0,0])
-            place.add_set_of_points(rx)
-    
-    
-    multithread_solve_place(place, tx,"smallTest")
+    multithread_solve_place(place, tx,"multithread_place_test")
         
         
         
