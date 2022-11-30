@@ -88,7 +88,7 @@ def plot_claude_comparison(df,maxwell_base):
     ax.plot(x,y,color='green', marker='o',label="february measures")
     ax.plot(x1,y1,color='red', marker='o',label="october measures")
     ax.plot(simu_x,simu_y,color="orange",marker='o',label='simulation')
-    ax.plot(simu_x,path_loss(df),marker='o',label='path loss')
+    ax.plot(simu_x,path_loss(df,maxwell_base),marker='o',label='path loss')
     ax.grid()  
     ax.set_xlabel('distance to Maxwell building [m]')
     ax.set_ylabel('Received power [dB]')
@@ -97,12 +97,12 @@ def plot_claude_comparison(df,maxwell_base):
     return
 
 
-def small_vs_path_loss(npoints=15):
+def small_vs_path_loss(npoints=15,order=3):
     """
     comparison of the fields obtained on the small place and path loss.
     """
     place,tx,geometry=place_utils.create_small_place(npoints)
-    solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='small')
+    solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='small',order=order)
     df=file_utils.load_df(solved_em_path)
     
     simu_y=np.zeros(npoints)
@@ -131,10 +131,11 @@ def small_vs_path_loss(npoints=15):
     plt.show() 
     return
 
-def claude_comparison(npoints=15):
+def levant_vs_measures(npoints=15,order=3):
     place,tx,geometry=place_utils.create_levant_place(npoints)
-    solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='levant_claude') 
+    solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='levant_claude',order=order) 
     df=file_utils.load_df(solved_em_path)
+    tx=tx[0]
     maxwell_base=[tx[0],tx[1],1]
     plot_claude_comparison(df,maxwell_base)
     return
@@ -145,7 +146,7 @@ def claude_comparison(npoints=15):
 if __name__ == '__main__':
     #care to go modify the E field frequency adequately in materials properties as well beforehand.
     plt.close('all')
-    
-    #claude_comparison(npoints=15)
-    small_vs_path_loss(npoints=15)
+
+    levant_vs_measures(npoints=16*3,order=3)
+    #small_vs_path_loss(npoints=16*3,order=2)
     

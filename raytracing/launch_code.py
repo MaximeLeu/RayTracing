@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 
 
-#driver code
+#single threaded driver code
 if __name__ == '__main__':
     plt.close('all') #close all previous plots
     file_utils.chdir_to_file_dir(__file__)    
@@ -29,11 +29,12 @@ if __name__ == '__main__':
     #place,tx,geometry=place_utils.create_levant_place()
     
     solve=True
+    ORDER=3
     
     if solve==True:
         #compute the rays
         problem = RayTracingProblem(tx, place)
-        problem.solve(max_order=3,receivers_indexs=None)
+        problem.solve(max_order=ORDER,receivers_indexs=None)
         problem_path=f'../results/{geometry}_launch.json'
         problem.save(problem_path)
         
@@ -42,7 +43,7 @@ if __name__ == '__main__':
         df=my_field_computation(problem,results_path)
 
         #plots   
-        EM_fields_plots(results_path,order=3,name=geometry)    
+        EM_fields_plots(results_path,order=ORDER,name=geometry)    
         EM_fields_data(results_path)
         
         problem.plot_all_rays()

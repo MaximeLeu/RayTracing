@@ -59,17 +59,17 @@ def create_levant_place(npoints=15):
     RX_HEIGHT=1.2
     TX_HEIGHT=3
     #add TX and RX
-    tx=(MAXWELL_COORDINATES+[5,0,MAXWELL_HEIGHT+TX_HEIGHT]).reshape(1, 3)
-    rx= (ST_BARBE_COORD+[0,0,RX_HEIGHT]).reshape(-1,3)
-    dist=MAXWELL_COORDINATES[0]-ST_BARBE_COORD[0]
+    tx=(MAXWELL_COORDINATES+[5,0,MAXWELL_HEIGHT+TX_HEIGHT]).reshape(-1, 3)
+    rx0=(MAXWELL_COORDINATES+[-25,0,RX_HEIGHT]).reshape(-1,3)  
+    dist=np.linalg.norm(rx0-ST_BARBE_COORD)
     step=dist/npoints
     for receiver in range(npoints):
-        rx =(rx+np.array([step,0,0]))
-        #plot_utils.add_points_to_3d_ax(ax=ax, points=rx, label=f"RX{receiver}",marker='+')
+        rx =rx0+np.array([-receiver*step,0,0])
         place.add_set_of_points(rx)
     #plot
     print(f"MAXWELL: {MAXWELL_COORDINATES} barb: {ST_BARBE_COORD} distance maxwell-barb={dist} m" )
     plot_place(place,tx)
+    
     return place,tx,geometry
 
 
@@ -92,8 +92,8 @@ def create_dummy_place():
     #create place
     place = geom.OrientedPlace(geom.OrientedSurface(ground),buildings) 
     #add TX and RX
-    tx = np.array([5., 12., 5.]).reshape(1, 3)
-    rx = np.array([65., 12., 5.]).reshape(1, 3)
+    tx = np.array([5., 12., 5.]).reshape(-1, 3)
+    rx = np.array([65., 12., 5.]).reshape(-1, 3)
     place.add_set_of_points(rx)
     #save and plot
     place.to_json(filename="../data/dummy.json")
@@ -110,8 +110,8 @@ def create_two_rays_place():
     #create place
     place = geom.OrientedPlace(geom.OrientedSurface(ground))
     #add TX and RX
-    rx = place.get_centroid().reshape(1,3)+[0,0,5]
-    tx = np.array([5., 12., 15.]).reshape(1, 3)
+    rx = place.get_centroid().reshape(-1,3)+[0,0,5]
+    tx = np.array([5., 12., 15.]).reshape(-1, 3)
     place.add_set_of_points(rx)
     #save and plot
     place.to_json(filename="../data/two_rays.json")    
@@ -136,3 +136,9 @@ def create_my_geometry():
     #plot
     plot_place(place,tx)
     return place,tx, geometry
+
+if __name__ == '__main__':
+    create_levant_place(npoints=10)
+    
+    
+    

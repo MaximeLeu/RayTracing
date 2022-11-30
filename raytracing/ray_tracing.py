@@ -379,18 +379,30 @@ class RayTracingProblem:
         """
         plot the ray paths for each receivers in a different subplot
         """
+        MAXPLOTS=4
         fig = plt.figure("Ray traced places",figsize=(8,5))
         fig.set_dpi(300)
         nplots=len(self.solved_receivers)
-        nrows,ncols=plot_utils.get_subplot_row_columns(nplots)
+        if nplots>MAXPLOTS:
+            print(f"won't plot {nplots}: it will be unreadable, plotting {MAXPLOTS} firsts instead")
+            nrows,ncols=plot_utils.get_subplot_row_columns(MAXPLOTS)  
+            for i in range(MAXPLOTS):
+                ax = fig.add_subplot(nrows, ncols, i+1, projection = '3d') #total rows,total columns, index
+                ax = self.plot3d(ax=ax,receivers_indexs=[i],ret=True,legend=True)
+                ax.set_title('RX'+str(i))
+                plt.show(block=False)
+                plt.pause(0.001) 
+            
+        else:
+            nrows,ncols=plot_utils.get_subplot_row_columns(nplots)   
+            for i in range(nplots):
+                ax = fig.add_subplot(nrows, ncols, i+1, projection = '3d') #total rows,total columns, index
+                ax = self.plot3d(ax=ax,receivers_indexs=[i],ret=True)
+                ax.set_title('RX'+str(i))
+               
+            plt.show(block=False)
+            plt.pause(0.001) 
         
-        for i in range(nplots):
-            ax = fig.add_subplot(nrows, ncols, i+1, projection = '3d') #total rows,total columns, index
-            ax = self.plot3d(ax=ax,receivers_indexs=[i],ret=True)
-            ax.set_title('RX'+str(i))
-           
-        plt.show(block=False)
-        plt.pause(0.001) 
         return
         
         
