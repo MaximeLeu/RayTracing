@@ -105,7 +105,7 @@ def create_dummy_place():
     return place, tx, geometry
 
 
-def create_two_rays_place():
+def create_two_rays_place(plot=False):
     geometry="two_rays"
     #add ground
     ground = geom.Square.by_2_corner_points(np.array([[0, 0, 0], [70, 24, 0]]))
@@ -119,7 +119,8 @@ def create_two_rays_place():
     place.add_set_of_points(rx)
     #save and plot
     place.to_json(filename="../data/two_rays.json")    
-    plot_place(place,tx)
+    if plot:
+        plot_place(place,tx)
     return place, tx, geometry
 
 #TODO: add receivers randomly otherwise they may end up inside buildings

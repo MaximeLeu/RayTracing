@@ -11,83 +11,88 @@ Testing two rays model vs my simulator
 from ray_tracing import RayTracingProblem
 import place_utils
 from electromagnetism import my_field_computation,EM_fields_plots,EM_fields_data,ElectromagneticField
-
-import geometry as geom
+import plot_utils
 #packages
 import numpy as np
 from scipy.constants import c, pi
 import matplotlib.pyplot as plt
-import csv
 
 #constants:
-from electromagnetism import RADIATION_POWER, TX_GAIN,RX_GAIN
+from electromagnetism import RADIATION_POWER, TX_GAIN,RX_GAIN,Antenna,vv_normalize
 from materials_properties import FREQUENCY,DF_PROPERTIES
 Z_0=120*pi
 lam=c/FREQUENCY
 k=2*pi/lam
 
 
-def vv_normalise(vv):
-    return vv/np.linalg.norm(vv)
 
 
-def theorical_solve(los,reflection):
-    ref_point=reflection[1]
-    tx=los[0]
-    rx=los[1]
+def theorical_solve(reflection):
+    G=reflection[1]
+    tx=reflection[0]
+    tx_base=np.array([tx[0],tx[1],0])
+    rx=reflection[-1]
+    
+    d1=np.linalg.norm(G-tx)
+    d2=np.linalg.norm(rx-G)
+    d_los=np.linalg.norm(rx-tx)
+    
+    L1=np.linalg.norm(tx_base-G)
+    theta=np.arccos(L1/d1)
+    
+    tx_antenna=Antenna()
+    tx_antenna.position=tx
+    tx_antenna.align_antenna_to_point(rx)
+    
+    #small tests
+    test=tx_antenna.change_reference_frame(tx)
+    print(f"tx {tx} in the new frame {test}")
+    new_point=tx_antenna.change_reference_frame(rx)
+    print(f"rx {rx} in the new frame {new_point} should have {[0,0,np.linalg.norm(new_point)]}")
+     
     
     
+    fig=plt.figure()        
+    fig.set_dpi(300)
+    ax=fig.add_subplot(1,1,1,projection='3d')
+    colors=['r','g','b']
+    plot_utils.plot_world_frame(ax, colors)
+    plot_utils.plot_path(ax, reflection)
+    plot_utils.plot_path(ax, [tx,rx])
+    tx_antenna.plot_antenna_frame(ax, colors)
+    plt.show()
     
-    #computing various distances
-    d_los=np.linalg.norm(rx-tx) #dist tx-rx
-    L=np.linalg.norm(tx[0:2]-rx[0:2]) #dist base of tx to base of rx
-    L1=tx[2]/rx[2]*L/(1+tx[2]/rx[2]) #dist base of tx to ground reflection
-    L2=L-L1#dist base of rx to ground reflection
-    d1=np.sqrt(L1**2+tx[2]**2) #dist tx-ground reflection
-    d2=np.sqrt(L2**2+rx[2]**2) #dist rx-ground reflection
-    theta=np.arcsin(tx[2]/d1)#incident angle to the ground
-    
-    E0_los=ElectromagneticField.compute_E0(los)
-    E0_ref=ElectromagneticField.compute_E0(reflection)
-    
-    #separating the // and perp components of the E-field
-    
-    
-    tx_to_ref_vv=vv_normalise(reflection[1]-tx) 
+    #init field for los
+    d0=1
+    F=np.sin(theta)*tx_antenna.basis[1]
+    #TODO put r in the basis of the antenna
     
     
-    ref_to_rx_vv=vv_normalise(rx-reflection[1])
-    vv_per=vv_normalise(np.cross(tx_to_ref_vv,ref_to_rx_vv))
-    vv_par=vv_normalise(np.cross(vv_per,tx_to_ref_vv))
+    E0=-1j*k*Z_0*np.exp(-1j*k*d0)/(4*pi*d0)*np.cross((np.cross(tx_antenna.basis[2],F)),tx_antenna.basis[2])
+    E0=np.real(E0)
     
-    print(f"dot {np.dot(vv_par,E0_ref.E)}")
-    E0_par= np.dot(vv_par,E0_ref.E)*vv_par
-    E0_per= np.dot(vv_per,E0_ref.E)*vv_per
-    E0_other=np.dot(tx_to_ref_vv,E0_ref.E)*tx_to_ref_vv
-    assert(np.around(np.linalg.norm(E0_other),decimals=2)==0),f"ERROR E field component in the direction of propagation is non zero: E_s={E0_other}, but should be [0,0,0]"
-    assert (E0_par+E0_per==E0_ref.E).all(), f"E0_per {E0_per+E0_par} E0_ref{E0_ref.E}"
+    #LOS-------------------------------
+    Elos=E0*np.exp(-1j*k*d_los)/d_los
+    Elos=np.real(Elos)
     
+    #REF-----------------------------
     #fresnel
+    E=ElectromagneticField()
     epsilon_eff=DF_PROPERTIES.loc[DF_PROPERTIES['material'] == "concrete"]['epsilon_eff'].values[0]   
     roughness=DF_PROPERTIES.loc[DF_PROPERTIES['material'] == "concrete"]['roughness'].values[0]
-    r_par,r_per=ElectromagneticField.fresnel_coeffs(E0_ref,theta,roughness,epsilon_eff)
+    r_par,r_per=ElectromagneticField.fresnel_coeffs(E,theta,roughness,epsilon_eff)
+    
+    #separating the // and perp components
+    Ei=E0*np.exp(-1j*k*d1)/d1
+    Ei=np.real(Ei)
+    Ei_per=np.dot(Ei,tx_antenna.basis[0])*tx_antenna.basis[0]
+    Ei_par=np.dot(Ei,tx_antenna.basis[1])*tx_antenna.basis[1]
     
     
-    E_los=E0_los.E/d_los*np.exp(-1j*k*d_los)
-    E_ref=  (r_par*E0_ref.E+r_per*E0_ref.E+tx_to_ref_vv*E0_ref)    *1/(d1+d2)*np.exp(-1j*k*(d1+d2))
-    
-    #sanity checks
-    assert np.around(np.linalg.norm(ref_point[0:2]-tx[0:2]),decimals=1)==np.around(L1,decimals=1), f"L1 {L1} real L1 {np.linalg.norm(ref_point[0:2]-tx[0:2])}"
-    assert np.around(np.linalg.norm(ref_point[0:2]-rx[0:2]),decimals=1)==np.around(L2,decimals=1)
-    assert np.around(geom.path_length(reflection),decimals=1)==np.around(d1+d2,decimals=1)
-    assert np.arcsin(tx[2]/d1)==np.arcsin(rx[2]/d2) #incident angle=reflection angle
-    
-    
-    return E_los,E_ref
-
-
-    
-
+    Eref=np.linalg.norm(Ei_per)*r_per*tx_antenna.basis[0]+np.linalg.norm(Ei_par)*r_par*tx_antenna.basis[1]
+    Eref=Eref*np.exp(-1j*k*d2)/d2
+    Eref=np.real(Eref)
+    return Elos,Eref
 
     
 
@@ -98,18 +103,19 @@ if __name__ == '__main__':
     problem = RayTracingProblem(tx, place)
     problem.solve(max_order=2,receivers_indexs=None)
     problem.plot_all_rays()
-    
     results_path=f'../results/{geometry}_launch.csv'
+    
+    #simu solve
     df=my_field_computation(problem,results_path)
-    
-    
     simu_los=df.loc[df['path_type'] == "LOS"]['field_strength'].values[0]   
     simu_ref=df.loc[df['path_type'] == "R"]['field_strength'].values[0] 
     
+    simu_ref=np.real(simu_ref)
+    simu_los=np.real(simu_los)
+    
     #theorical solve:
-    los=problem.los[0][0]
     reflection=problem.reflections[0][1][0][0]
-    E_los,E_ref=theorical_solve(los,reflection)
+    E_los,E_ref=theorical_solve(reflection)
 
     print("----------------COMPARISON SIMU AND TWO RAYS FIELDS--------------")
     print(f"simu_los {simu_los} two rays los {E_los}")
@@ -118,10 +124,7 @@ if __name__ == '__main__':
     print("----------------COMPARISON SIMU AND TWO RAYS NORMS--------------")
     print(f"simu_los {np.linalg.norm(simu_los)} two rays los {np.linalg.norm(E_los)}")
 
-    print(f"simu_ref {np.linalg.norm(simu_ref)} two rays ref {np.linalg.norm(E_ref)}")
-    
-    
-    
+    print(f"simu_ref {np.linalg.norm(simu_ref)} two rays ref {np.linalg.norm(E_ref)}")   
     
     # EM_fields_plots(results_path,order=1,name=geometry)    
     # EM_fields_data(results_path)

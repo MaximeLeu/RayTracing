@@ -19,7 +19,7 @@ from scipy.constants import c, pi
 import matplotlib.pyplot as plt
 import csv
 
-
+LAMBDA=c/FREQUENCY
 
 def read_csv(file):
     """
@@ -39,8 +39,14 @@ def read_csv(file):
     return x,y 
 
 
+def compute_path_loss(tx,rx):
+    d=np.linalg.norm(tx-rx)
+    pr_pt=RX_GAIN*TX_GAIN*(LAMBDA/(4*pi*d))**2
+    pl=10*np.log10(pr_pt)
+    return pl
 
-def plot_claude_comparison(df,maxwell_base):
+
+def plot_claude_comparison(df,maxwell_base,tx):
     """
     df: dataframe of the solved problem
     """
@@ -60,16 +66,14 @@ def plot_claude_comparison(df,maxwell_base):
             simu_x[receiver]=dist_maxwell       
         return simu_x, simu_y
     
-    def path_loss(df,maxwell_base):
-        nreceivers=len(df['rx_id'].unique())
-        d=np.zeros(nreceivers)
-        for receiver in range(nreceivers):
-            rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]
-            d[receiver]=np.linalg.norm(rx_coord-maxwell_base)
-        pr_pt=RX_GAIN*TX_GAIN*(c/(4*pi*d*FREQUENCY))**2 #pr/pt
-        pl=10*np.log10(pr_pt)
-        return pl
+    #path loss
+    nreceivers=len(df['rx_id'].unique())
+    pl=np.zeros(nreceivers)
+    for receiver in range(nreceivers):
+        rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]
+        pl[receiver]=compute_path_loss(tx, rx_coord)
     
+    #claude's measures
     if FREQUENCY==12.5*1e9:
         x,y=read_csv("claude_12_feb.csv")
         x1,y1=read_csv("claude_12_oct.csv")
@@ -79,6 +83,7 @@ def plot_claude_comparison(df,maxwell_base):
     else:
         assert 1==2, "frequency does not match claude's"
 
+    #my simulation
     simu_x,simu_y=read_simu(df,maxwell_base)    
     
     
@@ -88,7 +93,7 @@ def plot_claude_comparison(df,maxwell_base):
     ax.plot(x,y,color='green', marker='o',label="february measures")
     ax.plot(x1,y1,color='red', marker='o',label="october measures")
     ax.plot(simu_x,simu_y,color="orange",marker='o',label='simulation')
-    ax.plot(simu_x,path_loss(df,maxwell_base),marker='o',label='path loss')
+    ax.plot(simu_x,pl,marker='o',label='path loss')
     ax.grid()  
     ax.set_xlabel('distance to Maxwell building [m]')
     ax.set_ylabel('Received power [dB]')
@@ -97,7 +102,7 @@ def plot_claude_comparison(df,maxwell_base):
     return
 
 
-def small_vs_path_loss(npoints=15,order=3):
+def small_vs_path_loss(npoints=15,order=2):
     """
     comparison of the fields obtained on the small place and path loss.
     """
@@ -107,14 +112,12 @@ def small_vs_path_loss(npoints=15,order=3):
     
     simu_y=np.zeros(npoints)
     simu_x=np.zeros(npoints)
-    path_loss=np.zeros(npoints)
+    pl=np.zeros(npoints)
     for receiver in range(npoints):
         rx_df=df.loc[df['rx_id'] == receiver]
         rx_coord=rx_df["receiver"].values[0]
-        d=np.linalg.norm(rx_coord-tx) #distance TX-RX
-        simu_x[receiver]=d
-        pr_pt=RX_GAIN*TX_GAIN*(c/(4*pi*d*FREQUENCY))**2 #pr/pt
-        path_loss[receiver]=10*np.log10(pr_pt)
+        pl[receiver]=compute_path_loss(tx, rx_coord)
+        simu_x[receiver]=np.linalg.norm(rx_coord-tx) #distance TX-RX
         simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)
     
     
@@ -123,7 +126,7 @@ def small_vs_path_loss(npoints=15,order=3):
     ax = fig.add_subplot(1, 1, 1)
     ax.set_title(f'Comparison between path loss and model at {FREQUENCY/1e9} GHz')
     ax.plot(simu_x,simu_y,color="orange",marker='o',label='simulation')
-    ax.plot(simu_x,path_loss,marker='o',label='path loss')
+    ax.plot(simu_x,pl,marker='o',label='path loss')
     ax.grid()  
     ax.set_xlabel('RX-TX distance')
     ax.set_ylabel('Received power [dB]') 
@@ -137,7 +140,7 @@ def levant_vs_measures(npoints=15,order=3):
     df=file_utils.load_df(solved_em_path)
     tx=tx[0]
     maxwell_base=[tx[0],tx[1],1]
-    plot_claude_comparison(df,maxwell_base)
+    plot_claude_comparison(df,maxwell_base,tx)
     return
 
 
@@ -147,6 +150,6 @@ if __name__ == '__main__':
     #care to go modify the E field frequency adequately in materials properties as well beforehand.
     plt.close('all')
 
-    levant_vs_measures(npoints=16*3,order=3)
+    levant_vs_measures(npoints=16*3,order=2)
     #small_vs_path_loss(npoints=16*3,order=2)
     
