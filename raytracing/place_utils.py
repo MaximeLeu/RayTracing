@@ -20,9 +20,13 @@ def plot_place(place,tx):
     fig = plt.figure("the place")
     fig.set_dpi(300)
     ax = fig.add_subplot(projection='3d')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
     plot_utils.add_points_to_3d_ax(ax=ax, points=tx, label="TX")
     place.center_3d_plot(ax)   
     ax = place.plot3d(ax=ax)
+   
     plt.legend()
     plt.show(block=False)
     plt.pause(0.001) 

@@ -58,7 +58,27 @@ def get_subplot_row_columns(amount_of_plots):
     return nrows,ncols
 
 
+def plot_vec(ax,vec,color,origin):
+    ax.plot([origin[0],origin[0]+vec[0]],[origin[1],origin[1]+vec[1]],[origin[2],origin[2]+vec[2]],color=color)
+    return
 
+
+def plot_world_frame(ax,colors):
+    world_basis=[np.array([1,0,0]),np.array([0,1,0]),np.array([0,0,1])]
+    origin=np.array([0,0,0])
+    for i in range(3):  
+        plot_vec(ax,world_basis[i],colors[i],origin=origin)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    return
+
+def plot_path(ax,path):
+    add_points_to_3d_ax(ax=ax, points=np.array([path[0]]), label="TX")
+    add_points_to_3d_ax(ax=ax, points=np.array([path[-1]]), label="RX")
+    for i in range(len(path)-1):
+        ax.plot([path[i][0],path[i+1][0]],[path[i][1],path[i+1][1]],[path[i][2],path[i+1][2]])
+    return
 
 
 def get_2d_plot_ax(ax=None):

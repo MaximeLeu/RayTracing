@@ -21,13 +21,126 @@ pd.options.display.float_format = '{:.2g}'.format
 mu_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["mu"].values[0]*mu_0
 sigma_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["sigma"].values[0]
 epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[0]*epsilon_0
+Z_0=120*pi
 
-TX_POWER=1 #initially radiated field strenght in W
+INPUT_POWER=1
+RADIATION_EFFICIENCY=1
+RADIATION_POWER=RADIATION_EFFICIENCY*INPUT_POWER
+
+
 TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians 
 RX_GAIN=4*pi*1/((pi/9)**2) #20 degree beamwidth 
-#EIRP=TX_POWER*TX_GAIN
+
+def vv_normalize(vv):
+    norm=np.linalg.norm(vv)
+    if norm == 0:#avoid dividing by 0
+        return np.array([0,0,0])
+    else:
+        return vv/norm
 
 
+class Antenna:
+    def __init__(self):
+        self.position=None   #the position of the antenna
+        self.basis=None      #the basis of the antenna. Z is the direction the antenna points towards.
+        self.radiation_efficiency=1
+        self.E0=None         #the field radiated 1m away from the antenna
+        self.gain=None 
+        self.polarisation=None        
+        
+    def __str__(self):
+        return f'Antenna: position: {self.position} eff: {self.radiation_efficiency} E0={self.E0} gain={self.gain}'
+    
+    def parametric_from_normal_and_point(normal,point):
+        """
+        Returns the parametric equation of the plane described by its normal and a point.
+        It will return all four coefficients such that: a*x + b*y + c*z + d = 0.
+        """
+        normal=vv_normalize(normal)
+        a, b, c = normal
+        d=-np.dot(point, normal)
+        return a,b,c,d    
+    
+    def align_antenna_to_point(self,point):
+        """
+        create a new reference frame in the antenna
+        new_z=unit vector from antenna to point
+        new_x=unit vector perp to new_z and parallel to ground (so perp to z)
+        new_y=cross(new_x,new_z)
+        """
+        new_z=vv_normalize(point-self.position)
+        new_x=vv_normalize(np.cross(new_z,np.array([0,0,1])))
+        new_y= vv_normalize(np.cross(new_x,new_z))
+        self.basis=[new_x,new_y,new_z]
+        self.test_basis()
+        return
+    
+    
+    def test_basis(self):
+        #ensure the basis is orthonormal
+        assert np.isclose(np.dot(self.basis[0],self.basis[1]),0),"x is not perp to y"
+        assert np.isclose(np.dot(self.basis[0],self.basis[2]),0),"x is not perp to z"
+        assert np.isclose(np.dot(self.basis[1],self.basis[2]),0),"y is not perp to z"
+        return
+
+    def incident_angles(self,point):
+        """
+        given the antenna basis and the incoming ray 
+        returns elevation and azimuth angles of incident path in radians 
+        """
+        new_point=self.change_reference_frame(point)
+        r,el,az=Antenna.to_spherical(new_point)
+        
+        # ray=ray/np.linalg.norm(ray)
+        # el=np.arccos(np.dot(ray,self.basis[1]))#angle between incoming ray and antenna y axis
+        # az=np.arccos(np.dot(ray,self.basis[0]))#angle between incoming ray and antenna x axis
+        return r,el,az
+
+    def change_reference_frame(self,point):
+        """
+        transform the given point into the reference frame of the antenna
+        
+        """
+        origin=self.position
+        x=np.array([1,0,0])
+        y=np.array([0,1,0])
+        z=np.array([0,0,1])
+        
+        new_x=self.basis[0]
+        new_y=self.basis[1]
+        new_z=self.basis[2]
+        
+        mat=np.array([
+                    [np.dot(new_x,x),np.dot(new_x,y),np.dot(new_x,z)],
+                   [np.dot(new_y,x),np.dot(new_y,y),np.dot(new_y,z)],
+                   [np.dot(new_z,x),np.dot(new_z,y),np.dot(new_z,z)],
+                   ])
+        
+        tr_point=point-origin
+        new_point=tr_point@mat       
+        return new_point
+    
+    def to_spherical(point):
+       """
+       transform the given point into spherical coordinate relative to the antenna's basis
+       """
+       x, y, z = point.T
+       hxy = np.hypot(x, y)
+       r = np.hypot(hxy, z)
+       el = np.arctan2(hxy, z)
+       az = np.arctan2(y, x)
+       return r,el,az
+
+    def plot_antenna_frame(self,ax,colors):
+        """
+        plots the antenna reference frame on ax
+        """
+        antenna_basis=self.basis
+        origin=self.position
+        for i in range(3):  
+            plot_utils.plot_vec(ax,antenna_basis[i],colors[i],origin=origin)
+        return
+    
 class ElectromagneticField:
 
     def __init__(self, E=np.array([1, 0, 0], dtype=complex), f=FREQUENCY, v=c):
@@ -38,6 +151,48 @@ class ElectromagneticField:
         self.w = 2 * pi * f
         self.lam =v/f 
 
+
+    def compute_E0(path):
+        """
+        Computes the field radiated 1m away from the antenna in the direction of the path
+        """
+        tx_antenna=Antenna()
+        tx_antenna.position=path[0]
+        tx_antenna.align_antenna_to_point(path[1])
+        r,phi,theta=tx_antenna.incident_angles(path[1]) 
+        
+        #transform r_VV into the basis of the antenna!!!
+        new_point=tx_antenna.change_reference_frame(path[1])
+        r_vv=vv_normalize(new_point-tx_antenna.position)
+        
+       
+        
+        def tests():
+            assert(np.around(r,decimals=5)==np.around(np.linalg.norm(path[1]-path[0]),decimals=5)) ,\
+                f"ERROR: path got wrongly transformed: length is {r} should be {np.linalg.norm(path[1]-path[0])}"
+            test=tx_antenna.change_reference_frame(tx_antenna.position)
+            assert(test==np.array([0,0,0])).all(), f'change of reference frame failed: antenna pos is {test}, should be [0,0,0]'
+            return
+        tests()
+        
+        F=np.sin(theta)*tx_antenna.basis[2] #TODO: should this be oriented otherwise?
+        #F=np.array([0,0,1])*TX_GAIN #radiation pattern? Antenna polarisation?
+        r=1
+        EF_0=ElectromagneticField()
+        E0=-1j*EF_0.k*Z_0*1/(4*pi*r)*np.exp(-1j*EF_0.k*r)*vv_normalize(np.cross(vv_normalize(np.cross(r_vv,F)),r_vv))
+        
+        assert(np.dot(E0,tx_antenna.basis[0])),'ERROR: field is not transverse'
+        
+        EF_0.E = E0 
+        print(f'r_vv {r_vv}')
+        print(f"cross 1 {np.cross(r_vv,F)}")
+        print(f"cross {np.cross(np.cross(r_vv,F),r_vv)}")
+        print(f"k {EF_0.k}")
+        print(f"test2 {np.exp(-1j*EF_0.k*r)}")
+        print(f"test {-1j*EF_0.k*Z_0*1/(4*pi*r)}")
+        print(f"E0 {E0}")
+        return EF_0
+
     @staticmethod
     def from_path(path):
         """
@@ -45,16 +200,11 @@ class ElectromagneticField:
         :param path: TX point and point of the first obstruction (or RX if line of sight)
         :type path: numpy.ndarray(shapely.geometry.Points) *shape=(2)
         """
-        #TODO: account for directivity here.
-        vector, d = geom.normalize_path(path)
-        #assuming isotropic radiator:
-        Z_0=120*pi
-        init=np.sqrt(2*Z_0*TX_POWER*TX_GAIN/(4*pi*1)) #    
-        E_0 = ElectromagneticField()
-        E_0.E=np.array([init, 0, 0]) #initially radiated field strenght (V/m) (peak to peak)
-        EF=ElectromagneticField()
-        EF.E=np.real(E_0.E*np.exp(-1j*E_0.k*d)/d)
-        return EF
+        assert len(path[0])==3 and len(path[1])==3,"given path does not have the right shape"
+        r=np.linalg.norm(path[1]-path[0])
+        E0=ElectromagneticField.compute_E0(path)
+        E0.E=(E0.E*np.exp(-1j*E0.k*r)/r)
+        return E0
 
     def fresnel_coeffs(E,theta_i,roughness,epsilon_eff_2):
         assert theta_i>0 and theta_i<pi/2, f"theta_i={theta_i*180/pi} degrees, but should between 0,90"
@@ -168,7 +318,11 @@ class ElectromagneticField:
         paths=split_reflections_path(reflections_path)
         for i in range(0,len(surfaces_ids)):
             reflection_polygon=rtp.polygons[surfaces_ids[i]]
-            R,norms,_,_,_,_,_=dyadic_ref_coeff(paths[i],reflection_polygon)
+            #R,norms,_,_,_,_,_=dyadic_ref_coeff(paths[i],reflection_polygon)
+            R,norms,e_per,ei_par, er_par,r_par,r_per=dyadic_ref_coeff(paths[i],reflection_polygon)
+            #assert(np.dot(E_r.E,e_per)*e_per+np.dot(E_r.E,ei_par)*ei_par==E_r.E).all()
+            
+            
             Si= norms[0]#norm of incident ray
             Sr= norms[1]#norm of reflected ray  
             E_r=ElectromagneticField.account_for_trees(E_r,np.array([paths[i][0],paths[i][1]]),rtp.place) #account for TX-->ref # incident field at the point of reflection.
@@ -232,10 +386,8 @@ class ElectromagneticField:
             t_0=np.cross(n_0,e) #(vector) unit vector tangential to the O-face (McNamara 6.8)
 
             #unit vector components of si and sd lying in the plane perpendicular to the edge (=s_t' and s_t in McNamara)
-            si_t=si-np.dot(si,e)*e 
-            si_t=si_t/np.linalg.norm(si_t) #(vector) McNamara 6.9
-            sd_t=sd-np.dot(sd,e)*e
-            sd_t=sd_t/np.linalg.norm(sd_t) #(vector) McNamara 6.10
+            si_t=vv_normalize(si-np.dot(si,e)*e) #(vector) McNamara 6.9
+            sd_t=vv_normalize(sd-np.dot(sd,e)*e)#(vector) McNamara 6.10
             
             
             phi_i=pi-(pi-np.arccos(np.dot(-si_t,t_0)))*np.sign(np.dot(-si_t,n_0)) #(scalar) McNamara 6.11 incident angle with respect to the O-face 
@@ -298,8 +450,7 @@ class ElectromagneticField:
         n=2-alpha/pi #doesn't need to be an integer (McNamara 4.26)
         assert alpha<pi and alpha>0 and n>=1 and n<=2, f"alpha= {alpha*180/pi}, we restrict ourselves to wedges with interior angles in 0,180"
         
-        edge= np.diff(corner_points, axis=0).reshape(-1)
-        e = edge/np.linalg.norm(edge)
+        e= vv_normalize(np.diff(corner_points, axis=0).reshape(-1)) #edge
        
         #ensuring that e is such that t_0 points towards the 0 face (McNamara 6.8)
         t_0=np.cross(n_0,e) #(vector) unit vector tangential to the O-face (McNamara 6.8)
@@ -318,14 +469,10 @@ class ElectromagneticField:
         D_par=D1+D2+r_par*(D3+D4) #(scalar) McNamara 6.20
         
         #Edge fixed coordinate system
-        phi_i_vv=np.cross(-e,si)
-        phi_i_vv=phi_i_vv/np.linalg.norm(phi_i_vv) #(vector) McNamara 6.2
-        phi_d_vv=np.cross(e,sd)
-        phi_d_vv=phi_d_vv/np.linalg.norm(phi_d_vv) #(vector) McNamara 6.4 
-        beta_0_i_vv=np.cross(phi_i_vv,si) 
-        beta_0_i_vv=beta_0_i_vv/np.linalg.norm(phi_i_vv)# (vector) McNamara 6.3
-        beta_0_d_vv=np.cross(phi_d_vv,sd) 
-        beta_0_d_vv=beta_0_d_vv/np.linalg.norm(phi_d_vv)#(vector) McNamara 6.5
+        phi_i_vv=vv_normalize(np.cross(-e,si))#(vector) McNamara 6.2
+        phi_d_vv=vv_normalize(np.cross(e,sd))#(vector) McNamara 6.4 
+        beta_0_i_vv=vv_normalize(np.cross(phi_i_vv,si))# (vector) McNamara 6.3
+        beta_0_d_vv=vv_normalize(np.cross(phi_d_vv,sd))#(vector) McNamara 6.5
         
         #dyadic diffraction coefficient
         D=beta_0_i_vv.reshape(3,1)@beta_0_d_vv.reshape(1,3)*(-D_per) - phi_i_vv.reshape(3,1)@phi_d_vv.reshape(1,3)*D_par # (3x3 matrix) McNamara 6.19
@@ -358,19 +505,41 @@ class SolvedField:
         self.field=0
         
         #elevation and azimuth angles of the TX and RX rays, compared to the antenna axis
+        self.rx_antenna=None
+        self.tx_antenna=None
         self.tx_el=None
         self.tx_az=None
         self.rx_el=None
         self.rx_az=None
+        
     
     def __str__(self):
         return f'{self.path_type} path from receiver {self.rx_id} with coordinates {self.rx} field strength {np.linalg.norm(self.field)}'
         
-    def compute_angles(self,RX_basis,TX_basis):
+    def show_antennas_alignement(self):
+        """
+        shows the antennas, and their reference frames
+        some vectors may not appear to be unit vectors, however they are:
+        its just matplotlib scaling the axes.
+        """
+        fig=plt.figure()        
+        fig.set_dpi(300)
+        ax=fig.add_subplot(1,1,1,projection='3d')
+        colors=['r','g','b']
+        plot_utils.plot_world_frame(ax, colors)
+        plot_utils.plot_path(ax, self.path)
+        self.tx_antenna.plot_antenna_frame(ax, colors)
+        self.rx_antenna.plot_antenna_frame(ax,colors)
+        ax.legend()
+        plt.show()
+        return
+    
+    def compute_angles(self):
         second_point=self.path[1]
         penultimate_point=self.path[-2] 
-        self.rx_el,self.rx_az=Antenna.antenna_incident_angles(RX_basis,penultimate_point-self.rx)
-        self.tx_el,self.tx_az=Antenna.antenna_incident_angles(TX_basis,second_point-self.tx)
+        
+        _,self.rx_el,self.rx_az=self.rx_antenna.incident_angles(penultimate_point-self.rx)
+        _,self.tx_el,self.tx_az=self.tx_antenna.incident_angles(second_point-self.tx)
         return
     
     def add_to_df(self,df):
@@ -400,14 +569,14 @@ class FieldPower:
 
     def to_db(field_power):
         """
-        converts given field power in watts to dB (normalised to TX_POWER)
+        converts given field power in watts to dB (normalised to INPUT_POWER)
         """
         #avoid computing log(0)
         P=np.atleast_1d(field_power)
         ind=np.where(P!=0)
         db=np.ones(len(P))*np.NINF
         for i in ind:
-            db[i]=10*np.log10(P[i]/TX_POWER) 
+            db[i]=10*np.log10(P[i]/INPUT_POWER) 
         return db[0] if np.isscalar(field_power) else db
          
         
@@ -420,12 +589,12 @@ class FieldPower:
         if isinstance(field_strength[0],np.ndarray)==False:
             field_strength=[field_strength]
         #norm of sum: takes into account interferences
-        style1=np.linalg.norm(np.sum(field_strength)) #real
+        style1=np.linalg.norm(np.sum(np.real(field_strength))) #real
         style1=FieldPower.to_db(FieldPower.harvested_power(style1))
         #sum of individual powers
         power=0
         for i in range(len(field_strength)):   
-            style2=np.linalg.norm(field_strength[i])#real
+            style2=np.linalg.norm(np.real(field_strength[i]))#real
             style2=FieldPower.harvested_power(style2)
             power+=style2        
         style2=FieldPower.to_db(power)
@@ -437,52 +606,7 @@ class FieldPower:
             return style1,style2
 
 
-class Antenna:
-    def align_antenna_to_point(pointA,pointB):
-        """
-        direct the antenna aperture such that it points from A to B
-        pointA: the position of the antenna, pointB: the point towards it should point.
-        returns the antenna basis, such that:
-            new_z=(A to B) axis
-            new_x= vector in aperture and parallel to ground.
-            new_y= new_x cross new_z
-        """
-            
-        def parametric_from_normal_and_point(normal,point):
-            """
-            Returns the parametric equation of the plane described by its normal and a point.
-            It will return all four coefficients such that: a*x + b*y + c*z + d = 0.
-            """      
-            normal=normal/np.linalg.norm(normal)
-            a, b, c = normal
-            d=-np.dot(point, normal)
-            return a,b,c,d    
-        
-        normal=pointB-pointA
-        normal=normal/np.linalg.norm(normal)
-        a,b,c,d=parametric_from_normal_and_point(normal,pointA) #parametric equation of the aperture's plane  
-        new_z=normal
-        
-        g2=pointA[1]+1 #set arbitrarily
-        g3=pointA[2] #projection of x_axis on YZ is perp to Z
-        g1=(-d-c*g3-b*g2)/a #G must be in aperture plane
-        G=np.array([g1,g2,g3])
-        new_x=G-pointA
-        new_x=new_x/np.linalg.norm(new_x)
-        
-        new_y= np.cross(new_x,new_z)
-        new_y=new_y/np.linalg.norm(new_y)
-        return [new_x,new_y,new_z]
 
-    def antenna_incident_angles(antenna_basis,ray):
-        """
-        given the antenna basis and the incoming ray 
-        returns elevation and azimuth angles of incident path in radians 
-        """
-        ray=ray/np.linalg.norm(ray)
-        el=np.arccos(np.dot(ray,antenna_basis[1]))#angle between incoming ray and antenna y axis
-        az=np.arccos(np.dot(ray,antenna_basis[0]))#angle between incoming ray and antenna x axis
-        return el,az
 
 
 def my_field_computation(rtp,save_name="problem_fields"):
@@ -588,23 +712,36 @@ def my_field_computation(rtp,save_name="problem_fields"):
     df=pd.DataFrame(columns=['rx_id','receiver','path_type','time_to_receiver','field_strength'])
     for receiver in range(0,len(rtp.solved_receivers)):
         print(f"EM SOLVING RECEIVER {receiver}")
-        this_solved_list=[]
+        this_solved_list=[] #list containing the fields for all the path between tx and this rx
         best_los=compute_LOS(receiver, rtp,this_solved_list)
         best_ref=compute_reflections(receiver, rtp,this_solved_list)
         best_dif=compute_diffractions(receiver,rtp,this_solved_list)
             
-    
-    
         #check most powerful path and align antennas to it 
         bests=[best_los,best_ref,best_dif]
         best_fields=np.array([np.linalg.norm(best_los.field),np.linalg.norm(best_ref.field),np.linalg.norm(best_dif.field)])
         winner=bests[np.argmax(best_fields)]
         print(f"the best path of RX {winner.rx_id} is a {winner.path_type}")
-        RX_basis=Antenna.align_antenna_to_point(pointA=winner.rx,pointB=winner.path[-2])
-        TX_basis=Antenna.align_antenna_to_point(pointA=winner.tx,pointB=winner.path[1])
         
+        
+        #align antennas to the winner path
+        rx_antenna=Antenna()
+        rx_antenna.position=winner.rx
+        rx_antenna.align_antenna_to_point(winner.path[-2])
+        
+        tx_antenna=Antenna()
+        tx_antenna.position=winner.tx
+        tx_antenna.align_antenna_to_point(winner.path[1])
         for sol in this_solved_list:
-            sol.compute_angles(RX_basis,TX_basis)    
+            sol.tx_antenna=tx_antenna
+            sol.rx_antenna=rx_antenna
+            sol.compute_angles()
+            sol.show_antennas_alignement()
+            #TODO
+            #rx_directivity=lam**2/(4*pi)*4*np.pi/(-rx_el*np.sin(rx_az)**2*np.log(np.tan(rx_el/2)))
+            #tx_directivity=rx_directivity      
+            #sol.field=sol.field*rx_directivity*tx_directivity
+            
             sol.add_to_df(df)
         solution.append(this_solved_list)
     file_utils.save_df(df,save_name)#saves into the result folder

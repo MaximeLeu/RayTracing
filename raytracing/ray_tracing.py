@@ -315,7 +315,9 @@ class RayTracingProblem:
         self.place.plot3d(ax=ax, points_kwargs=dict(color='k', s=20))
         plot_utils.add_points_to_3d_ax(ax, self.emitter, color='r', s=20)
         plot_utils.add_text_at_point_3d_ax(ax, self.emitter, 'TX')
-
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
         first = True
         handles = []
         labels = []
