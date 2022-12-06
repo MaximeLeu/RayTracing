@@ -90,15 +90,11 @@ class Antenna:
         """
         new_point=self.change_reference_frame(point)
         r,el,az=Antenna.to_spherical(new_point)
-        # ray=ray/np.linalg.norm(ray)
-        # el=np.arccos(np.dot(ray,self.basis[1]))#angle between incoming ray and antenna y axis
-        # az=np.arccos(np.dot(ray,self.basis[0]))#angle between incoming ray and antenna x axis
         return r,el,az
 
     def change_reference_frame(self,point):
         """
         transform the given point into the reference frame of the antenna
-        
         """
         origin=self.position
         x=np.array([1,0,0])
@@ -108,7 +104,8 @@ class Antenna:
         new_x=self.basis[0]
         new_y=self.basis[1]
         new_z=self.basis[2]
-        print(f"x: {np.linalg.norm(new_x)} y {np.linalg.norm(new_y)} z {np.linalg.norm(new_z)}")
+        assert(np.isclose([np.linalg.norm(new_x),np.linalg.norm(new_y),np.linalg.norm(new_z)],[1,1,1])).all(),\
+            f'x: {np.linalg.norm(new_x)} y {np.linalg.norm(new_y)} z {np.linalg.norm(new_z)}'
         
         mat=np.array([
                     [np.dot(new_x,x),np.dot(new_x,y),np.dot(new_x,z)],
@@ -129,16 +126,17 @@ class Antenna:
         new_tx=tx_ant.change_reference_frame(tx)
         length=np.linalg.norm(tx-rx)
         new_length=np.linalg.norm(new_tx-new_rx)
-        assert np.isclose(new_tx, np.array([0,0,0])).all()
-        assert np.isclose(new_length,length).all()
+        assert np.isclose(new_tx, np.array([0,0,0])).all(), f'new tx {new_tx}'
+        assert np.isclose(new_length,length).all(),f'new length {new_length} length {length}'
         assert np.isclose(new_rx,np.array([0,0,length])).all()
-        
         return
     
     def to_spherical(point):
        """
        transform the given point into spherical coordinate relative to the antenna's basis
        """
+       #TODO: careful with the definitino of theta, maybe theta=pi/2-theta!!! 
+       #for the moment theta=from z to y (remember z is the direction of the path)
        x, y, z = point.T
        hxy = np.hypot(x, y)
        r = np.hypot(hxy, z)
@@ -155,6 +153,51 @@ class Antenna:
         for i in range(3):  
             plot_utils.plot_vec(ax,antenna_basis[i],colors[i],origin=origin)
         return
+    
+    def path_to_antenna_reference_frame(self,path):
+        new_path=[]
+        for point in path:
+            new_point=self.change_reference_frame(point)
+            new_path.append(new_point)        
+        return new_path
+    
+    def antenna_to_world(self,point):
+
+        origin=self.position
+        x=np.array([1,0,0])
+        y=np.array([0,1,0])
+        z=np.array([0,0,1])
+        
+        new_x=self.basis[0]
+        new_y=self.basis[1]
+        new_z=self.basis[2]
+        
+        mat=np.array([
+                    [np.dot(new_x,x),np.dot(new_x,y),np.dot(new_x,z)],
+                   [np.dot(new_y,x),np.dot(new_y,y),np.dot(new_y,z)],
+                   [np.dot(new_z,x),np.dot(new_z,y),np.dot(new_z,z)],
+                   ])
+        new_point=point@mat
+        new_point= new_point+origin           
+        
+        return new_point
+ 
+    def test_trans(self,point):
+        new_point=self.change_reference_frame(point)
+        inverse=self.antenna_to_world(new_point)
+        assert(np.isclose(point,inverse)).all(), f'real: {point} invreted {inverse}'
+        print(f'real: {point} mid {new_point} invreted {inverse}')
+        return
+    
+     
+ 
+   
+        
+def radiation_pattern(theta,phi):  
+    F=np.cos(theta) #scalar
+    F=abs(F)
+    print(f"rad pattern {F}")
+    return F 
     
 class ElectromagneticField:
 
@@ -501,13 +544,16 @@ class SolvedField:
     def __init__(self,path=[np.array([0,0,0]),np.array([0,0,0])]):
         self.rx=path[-1]       
         self.tx=path[0]
-        self.path=path
+        self.world_path=path #in world coordinates
+        
         self.path_len=geom.path_length(path)
         self.time=self.path_len/c
         
         self.path_type=None 
         self.rx_id=None
         self.field=0
+        
+        self.antenna_path=None
         
         #elevation and azimuth angles of the TX and RX rays, compared to the antenna axis
         self.rx_antenna=None
@@ -532,7 +578,7 @@ class SolvedField:
         ax=fig.add_subplot(1,1,1,projection='3d')
         colors=['r','g','b']
         plot_utils.plot_world_frame(ax, colors)
-        plot_utils.plot_path(ax, self.path)
+        plot_utils.plot_path(ax, self.world_path)
         self.tx_antenna.plot_antenna_frame(ax, colors)
         self.rx_antenna.plot_antenna_frame(ax,colors)
         ax.legend()
@@ -540,13 +586,13 @@ class SolvedField:
         return
     
     def compute_rx_angles(self):
-        penultimate_point=self.path[-2] 
-        _,self.rx_el,self.rx_az=self.rx_antenna.incident_angles(penultimate_point-self.rx)
+        penultimate_point=self.world_path[-2] 
+        _,self.rx_el,self.rx_az=self.rx_antenna.incident_angles(penultimate_point)
         return
     
     def compute_tx_angles(self):
-        second_point=self.path[1]
-        _,self.tx_el,self.tx_az=self.tx_antenna.incident_angles(second_point-self.tx)
+        second_point=self.world_path[1]
+        _,self.tx_el,self.tx_az=self.tx_antenna.incident_angles(second_point)
         return
     
     
@@ -559,6 +605,7 @@ class SolvedField:
              
 
 class FieldPower:
+    #TODO: use rx antenna angles, should take sol as argument.
     def harvested_power(field_strength):
         """
         given the peak to peak amplitude of the field strength arriving at the receiver in volts/meter
@@ -623,31 +670,37 @@ def my_field_computation(rtp,save_name="problem_fields"):
     For each receiver compute the field of all of its paths
     """
     tx=rtp.emitter[0]
+    print(f"TX {tx}")
     #Computes the resulting field at the receiver from all reflections and diffractions in V/m    
     def compute_LOS(receiver,rtp,solved_list,tx_antenna):
         """
         compute field from LOS for the given receiver
         append the result to solved_list
         """
+        print('computing LOS')
         #receiver is the index of the receiver NOT its coordinates 
         if rtp.los[receiver]!=[]:     
             sol=SolvedField(rtp.los[receiver][0])
             sol.rx_id=receiver
             sol.path_type="LOS"
-            
-            E_los=ElectromagneticField.from_path(sol.path,tx_antenna)
-            E_los=ElectromagneticField.account_for_trees(E_los,sol.path,rtp.place)
-            sol.field=E_los.E
             sol.tx_antenna=tx_antenna
+            sol.antenna_path=tx_antenna.path_to_antenna_reference_frame(sol.world_path)
+            
+            E_los=ElectromagneticField.from_path(sol.world_path,tx_antenna)
+            E_los=ElectromagneticField.account_for_trees(E_los,sol.world_path,rtp.place)
+            sol.field=E_los.E
+            
             solved_list.append(sol)  
         return 
        
     #TODO: account for trees for reflections, without duplicate in diffractions  
+    #TODO: use correct reference frame
     def compute_reflections(receiver,rtp,solved_list,tx_antenna):
         """
         For each pure reflections path reaching this receiver compute the field
         append the result to solved_list
         """
+        print('computing REF')
         reflections = rtp.reflections
         for order in reflections[receiver]:
             for path in range(0,len(reflections[receiver][order])):
@@ -657,23 +710,29 @@ def my_field_computation(rtp,save_name="problem_fields"):
                 first_interaction=the_path[1] #second point of the path
                 
                 sol=SolvedField(the_path)
-                E_i=ElectromagneticField.from_path([sol.tx,first_interaction],tx_antenna)
-                this_E=ElectromagneticField.my_reflect(E_i,the_path,the_reflection_surfaces_ids,rtp)          
-                
                 sol.rx_id=receiver
                 sol.path_type='R'*order
-                sol.field=this_E.E
                 sol.tx_antenna=tx_antenna
+                sol.antenna_path=tx_antenna.path_to_antenna_reference_frame(sol.world_path)
+                
+                #TODO: which basis to provide the path in?
+                E_i=ElectromagneticField.from_path([sol.tx,first_interaction],tx_antenna)
+                this_E=ElectromagneticField.my_reflect(E_i,sol.world_path,the_reflection_surfaces_ids,rtp)          
+                
+                sol.field=this_E.E      
                 solved_list.append(sol)                      
         return 
       
+        
+    #TODO: use correct reference frame
     def compute_diffractions(receiver,rtp,solved_list,tx_antenna):
         """
         For each path containing a diffraction that reaches this receiver
         compute the field and append the result to solved_list
         """
+        print('computing DIFF')
         diffractions = rtp.diffractions
-        for order in diffractions[receiver]:     
+        for order in diffractions[receiver]:
             for path in range(0,len(diffractions[receiver][order])):
                 the_data=diffractions[receiver][order][path]  
                 the_path=the_data[0]
@@ -701,6 +760,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
                 sol.rx_id=receiver
                 sol.path_type='R'*(order-1)+'D'
                 sol.tx_antenna=tx_antenna
+                sol.antenna_path=tx_antenna.path_to_antenna_reference_frame(sol.world_path)
                 sol.compute_tx_angles()
                 sol.field=this_E.E
                 solved_list.append(sol)
@@ -723,13 +783,12 @@ def my_field_computation(rtp,save_name="problem_fields"):
         
         best_path=find_shortest_path(rtp,receiver)
         tx_antenna.align_antenna_to_point(best_path[1])
-        rx_antenna.align_antenna_to_point(best_path[-1])
+        rx_antenna.align_antenna_to_point(best_path[-2])
         
         
         compute_LOS(receiver, rtp,this_solved_list,tx_antenna)
         compute_reflections(receiver, rtp,this_solved_list,tx_antenna)
         compute_diffractions(receiver,rtp,this_solved_list,tx_antenna)
-            
         for sol in this_solved_list:
             sol.rx_antenna=rx_antenna
             sol.compute_rx_angles()
