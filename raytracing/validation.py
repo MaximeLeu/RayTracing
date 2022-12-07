@@ -7,7 +7,7 @@ Code to validate the program
 """
 #self written imports
 from raytracing import file_utils
-from electromagnetism import FieldPower
+from electromagnetism import to_db
 from electromagnetism import RX_GAIN,TX_GAIN
 import place_utils
 
@@ -60,7 +60,8 @@ def plot_claude_comparison(df,maxwell_base,tx):
         simu_x=np.zeros(nreceivers)
         for receiver in range(nreceivers):
             rx_df=df.loc[df['rx_id'] == receiver]#all data for this rx
-            simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)        
+            simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values)/FREQUENCY)
+            #simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)        
             rx_coord=rx_df["receiver"].values[0]
             dist_maxwell=np.linalg.norm(maxwell_base-rx_coord) #distance between the receiver and the maxwell
             simu_x[receiver]=dist_maxwell       
@@ -118,7 +119,8 @@ def small_vs_path_loss(npoints=15,order=2):
         rx_coord=rx_df["receiver"].values[0]
         pl[receiver]=compute_path_loss(tx, rx_coord)
         simu_x[receiver]=np.linalg.norm(rx_coord-tx) #distance TX-RX
-        simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)
+        simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values)/FREQUENCY)
+        #simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)
     
     
     #plots
@@ -151,5 +153,5 @@ if __name__ == '__main__':
     plt.close('all')
 
     levant_vs_measures(npoints=16*3,order=2)
-    #small_vs_path_loss(npoints=16*3,order=2)
+    #small_vs_path_loss(npoints=16,order=2)
     

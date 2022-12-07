@@ -105,7 +105,7 @@ def create_dummy_place():
     return place, tx, geometry
 
 
-def create_two_rays_place(plot=False):
+def create_two_rays_place(npoints=20,plot=False):
     geometry="two_rays"
     #add ground
     ground = geom.Square.by_2_corner_points(np.array([[0, 0, 0], [70, 24, 0]]))
@@ -114,9 +114,12 @@ def create_two_rays_place(plot=False):
     #create place
     place = geom.OrientedPlace(geom.OrientedSurface(ground))
     #add TX and RX
-    rx = place.get_centroid().reshape(-1,3)+[0,0,5]
     tx = np.array([5., 12., 15.]).reshape(-1, 3)
-    place.add_set_of_points(rx)
+    step=10
+    rx0 = place.get_centroid().reshape(-1,3)+[0,0,5]
+    for receiver in range(npoints):
+        rx =rx0+np.array([receiver*step,0,0])
+        place.add_set_of_points(rx)
     #save and plot
     place.to_json(filename="../data/two_rays.json")    
     if plot:

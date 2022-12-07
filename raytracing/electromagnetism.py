@@ -22,10 +22,12 @@ mu_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["mu"].values[0]*mu_0
 sigma_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["sigma"].values[0]
 epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[0]*epsilon_0
 Z_0=120*pi
+lam=c/FREQUENCY
 
-INPUT_POWER=1
+
+P_IN=1
 RADIATION_EFFICIENCY=1
-RADIATION_POWER=RADIATION_EFFICIENCY*INPUT_POWER
+RADIATION_POWER=RADIATION_EFFICIENCY*P_IN
 
 
 TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians 
@@ -37,6 +39,19 @@ def vv_normalize(vv):
         return np.array([0,0,0])
     else:
         return vv/norm
+
+def to_db(field_power):
+    """
+    converts given field power in watts to dB (normalised to INPUT_POWER)
+    """
+    #avoid computing log(0)
+    P=np.atleast_1d(field_power)
+    ind=np.where(P!=0)
+    db=np.ones(len(P))*np.NINF
+    for i in ind:
+        db[i]=10*np.log10(P[i]/P_IN) 
+    return db[0] if np.isscalar(field_power) else db
+
 
 
 class Antenna:
@@ -216,20 +231,18 @@ class ElectromagneticField:
         """
         r,phi,theta=tx_antenna.incident_angles(path[1]) 
         
+        print(f'r {r} and {np.linalg.norm(path[1]-path[0])}')
         #transform r_VV into the basis of the antenna!!!
         new_point=tx_antenna.change_reference_frame(path[1])
         r_vv=vv_normalize(new_point-tx_antenna.position)
           
         Antenna.test_change_reference_frame(path[0],path[-1]) #small test
-        
-        
         F=np.sin(theta)*tx_antenna.basis[1] #TODO: should this be oriented otherwise?
-        #F=np.array([0,0,1])*TX_GAIN #radiation pattern? Antenna polarisation?
-        #r=1
+
         EF_0=ElectromagneticField()
-        E0=-1j*EF_0.k*Z_0*1/(4*pi*r)*np.exp(-1j*EF_0.k*r)*np.cross(np.cross(r_vv,F),r_vv)
-        
-        assert(np.dot(E0,tx_antenna.basis[0])),'ERROR: field is not transverse'
+        E0=-1j*EF_0.k*Z_0*1/(4*pi*r)*np.exp(-1j*EF_0.k*r)*np.cross(np.cross(r_vv,F),r_vv)*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))
+        E0=E0*np.sqrt(radiation_pattern(theta, phi))
+        #assert(np.dot(E0,tx_antenna.basis[0])),'ERROR: field is not transverse'
         
         EF_0.E = E0 
         print(f'r_vv {r_vv}')
@@ -249,11 +262,7 @@ class ElectromagneticField:
         :type path: numpy.ndarray(shapely.geometry.Points) *shape=(2)
         """
         assert len(path[0])==3 and len(path[1])==3,"given path does not have the right shape"
-        
         E0=ElectromagneticField.compute_E0(path,tx_antenna)
-        #E0.E=np.real(E0.E)
-        #r=np.linalg.norm(path[1]-path[0])
-        #E0.E=(E0.E*np.exp(-1j*E0.k*r)/r)
         return E0
 
     def fresnel_coeffs(E,theta_i,roughness,epsilon_eff_2):
@@ -563,6 +572,8 @@ class SolvedField:
         self.rx_el=None
         self.rx_az=None
         
+        self.power=0
+        
     
     def __str__(self):
         return f'{self.path_type} path from receiver {self.rx_id} with coordinates {self.rx} field strength {np.linalg.norm(self.field)}'
@@ -587,6 +598,7 @@ class SolvedField:
     
     def compute_rx_angles(self):
         penultimate_point=self.world_path[-2] 
+        #change of basis is done in antenna.incident_angles
         _,self.rx_el,self.rx_az=self.rx_antenna.incident_angles(penultimate_point)
         return
     
@@ -597,72 +609,15 @@ class SolvedField:
     
     
     def add_to_df(self,df):
-        df.loc[len(df.index)] = [self.rx_id,self.rx,self.path_type,self.time,self.field] 
+        df.loc[len(df.index)] = [self.rx_id,self.rx,self.path_type,self.time,self.field,self.power] 
         return
     
         
     
              
 
-class FieldPower:
-    #TODO: use rx antenna angles, should take sol as argument.
-    def harvested_power(field_strength):
-        """
-        given the peak to peak amplitude of the field strength arriving at the receiver in volts/meter
-        returns the power extracted by the receiver antenna in Watts
-        """
-        lam=c/FREQUENCY
-        directivity=1 #1 for a perfectly isotropic antenna
-        impedance_mismatch=1 #perfect impedance matching
-        polarisation_eff=1 #perfect polarisation efficiency.
-        imperfections=directivity*impedance_mismatch*polarisation_eff
-        A_eff=imperfections*(lam**2)/(4*pi)*RX_GAIN
-        power_density=(field_strength**2)/(2*120*pi) #considering E peak to peak
-        
-        pr=power_density*A_eff
-        return pr
 
-
-    def to_db(field_power):
-        """
-        converts given field power in watts to dB (normalised to INPUT_POWER)
-        """
-        #avoid computing log(0)
-        P=np.atleast_1d(field_power)
-        ind=np.where(P!=0)
-        db=np.ones(len(P))*np.NINF
-        for i in ind:
-            db[i]=10*np.log10(P[i]/INPUT_POWER) 
-        return db[0] if np.isscalar(field_power) else db
-         
-        
-    def compute_power(field_strength,STYLE=2):
-        """
-        given list of field strength, compute received power
-        """
-        
-        #makes it work when given np.array(1,2,3) instead of [np.array(1,2,3),...,np.array(3,4,5)]
-        if isinstance(field_strength[0],np.ndarray)==False:
-            field_strength=[field_strength]
-        #norm of sum: takes into account interferences
-        style1=np.linalg.norm(np.sum(np.real(field_strength))) #real
-        style1=FieldPower.to_db(FieldPower.harvested_power(style1))
-        #sum of individual powers
-        power=0
-        for i in range(len(field_strength)):   
-            style2=np.linalg.norm(np.real(field_strength[i]))#real
-            style2=FieldPower.harvested_power(style2)
-            power+=style2        
-        style2=FieldPower.to_db(power)
-        if STYLE==1:
-            return style1
-        elif STYLE==2:
-            return style2
-        else:
-            return style1,style2
-
-
-
+    
 
 
 def my_field_computation(rtp,save_name="problem_fields"):
@@ -772,7 +727,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
         rtp.place.add_tree(tree_size=TREE_SIZE) 
     #compute everything 
     solution=[]
-    df=pd.DataFrame(columns=['rx_id','receiver','path_type','time_to_receiver','field_strength'])
+    df=pd.DataFrame(columns=['rx_id','receiver','path_type','time_to_receiver','field_strength','path_power'])
     for receiver in range(0,len(rtp.solved_receivers)):
         print(f"EM SOLVING RECEIVER {receiver}")
         this_solved_list=[] #list containing the fields for all the path between tx and this rx
@@ -792,6 +747,8 @@ def my_field_computation(rtp,save_name="problem_fields"):
         for sol in this_solved_list:
             sol.rx_antenna=rx_antenna
             sol.compute_rx_angles()
+            Ae=(lam**2/(4*pi))*RX_GAIN*radiation_pattern(sol.rx_el,sol.rx_az)
+            sol.power=(1/2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2
             #sol.show_antennas_alignement()
             #TODO adjuste E field to take into account RX directivity
             sol.add_to_df(df)
@@ -874,13 +831,15 @@ def EM_fields_plots(df_path,order=3,name="notnamed"):
             data_for_type=rx_df.loc[rx_df['path_type'] == path_type]
             color_for_type,position,ticks=plot_utils.set_color_for_type(path_type,order)
             #total power from each source
-            power=FieldPower.compute_power(data_for_type['field_strength'].values) #receive power in dB    
+            power=to_db(np.sum(data_for_type["path_power"].values))
+            #power=FieldPower.compute_power(data_for_type['field_strength'].values) #receive power in dB    
             ax1.bar(x=position, height=power,width=width,color=color_for_type,label=path_type)     
             #power delay profile
             nelem=len(data_for_type['field_strength'])
             individual_powers=np.zeros(nelem)
             for j in range(nelem):
-               individual_powers[j]=FieldPower.compute_power(data_for_type['field_strength'].values[j],STYLE=2)    
+               #individual_powers[j]=FieldPower.compute_power(data_for_type['field_strength'].values[j],STYLE=2) 
+               individual_powers[j]=to_db(data_for_type['path_power'].values[j]) 
             ax2.stem(data_for_type['time_to_receiver'].values, individual_powers,linefmt=color_for_type,label=path_type,basefmt=" ")
                             
         ax1.set_title(f'Total power from sources RX{receiver}')

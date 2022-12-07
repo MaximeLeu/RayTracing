@@ -21,7 +21,7 @@ N_TREES=10 #how many trees to add to the place
 MIN_TREE_HEIGHT=10
 MAX_TREE_HEIGHT=20
 TREE_SIZE=2
-FREQUENCY=12.5 *1e9 #in Hz
+FREQUENCY=12.5*1e9 #in Hz
 ITU="ITU-R P.2040-2"
 
 

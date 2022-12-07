@@ -10,7 +10,7 @@ Testing two rays model vs my simulator
 
 from ray_tracing import RayTracingProblem
 import place_utils
-from electromagnetism import my_field_computation,EM_fields_plots,EM_fields_data,ElectromagneticField
+from electromagnetism import my_field_computation,ElectromagneticField
 import plot_utils
 #packages
 import numpy as np
@@ -32,8 +32,6 @@ def compute_path_loss(d):
     pr_pt=(RX_GAIN*TX_GAIN*(lam/(4*pi*d))**2)
     pl=10*np.log10(pr_pt)
     return pl
-
-
 
 def two_rays_geometry(L,ztx,zrx):
     #geometry
@@ -103,10 +101,7 @@ def two_rays_fields_1(L,ztx,zrx):
     P_rx=1/(2*Z_0)*(compute_Ae(0)*(np.linalg.norm(np.real(Elos)))**2+compute_Ae(theta_rx)*(np.linalg.norm(np.real(Eref)))**2)
     db=10*np.log10(P_rx/FREQUENCY)
     
-    assert(np.linalg.norm(Eref)<np.linalg.norm(Elos))
-    # print(f'')
-    # print(f"Elos {Elos} norm {np.linalg.norm(Elos)}")
-    # print(f"Eref {Eref} norm {np.linalg.norm(Eref)}")  
+    assert(np.linalg.norm(Eref)<np.linalg.norm(Elos)) 
     return db
     
 def two_rays_fields_2(L,ztx,zrx):
@@ -179,44 +174,52 @@ def compare_models():
     ax.set_ylabel('Received power (pr/pt)[dB]')
     ax.legend()
     plt.show() 
-    return
+    return ax
 
     
 
 if __name__ == '__main__':
     
-     plt.close('all')
-     place,tx,geometry=place_utils.create_two_rays_place()
-     rx=place.set_of_points
+    
+    plt.close('all')
+    place,tx,geometry=place_utils.create_two_rays_place()
+    rx=place.set_of_points
+    print(f'rx {rx} first {rx[1]}')
+    compare_models()
      
-     compare_models()
-     
 
-    # problem = RayTracingProblem(tx, place)
-    # problem.solve(max_order=2,receivers_indexs=None)
-    # problem.plot_all_rays()
-    # results_path=f'../results/{geometry}_launch.csv'
+    problem = RayTracingProblem(tx, place)
+    problem.solve(max_order=2,receivers_indexs=None)
+    problem.plot_all_rays()
+    results_path=f'../results/{geometry}_launch.csv'
     
-    # #simu solve
-    # df=my_field_computation(problem,results_path)
-    # simu_los=df.loc[df['path_type'] == "LOS"]['field_strength'].values[0]   
-    # simu_ref=df.loc[df['path_type'] == "R"]['field_strength'].values[0] 
+    #simu solve
+    df=my_field_computation(problem,results_path)
+    simu_los=df.loc[df['path_type'] == "LOS"]['field_strength'].values[0]   
+    simu_ref=df.loc[df['path_type'] == "R"]['field_strength'].values[0] 
     
-    # simu_ref=np.real(simu_ref)
-    # simu_los=np.real(simu_los)
+    sol_two_rays_fields_1=np.zeros(len(simu_los))
+    simu=np.zeros(len(simu_los))
+    dists=np.zeros(len(simu_los))
+    for i in range(len(simu_los)):
+        rx_power=1/(2*Z_0)*(compute_Ae(0)*(np.linalg.norm(np.real(simu_los[i])))**2\
+                            +compute_Ae(pi/8)*(np.linalg.norm(np.real(simu_ref[i])))**2)
+        simu[i]=10*np.log10(rx_power)
+        rx=place.set_of_points[i]        
+        dists[i]=np.linalg.norm(tx-rx)
+        sol_two_rays_fields_1[i]=two_rays_fields_1(L=dists[i],ztx=tx[0][2],zrx=rx[2])
     
-    # #theorical solve:
-    # reflection=problem.reflections[0][1][0][0]
-    # E_los,E_ref=theorical_solve(reflection)
-
-    # print("----------------COMPARISON SIMU AND TWO RAYS FIELDS--------------")
-    # print(f"simu_los {simu_los} two rays los {E_los}")
-    # print(f"simu_ref {simu_ref} two rays ref {E_ref}")
+    fig=plt.figure()        
+    fig.set_dpi(300)
+    ax=fig.add_subplot(1,1,1)
     
-    # print("----------------COMPARISON SIMU AND TWO RAYS NORMS--------------")
-    # print(f"simu_los {np.linalg.norm(simu_los)} two rays los {np.linalg.norm(E_los)}")
-
-    # print(f"simu_ref {np.linalg.norm(simu_ref)} two rays ref {np.linalg.norm(E_ref)}")   
+    ax.plot(dists,sol_two_rays_fields_1,'r',label='two rays 1')
+    ax.plot(dists,simu,'g',label="simu")
     
-    # # EM_fields_plots(results_path,order=1,name=geometry)    
-    # # EM_fields_data(results_path)
+    ax.grid()
+    ax.set_title('comparison between two rays and path loss')
+    ax.set_xlabel('distance between tx and rx (m)')
+    ax.set_ylabel('Received power (pr/pt)[dB]')
+    ax.legend()
+    plt.show() 
+    
