@@ -167,7 +167,7 @@ class Antenna:
         origin=self.position
         for i in range(3):  
             plot_utils.plot_vec(ax,antenna_basis[i],colors[i],origin=origin)
-        return
+        return ax
     
     def path_to_antenna_reference_frame(self,path):
         new_path=[]
@@ -192,16 +192,17 @@ class Antenna:
                    [np.dot(new_y,x),np.dot(new_y,y),np.dot(new_y,z)],
                    [np.dot(new_z,x),np.dot(new_z,y),np.dot(new_z,z)],
                    ])
-        new_point=point@mat
+        new_point=mat.T@point
         new_point= new_point+origin           
+        
         
         return new_point
  
     def test_trans(self,point):
-        new_point=self.change_reference_frame(point)
-        inverse=self.antenna_to_world(new_point)
-        assert(np.isclose(point,inverse)).all(), f'real: {point} invreted {inverse}'
-        print(f'real: {point} mid {new_point} invreted {inverse}')
+        antenna_point=self.change_reference_frame(point)
+        world_point=self.antenna_to_world(antenna_point)
+        assert(np.isclose(point,world_point)).all(), f'real: {point} invreted {world_point}'
+        print(f'real: {point} mid {antenna_point} invreted {world_point}')
         return
     
      
@@ -209,7 +210,7 @@ class Antenna:
    
         
 def radiation_pattern(theta,phi):  
-    F=np.cos(theta) #scalar
+    F=np.sin(theta) #scalar
     F=abs(F)
     print(f"rad pattern {F}")
     return F 
@@ -230,28 +231,22 @@ class ElectromagneticField:
         Computes the field radiated 1m away from the antenna in the direction of the path
         """
         r,phi,theta=tx_antenna.incident_angles(path[1]) 
-        
-        print(f'r {r} and {np.linalg.norm(path[1]-path[0])}')
         #transform r_VV into the basis of the antenna!!!
         new_point=tx_antenna.change_reference_frame(path[1])
-        r_vv=vv_normalize(new_point-tx_antenna.position)
-          
+        r_vv=vv_normalize(new_point) #tx_antenna.position=[0,0,0]
         Antenna.test_change_reference_frame(path[0],path[-1]) #small test
-        F=np.sin(theta)*tx_antenna.basis[1] #TODO: should this be oriented otherwise?
+        F=np.sin(theta)*tx_antenna.basis[1]
 
+        #field in antenna's coordinates
         EF_0=ElectromagneticField()
         E0=-1j*EF_0.k*Z_0*1/(4*pi*r)*np.exp(-1j*EF_0.k*r)*np.cross(np.cross(r_vv,F),r_vv)*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))
         E0=E0*np.sqrt(radiation_pattern(theta, phi))
         #assert(np.dot(E0,tx_antenna.basis[0])),'ERROR: field is not transverse'
         
+        
+        #return to world coordinates
+        E0=tx_antenna.antenna_to_world(E0)
         EF_0.E = E0 
-        print(f'r_vv {r_vv}')
-        print(f"cross 1 {np.cross(r_vv,F)}")
-        print(f"cross {np.cross(np.cross(r_vv,F),r_vv)}")
-        print(f"k {EF_0.k}")
-        print(f"test2 {np.exp(-1j*EF_0.k*r)}")
-        print(f"test {-1j*EF_0.k*Z_0*1/(4*pi*r)}")
-        print(f"E0 {E0}")
         return EF_0
 
     @staticmethod
@@ -348,7 +343,7 @@ class ElectromagneticField:
             The polygons of the ray tracing problem
             Returns
             -------
-            R : TYPE complex number
+            R : TYPE complex 3x3 matrix
                 DESCRIPTION the dyadic reflection coefficient of the path
            """
             #data:        
@@ -360,15 +355,20 @@ class ElectromagneticField:
             si = vectors[0, :] #normalised incident vector
             sr = vectors[1, :] #normalised reflected vector
             #incident angle and transmission angle
-            theta_i=np.arccos(np.dot(surface_normal, -si)) #incident angle
+            theta_i=np.arccos(np.dot(-surface_normal,si)) #incident angle
+            assert(theta_i<pi/2),f'strange incident angle: theta_i= {theta_i*180/pi} degrees'
             r_par,r_per=ElectromagneticField.fresnel_coeffs(E_i,theta_i,roughness,epsilon_eff_2)
             
-            #dyadic reflection coeff
-            e_per=array_utils.normalize(np.cross(si, sr))
-            ei_par= array_utils.normalize(np.cross(e_per,si))
-            er_par= array_utils.normalize(np.cross(e_per,-sr))
+            #dyadic reflection coeff McNamara 3.3, 3.4, 3.5, 3.6
+            e_per=vv_normalize(np.cross(si, sr))
+            ei_par= vv_normalize(np.cross(e_per,si))
+            er_par= vv_normalize(np.cross(e_per,sr))
             
-            R=e_per.reshape(3,1)@e_per.reshape(1,3)*r_per - ei_par.reshape(3,1)@er_par.reshape(1,3)*r_par #3x3 matrix
+            #check that decomposition is correct
+            #a=np.dot(E_i.E,e_per)*e_per+np.dot(E_i.E,ei_par)*ei_par
+            #assert(a==E_i.E).all(),f"A: {a}, B: {E_i.E}"
+            
+            R=e_per.reshape(3,1)@e_per.reshape(1,3)*r_per + ei_par.reshape(3,1)@er_par.reshape(1,3)*r_par #3x3 matrix, McNamara 3.39
             assert(R.shape==(3,3))
             return R,norms, e_per,ei_par, er_par,r_par,r_per
         
@@ -379,12 +379,12 @@ class ElectromagneticField:
             reflection_polygon=rtp.polygons[surfaces_ids[i]]
             #R,norms,_,_,_,_,_=dyadic_ref_coeff(paths[i],reflection_polygon)
             R,norms,e_per,ei_par, er_par,r_par,r_per=dyadic_ref_coeff(paths[i],reflection_polygon)
-            #assert(np.dot(E_r.E,e_per)*e_per+np.dot(E_r.E,ei_par)*ei_par==E_r.E).all()
             
             Si= norms[0]#norm of incident ray
             Sr= norms[1]#norm of reflected ray  
             E_r=ElectromagneticField.account_for_trees(E_r,np.array([paths[i][0],paths[i][1]]),rtp.place) #account for TX-->ref # incident field at the point of reflection.
-            field=(E_r.E.reshape(1,3)@R)*np.exp(-1j*E_r.k*Sr)*Si/(Si+Sr)
+            spread_factor=Si/(Si+Sr)
+            field=(E_r.E.reshape(1,3)@R)*np.exp(-1j*E_r.k*Sr)*spread_factor
             #reflected field should be of lesser intensity than the incident field
             assert np.linalg.norm(E_i.E)>=np.linalg.norm(field), f"incident field strength {np.linalg.norm(E_i.E)} reflected field strength {np.linalg.norm(field)} dyadic coeff {R}"
             E_r.E=field.reshape(3,)          
@@ -438,7 +438,7 @@ class ElectromagneticField:
             
             #beta_0 and beta_0' are the same (keller diffraction law)
             beta_0=np.arccos(np.dot(si,e)) #(scalar) angle between the incident ray and the edge (McNamara 4.19)
-            assert(beta_0<=pi and beta_0>=0)
+            assert(beta_0<=pi and beta_0>=0) #McNamara 4.20a
             
             n_0=array_utils.normalize(diffraction_polygon.get_normal()) #(vector) unit vector normal to the 0-face
             t_0=np.cross(n_0,e) #(vector) unit vector tangential to the O-face (McNamara 6.8)
@@ -588,10 +588,10 @@ class SolvedField:
         fig.set_dpi(300)
         ax=fig.add_subplot(1,1,1,projection='3d')
         colors=['r','g','b']
-        plot_utils.plot_world_frame(ax, colors)
-        plot_utils.plot_path(ax, self.world_path)
-        self.tx_antenna.plot_antenna_frame(ax, colors)
-        self.rx_antenna.plot_antenna_frame(ax,colors)
+        ax=plot_utils.plot_world_frame(ax, colors)
+        ax=plot_utils.plot_path(ax, self.world_path)
+        ax=self.tx_antenna.plot_antenna_frame(ax, colors)
+        ax=self.rx_antenna.plot_antenna_frame(ax,colors)
         ax.legend()
         plt.show()
         return
@@ -613,7 +613,39 @@ class SolvedField:
         return
     
         
-    
+def find_shortest_path(rtp,receiver):
+    """
+    Goes through the rtp of the receiver to see which path is the shortest
+    the antennas will then be aligned to this path for this receiver
+    """
+    if rtp.los[receiver]!=[]:
+        print('the shortest path is a LOS')
+        return rtp.los[receiver][0]
+    path_type=None
+    shortest_path=None
+    shortest_path_lenght=np.inf
+    for order in rtp.diffractions:
+        for path in range(0,len(rtp.diffractions[receiver][order])):
+            the_data=rtp.diffractions[receiver][order][path]  
+            the_path=the_data[0]
+            path_len=geom.path_length(the_path)
+            if path_len<shortest_path_lenght:
+                shortest_path_lenght=path_len
+                shortest_path=the_path
+                path_type="Diff"
+                
+    for order in rtp.reflections:
+        for path in range(0,len(rtp.reflections[receiver][order])):
+            the_data=rtp.reflections[receiver][order][path]  
+            the_path=the_data[0]
+            path_len=geom.path_length(the_path)
+            if path_len<shortest_path_lenght:
+                shortest_path_lenght=path_len
+                shortest_path=the_path
+                path_type="Ref"
+        
+    print(f'the shortest path is a {path_type}')
+    return shortest_path   
              
 
 
@@ -750,46 +782,14 @@ def my_field_computation(rtp,save_name="problem_fields"):
             Ae=(lam**2/(4*pi))*RX_GAIN*radiation_pattern(sol.rx_el,sol.rx_az)
             sol.power=(1/2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2
             #sol.show_antennas_alignement()
-            #TODO adjuste E field to take into account RX directivity
+            print(f" rx {receiver} path {sol.path_type}: angles theta {sol.rx_el*180/pi} phi {sol.rx_az*180/pi}")
             sol.add_to_df(df)
         solution.append(this_solved_list)
     file_utils.save_df(df,save_name)#saves into the result folder
     return df
 
 
-def find_shortest_path(rtp,receiver):
-    """
-    Goes through the rtp of the receiver to see which path is the shortest
-    the antennas will then be aligned to this path for this receiver
-    """
-    if rtp.los[receiver]!=[]:
-        print('the shortest path is a LOS')
-        return rtp.los[receiver][0]
-    path_type=None
-    shortest_path=None
-    shortest_path_lenght=np.inf
-    for order in rtp.diffractions:
-        for path in range(0,len(rtp.diffractions[receiver][order])):
-            the_data=rtp.diffractions[receiver][order][path]  
-            the_path=the_data[0]
-            path_len=geom.path_length(the_path)
-            if path_len<shortest_path_lenght:
-                shortest_path_lenght=path_len
-                shortest_path=the_path
-                path_type="Diff"
-                
-    for order in rtp.reflections:
-        for path in range(0,len(rtp.reflections[receiver][order])):
-            the_data=rtp.reflections[receiver][order][path]  
-            the_path=the_data[0]
-            path_len=geom.path_length(the_path)
-            if path_len<shortest_path_lenght:
-                shortest_path_lenght=path_len
-                shortest_path=the_path
-                path_type="Ref"
-        
-    print(f'the shortest path is a {path_type}')
-    return shortest_path
+
 
 def EM_fields_data(df_path):
     df=file_utils.load_df(df_path)
@@ -838,7 +838,6 @@ def EM_fields_plots(df_path,order=3,name="notnamed"):
             nelem=len(data_for_type['field_strength'])
             individual_powers=np.zeros(nelem)
             for j in range(nelem):
-               #individual_powers[j]=FieldPower.compute_power(data_for_type['field_strength'].values[j],STYLE=2) 
                individual_powers[j]=to_db(data_for_type['path_power'].values[j]) 
             ax2.stem(data_for_type['time_to_receiver'].values, individual_powers,linefmt=color_for_type,label=path_type,basefmt=" ")
                             

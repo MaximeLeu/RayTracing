@@ -71,14 +71,14 @@ def plot_world_frame(ax,colors):
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
-    return
+    return ax
 
 def plot_path(ax,path):
     add_points_to_3d_ax(ax=ax, points=np.array([path[0]]), label="TX")
     add_points_to_3d_ax(ax=ax, points=np.array([path[-1]]), label="RX")
     for i in range(len(path)-1):
         ax.plot([path[i][0],path[i+1][0]],[path[i][1],path[i+1][1]],[path[i][2],path[i+1][2]])
-    return
+    return ax
 
 
 def get_2d_plot_ax(ax=None):

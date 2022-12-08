@@ -115,7 +115,7 @@ def create_two_rays_place(npoints=20,plot=False):
     place = geom.OrientedPlace(geom.OrientedSurface(ground))
     #add TX and RX
     tx = np.array([5., 12., 15.]).reshape(-1, 3)
-    step=10
+    step=50
     rx0 = place.get_centroid().reshape(-1,3)+[0,0,5]
     for receiver in range(npoints):
         rx =rx0+np.array([receiver*step,0,0])

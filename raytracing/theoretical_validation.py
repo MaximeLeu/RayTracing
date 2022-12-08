@@ -18,7 +18,7 @@ from scipy.constants import c, pi
 import matplotlib.pyplot as plt
 
 #constants:
-from electromagnetism import RADIATION_POWER, TX_GAIN,RX_GAIN,Antenna,vv_normalize
+from electromagnetism import RADIATION_POWER, TX_GAIN,RX_GAIN,Antenna,vv_normalize, to_db
 from materials_properties import FREQUENCY,DF_PROPERTIES
 
 
@@ -44,6 +44,7 @@ def two_rays_geometry(L,ztx,zrx):
     theta=np.arctan2(ztx+zrx,L)
     theta_tx=np.arcsin(d2/dlos*np.sin(2*theta)) #law of sines
     theta_rx=2*theta-theta_tx
+    print(f"two rays angle theta {theta_rx*180/pi}")
     assert(theta_rx>0 and theta_rx<pi/2), f'antennas are too close theta_RX {theta_rx*180/pi} L {L} L2 {L2} theta {theta}' 
     assert(theta_tx>0 and theta_tx<pi/2), f'antennas are too close theta_TX {theta_tx*180/pi} L {L} L2 {L2} theta {theta}'
     
@@ -104,31 +105,6 @@ def two_rays_fields_1(L,ztx,zrx):
     assert(np.linalg.norm(Eref)<np.linalg.norm(Elos)) 
     return db
     
-def two_rays_fields_2(L,ztx,zrx):
-    dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx= two_rays_geometry(L,ztx,zrx)
-    
-    Elos=compute_E0(0)*np.exp(-1j*k*dlos)/dlos
-    gamma_par=-1
-    
-    Eref=gamma_par*compute_E0(theta_tx)*np.exp(-1j*k*dref)/dref
-    Prx=compute_Ae(0)*np.linalg.norm(np.real(Elos))**2+compute_Ae(theta_rx)*np.linalg.norm(np.real(Eref))**2
-    db=10*np.log10(Prx)
-    return db
-    
-def two_rays_fields_3(L,ztx,zrx):
-    #https://arxiv.org/pdf/2001.06459.pdf
-    dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx= two_rays_geometry(L,ztx,zrx)
-    gamma_par=-1
-    if theta_tx>pi/2:
-        print("shitt 2")
-    test=Pin*((lam/(4*pi))**2)*np.linalg.norm( \
-        compute_E0(0)/dlos +\
-        compute_E0(theta_tx)*gamma_par*np.real(np.exp(-1j*k*(dref-dlos)/dref)))**2  #np.sqrt(TX_GAIN*np.sin(pi/2+theta_tx)*RX_GAIN*np.sin(pi/2+theta_rx))
-    
-
-    db=10*np.log10(test)
-    return db
-    
 
 def matlab(L,ztx,zrx):
     #http://www.wirelesscommunication.nl/reference/chaptr03/pel/tworay.htm
@@ -145,14 +121,10 @@ def compare_models():
     pl=np.zeros(len(dists))
     sol_matlab=np.zeros(len(dists))
     sol_two_rays_fields_1=np.zeros(len(dists))
-    sol_two_rays_fields_2=np.zeros(len(dists))
-    sol_two_rays_fields_3=np.zeros(len(dists))
     
     for d in range(0,len(dists)):
         pl[d]=compute_path_loss(dists[d])
         sol_two_rays_fields_1[d]=two_rays_fields_1(L=dists[d],ztx=ztx,zrx=zrx)
-        sol_two_rays_fields_2[d]=two_rays_fields_2(L=dists[d],ztx=ztx,zrx=zrx)
-        sol_two_rays_fields_3[d]=two_rays_fields_3(L=dists[d],ztx=ztx,zrx=zrx)
         sol_matlab[d]=matlab(L=dists[d],ztx=ztx,zrx=zrx)
     
     fig=plt.figure()        
@@ -164,13 +136,10 @@ def compare_models():
     ax.plot(dists,sol_matlab,'y',label="matlab")
     
     ax.plot(dists,sol_two_rays_fields_1,'r',label='two rays 1')
-    ax.plot(dists,sol_two_rays_fields_2,'g',label="two rays 2")
-    ax.plot(dists,sol_two_rays_fields_3,'orange',label="two rays 3")
-    
     
     ax.grid()
     ax.set_title('comparison between two rays and path loss')
-    ax.set_xlabel('distance between tx and rx (m)')
+    ax.set_xlabel('distance between tx and rx 10log10 (m)')
     ax.set_ylabel('Received power (pr/pt)[dB]')
     ax.legend()
     plt.show() 
@@ -182,10 +151,10 @@ if __name__ == '__main__':
     
     
     plt.close('all')
-    place,tx,geometry=place_utils.create_two_rays_place()
+    place,tx,geometry=place_utils.create_two_rays_place(npoints=30)
     rx=place.set_of_points
     print(f'rx {rx} first {rx[1]}')
-    compare_models()
+    #compare_models()
      
 
     problem = RayTracingProblem(tx, place)
@@ -195,20 +164,21 @@ if __name__ == '__main__':
     
     #simu solve
     df=my_field_computation(problem,results_path)
-    simu_los=df.loc[df['path_type'] == "LOS"]['field_strength'].values[0]   
-    simu_ref=df.loc[df['path_type'] == "R"]['field_strength'].values[0] 
     
-    sol_two_rays_fields_1=np.zeros(len(simu_los))
-    simu=np.zeros(len(simu_los))
-    dists=np.zeros(len(simu_los))
-    for i in range(len(simu_los)):
-        rx_power=1/(2*Z_0)*(compute_Ae(0)*(np.linalg.norm(np.real(simu_los[i])))**2\
-                            +compute_Ae(pi/8)*(np.linalg.norm(np.real(simu_ref[i])))**2)
-        simu[i]=10*np.log10(rx_power)
-        rx=place.set_of_points[i]        
-        dists[i]=np.linalg.norm(tx-rx)
-        sol_two_rays_fields_1[i]=two_rays_fields_1(L=dists[i],ztx=tx[0][2],zrx=rx[2])
-    
+    nreceivers=len(df['rx_id'].unique())
+    sol_two_rays_fields_1=np.zeros(nreceivers)
+    simu=np.zeros(nreceivers)
+    dists=np.zeros(nreceivers)
+    for receiver in range(nreceivers):
+        rx_df=df.loc[df['rx_id'] == receiver]
+        rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]   
+        simu[receiver]=to_db(np.sum(rx_df['path_power'])/FREQUENCY)
+        dists[receiver]=np.linalg.norm(tx-rx_coord)
+        
+        print(f'RX {receiver}')
+        sol_two_rays_fields_1[receiver]=two_rays_fields_1(L=dists[receiver],ztx=tx[0][2],zrx=rx_coord[2])
+  
+        
     fig=plt.figure()        
     fig.set_dpi(300)
     ax=fig.add_subplot(1,1,1)
@@ -217,7 +187,7 @@ if __name__ == '__main__':
     ax.plot(dists,simu,'g',label="simu")
     
     ax.grid()
-    ax.set_title('comparison between two rays and path loss')
+    ax.set_title('comparison between two rays and simu')
     ax.set_xlabel('distance between tx and rx (m)')
     ax.set_ylabel('Received power (pr/pt)[dB]')
     ax.legend()
