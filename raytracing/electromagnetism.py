@@ -1,7 +1,9 @@
 #self written imports
 from raytracing import array_utils
 from raytracing import geometry as geom
-from materials_properties import DF_PROPERTIES, FREQUENCY,N_TREES,TREE_SIZE
+from materials_properties import DF_PROPERTIES,N_TREES,TREE_SIZE
+from materials_properties import FREQUENCY,LAMBDA,K,Z_0
+ 
 import file_utils
 import plot_utils
 
@@ -21,8 +23,7 @@ pd.options.display.float_format = '{:.2g}'.format
 mu_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["mu"].values[0]*mu_0
 sigma_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["sigma"].values[0]
 epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[0]*epsilon_0
-Z_0=120*pi
-lam=c/FREQUENCY
+
 
 
 P_IN=1
@@ -52,7 +53,11 @@ def to_db(field_power):
         db[i]=10*np.log10(P[i]/P_IN) 
     return db[0] if np.isscalar(field_power) else db
 
-
+def radiation_pattern(theta,phi):  
+    F=np.sin(theta) #scalar
+    F=abs(F)
+    print(f"rad pattern {F}")
+    return F 
 
 class Antenna:
     def __init__(self):
@@ -61,6 +66,7 @@ class Antenna:
         self.radiation_efficiency=1
         self.E0=None         #the field radiated 1m away from the antenna 
         self.polarisation=None 
+        self.mat=None
         
     def __str__(self):
         return f'Antenna: position: {self.position} eff: {self.radiation_efficiency} E0={self.E0} gain={self.gain}'
@@ -87,15 +93,23 @@ class Antenna:
         new_y= vv_normalize(np.cross(new_x,new_z))
         self.basis=[new_x,new_y,new_z]
         self.polarisation=new_y
-        self.test_basis()
-        return
-    
-    
-    def test_basis(self):
-        #ensure the basis is orthonormal
-        assert np.isclose(np.dot(self.basis[0],self.basis[1]),0),"x is not perp to y"
-        assert np.isclose(np.dot(self.basis[0],self.basis[2]),0),"x is not perp to z"
-        assert np.isclose(np.dot(self.basis[1],self.basis[2]),0),"y is not perp to z"
+        
+        #create the matrix to change between frames
+        x=np.array([1,0,0])
+        y=np.array([0,1,0])
+        z=np.array([0,0,1])
+        #antenna
+        new_x=self.basis[0]
+        new_y=self.basis[1]
+        new_z=self.basis[2]
+        mat=np.array([
+                    [np.dot(new_x,x),np.dot(new_x,y),np.dot(new_x,z)],
+                   [np.dot(new_y,x),np.dot(new_y,y),np.dot(new_y,z)],
+                   [np.dot(new_z,x),np.dot(new_z,y),np.dot(new_z,z)],
+                   ])      
+        
+        self.mat=mat
+        self.test_basis() #TODO: remove
         return
 
     def incident_angles(self,point):
@@ -103,48 +117,10 @@ class Antenna:
         given the antenna basis and the incoming ray 
         returns elevation and azimuth angles of incident path in radians 
         """
-        new_point=self.change_reference_frame(point)
+        new_point=self.pp_W2A(point)
         r,el,az=Antenna.to_spherical(new_point)
         return r,el,az
 
-    def change_reference_frame(self,point):
-        """
-        transform the given point into the reference frame of the antenna
-        """
-        origin=self.position
-        x=np.array([1,0,0])
-        y=np.array([0,1,0])
-        z=np.array([0,0,1])
-        
-        new_x=self.basis[0]
-        new_y=self.basis[1]
-        new_z=self.basis[2]
-        assert(np.isclose([np.linalg.norm(new_x),np.linalg.norm(new_y),np.linalg.norm(new_z)],[1,1,1])).all(),\
-            f'x: {np.linalg.norm(new_x)} y {np.linalg.norm(new_y)} z {np.linalg.norm(new_z)}'
-        
-        mat=np.array([
-                    [np.dot(new_x,x),np.dot(new_x,y),np.dot(new_x,z)],
-                   [np.dot(new_y,x),np.dot(new_y,y),np.dot(new_y,z)],
-                   [np.dot(new_z,x),np.dot(new_z,y),np.dot(new_z,z)],
-                   ])
-    
-        tr_point=point-origin #translate
-        new_point=tr_point@mat.T #rotate
-        return new_point
-    
-    def test_change_reference_frame(tx,rx):
-        #ensure tx and rx are well transformed.
-        tx_ant=Antenna()
-        tx_ant.position=tx
-        tx_ant.align_antenna_to_point(rx)
-        new_rx=tx_ant.change_reference_frame(rx)
-        new_tx=tx_ant.change_reference_frame(tx)
-        length=np.linalg.norm(tx-rx)
-        new_length=np.linalg.norm(new_tx-new_rx)
-        assert np.isclose(new_tx, np.array([0,0,0])).all(), f'new tx {new_tx}'
-        assert np.isclose(new_length,length).all(),f'new length {new_length} length {length}'
-        assert np.isclose(new_rx,np.array([0,0,length])).all()
-        return
     
     def to_spherical(point):
        """
@@ -169,51 +145,110 @@ class Antenna:
             plot_utils.plot_vec(ax,antenna_basis[i],colors[i],origin=origin)
         return ax
     
+    
+    def pp_W2A(self,point):
+        """
+        Change the reference frame of a point
+        from world-->antenna
+        """
+        mat=self.mat
+        origin=self.position
+        tr_point=point-origin #translate
+        new_point=tr_point@mat.T #rotate        
+        return new_point
+    
+    def pp_A2W(self,point):
+        """
+        Change the reference frame of a point
+        from antenna-->world
+        """
+        mat=self.mat
+        origin=self.position
+        new_point=mat.T@point
+        new_point= new_point+origin 
+        return new_point
+    
+    def vv_W2A(self,vector):
+        """
+        Change the reference frame of a vector
+        from world-->antenna
+        """
+        mat=self.mat
+        new_vv=vector@mat.T
+        return new_vv
+
+    def vv_A2W(self,vector):
+        """
+        Change the reference frame of a vector
+        from antenna-->world
+        """
+        mat=self.mat
+        new_vv=vector@mat
+        return new_vv
+    
+    
     def path_to_antenna_reference_frame(self,path):
         new_path=[]
         for point in path:
-            new_point=self.change_reference_frame(point)
+            new_point=self.pp_W2A(point)
             new_path.append(new_point)        
         return new_path
     
-    def antenna_to_world(self,point):
-
-        origin=self.position
-        x=np.array([1,0,0])
-        y=np.array([0,1,0])
-        z=np.array([0,0,1])
+    
+    def antenna_tests(self,path):
+        """
+        test antenna changement of reference frames 
+        WARNING: only works if antenna is aligned to the given path
+        """
+        print('testing antenna')
+        dlos=np.linalg.norm(path[0]-path[-1])
+        tx_ant=self.pp_W2A(self.position)
+        rx_ant=self.pp_W2A(path[-1])
+        #pp_W2A tests
+        assert(tx_ant==np.array([0,0,0])).all(),\
+            f"ppW2A is: {tx_ant} should be 000"
+        assert np.allclose(rx_ant,np.array([0,0,dlos])),\
+            f"ppW2A is {rx_ant}, should be {np.array([0,0,dlos])}"
         
-        new_x=self.basis[0]
-        new_y=self.basis[1]
-        new_z=self.basis[2]
+        #pp_A2W tests
+        assert np.allclose(self.pp_A2W(np.array([0,0,0])),self.position),\
+            f"ppA2W is {self.pp_A2W(np.array([0,0,0]))} should be {self.position}"   
+        assert(self.pp_A2W(np.array([0,0,dlos]))==path[-1]).all(),\
+            f"ppA2W is {self.pp_A2W(np.array([0,0,dlos]))} should be {path[-1]}"
         
-        mat=np.array([
-                    [np.dot(new_x,x),np.dot(new_x,y),np.dot(new_x,z)],
-                   [np.dot(new_y,x),np.dot(new_y,y),np.dot(new_y,z)],
-                   [np.dot(new_z,x),np.dot(new_z,y),np.dot(new_z,z)],
-                   ])
-        new_point=mat.T@point
-        new_point= new_point+origin           
+        #vv_W2A tests
+        ex_ant=self.vv_W2A(self.basis[0])
+        ey_ant=self.vv_W2A(self.basis[1])
+        ez_ant=self.vv_W2A(self.basis[2])
+        assert(ex_ant==np.array([1,0,0])).all(),\
+            f'vvW2A is {ex_ant} should be 100'
+        assert np.allclose(ey_ant,np.array([0,1,0])),\
+            f'vvW2A is {ey_ant} should be 010'
+        assert np.allclose(ez_ant,np.array([0,0,1])),\
+            f'vvW2A is {ez_ant} should be 001'
         
-        
-        return new_point
- 
-    def test_trans(self,point):
-        antenna_point=self.change_reference_frame(point)
-        world_point=self.antenna_to_world(antenna_point)
-        assert(np.isclose(point,world_point)).all(), f'real: {point} invreted {world_point}'
-        print(f'real: {point} mid {antenna_point} invreted {world_point}')
+        #vv_A2W tests:
+        assert(self.vv_A2W(ex_ant)==self.basis[0]).all(),\
+            f"vv_A2W is {self.vv_A2W(ex_ant)} should be {self.basis[0]}"
+        assert np.allclose(self.vv_A2W(ey_ant),self.basis[1]),\
+            f"vv_A2W is {self.vv_A2W(ey_ant)} should be {self.basis[1]}"
+        assert np.allclose(self.vv_A2W(ez_ant),self.basis[2]),\
+            f"vv_A2W is {self.vv_A2W(ez_ant)} should be {self.basis[2]}"
+    
         return
     
-     
- 
-   
+    
+    def test_basis(self):
+        #ensure the basis is orthonormal
+        assert np.isclose(np.dot(self.basis[0],self.basis[1]),0),"x is not perp to y"
+        assert np.isclose(np.dot(self.basis[0],self.basis[2]),0),"x is not perp to z"
+        assert np.isclose(np.dot(self.basis[1],self.basis[2]),0),"y is not perp to z"
+        return
+    
+    
+    
         
-def radiation_pattern(theta,phi):  
-    F=np.sin(theta) #scalar
-    F=abs(F)
-    print(f"rad pattern {F}")
-    return F 
+
     
 class ElectromagneticField:
 
@@ -221,9 +256,7 @@ class ElectromagneticField:
         self.E = E
         self.f = f
         self.v = v
-        self.k = 2 * pi * f / v
         self.w = 2 * pi * f
-        self.lam =v/f 
 
 
     def compute_E0(path,tx_antenna):
@@ -232,22 +265,23 @@ class ElectromagneticField:
         """
         r,phi,theta=tx_antenna.incident_angles(path[1]) 
         #transform r_VV into the basis of the antenna!!!
-        new_point=tx_antenna.change_reference_frame(path[1])
+        new_point=tx_antenna.pp_W2A(path[1])
         r_vv=vv_normalize(new_point) #tx_antenna.position=[0,0,0]
-        Antenna.test_change_reference_frame(path[0],path[-1]) #small test
-        F=np.sin(theta)*tx_antenna.basis[1]
+        
 
         #field in antenna's coordinates
-        EF_0=ElectromagneticField()
-        E0=-1j*EF_0.k*Z_0*1/(4*pi*r)*np.exp(-1j*EF_0.k*r)*np.cross(np.cross(r_vv,F),r_vv)*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))
-        E0=E0*np.sqrt(radiation_pattern(theta, phi))
-        #assert(np.dot(E0,tx_antenna.basis[0])),'ERROR: field is not transverse'
+        E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)
+        Einits=E0*np.sqrt(radiation_pattern(theta, phi))*np.exp(-1j*K*r)/r
+        Einit=Einits*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.polarisation),r_vv))
         
         
-        #return to world coordinates
-        E0=tx_antenna.antenna_to_world(E0)
-        EF_0.E = E0 
-        return EF_0
+        #tx_antenna.antenna_tests(path)
+        
+        #test=np.dot(Einit,tx_antenna.basis[2])
+        #assert test<(1e-5),f'ERROR: field is not transverse {Einit}, dot {test}'
+            
+        Einit=tx_antenna.vv_A2W(Einit) #return to world coordinates
+        return ElectromagneticField(E=Einit)
 
     @staticmethod
     def from_path(path,tx_antenna):
@@ -271,10 +305,10 @@ class ElectromagneticField:
         r_per=np.linalg.norm(r_per)
         assert r_par<=1 and r_per<=1, f"fresnel coeffs are greater than 1: r_par {r_par} r_per {r_per}"
         
-        rayleigh_criterion= (roughness > E.lam/(8*cosi))
+        rayleigh_criterion= (roughness > LAMBDA/(8*cosi))
         if rayleigh_criterion:
             print("applying scattering attenuation factor")
-            chi=np.exp(-2*(E.k**2)*(roughness**2)*(cosi)**2)
+            chi=np.exp(-2*(K**2)*(roughness**2)*(cosi)**2)
             r_par=r_par*chi
             r_per=r_per*chi
         return r_par,r_per
@@ -384,7 +418,7 @@ class ElectromagneticField:
             Sr= norms[1]#norm of reflected ray  
             E_r=ElectromagneticField.account_for_trees(E_r,np.array([paths[i][0],paths[i][1]]),rtp.place) #account for TX-->ref # incident field at the point of reflection.
             spread_factor=Si/(Si+Sr)
-            field=(E_r.E.reshape(1,3)@R)*np.exp(-1j*E_r.k*Sr)*spread_factor
+            field=(E_r.E.reshape(1,3)@R)*np.exp(-1j*K*Sr)*spread_factor
             #reflected field should be of lesser intensity than the incident field
             assert np.linalg.norm(E_i.E)>=np.linalg.norm(field), f"incident field strength {np.linalg.norm(E_i.E)} reflected field strength {np.linalg.norm(field)} dyadic coeff {R}"
             E_r.E=field.reshape(3,)          
@@ -398,7 +432,7 @@ class ElectromagneticField:
         """
         Compute the E field at the end of a diffraction in V/m
         """
-        def diff_dyadic_components(Si,si,Sd,sd,e,k,diffraction_polygon,n):
+        def diff_dyadic_components(Si,si,Sd,sd,e,diffraction_polygon,n):
             """
             Computes the 4 components of the dyadic diffraction coefficient
             e: unit vector tangential to the edge
@@ -441,7 +475,7 @@ class ElectromagneticField:
             assert(beta_0<=pi and beta_0>=0) #McNamara 4.20a
             
             n_0=array_utils.normalize(diffraction_polygon.get_normal()) #(vector) unit vector normal to the 0-face
-            t_0=np.cross(n_0,e) #(vector) unit vector tangential to the O-face (McNamara 6.8)
+            t_0=vv_normalize(np.cross(n_0,e)) #(vector) unit vector tangential to the O-face (McNamara 6.8)
 
             #unit vector components of si and sd lying in the plane perpendicular to the edge (=s_t' and s_t in McNamara)
             si_t=vv_normalize(si-np.dot(si,e)*e) #(vector) McNamara 6.9
@@ -465,7 +499,7 @@ class ElectromagneticField:
                 rtp.plot3d(ax=ax,receivers_indexs=[receiver],legend=True,show_refl=False) 
                 raise
             #components of the diffraction coefficients:
-            common_factor=-np.exp(-1j*pi/4)/(2*n*np.sqrt(2*pi*k)*np.sin(beta_0)) #scalar
+            common_factor=-np.exp(-1j*pi/4)/(2*n*np.sqrt(2*pi*K)*np.sin(beta_0)) #scalar
             L=distance_factor(Si,Sd,beta_0)
         
             cot1=cot((pi+(phi_d-phi_i))*1/(2*n)) #scalar
@@ -473,10 +507,10 @@ class ElectromagneticField:
             cot3=cot((pi+(phi_d+phi_i))*1/(2*n))
             cot4=cot((pi-(phi_d+phi_i))*1/(2*n))
             
-            F1=F(k*L*A(phi_d-phi_i,"plus")) #scalar
-            F2=F(k*L*A(phi_d-phi_i,"minus"))
-            F3=F(k*L*A(phi_d+phi_i,"plus"))
-            F4=F(k*L*A(phi_d+phi_i,"minus"))
+            F1=F(K*L*A(phi_d-phi_i,"plus")) #scalar
+            F2=F(K*L*A(phi_d-phi_i,"minus"))
+            F3=F(K*L*A(phi_d+phi_i,"plus"))
+            F4=F(K*L*A(phi_d+phi_i,"minus"))
             
             D1=common_factor*cot1*F1 #scalar McNamara 6.21
             D2=common_factor*cot2*F2 #scalar McNamara 6.22
@@ -510,15 +544,15 @@ class ElectromagneticField:
         e= vv_normalize(np.diff(corner_points, axis=0).reshape(-1)) #edge
        
         #ensuring that e is such that t_0 points towards the 0 face (McNamara 6.8)
-        t_0=np.cross(n_0,e) #(vector) unit vector tangential to the O-face (McNamara 6.8)
+        t_0=vv_normalize(np.cross(n_0,e)) #(vector) unit vector tangential to the O-face (McNamara 6.8)
         mid_edge=geom.midpoint(corner_points[0], corner_points[1])
         if diffraction_polygon.contains_point(mid_edge+t_0*(1e-6), check_in_plane=True, plane_tol=1e-8)==False:
             e=-e #flip edge orientation
-            t_0=np.cross(n_0,e)       
+            t_0=vv_normalize(np.cross(n_0,e))       
         assert diffraction_polygon.contains_point(mid_edge+t_0*(1e-6), check_in_plane=True, plane_tol=1e-8), "edge is wrongly oriented"
         
         #diffraction coefficients components:
-        D1,D2,D3,D4=diff_dyadic_components(Si,si,Sd,sd,e,E_i.k,diffraction_polygon,n)
+        D1,D2,D3,D4=diff_dyadic_components(Si,si,Sd,sd,e,diffraction_polygon,n)
         r_per=1
         r_par=1
         #diffraction coefficients  
@@ -536,7 +570,7 @@ class ElectromagneticField:
         assert D.shape==(3,3), f"dyadic diffraction coefficient has wrong shape: D={D}"
         
         #field reaching receiver after a diffraction:
-        field=(E_i.E.reshape(1,3)@D)*spread_factor(Si,Sd)*np.exp(-1j*E_i.k*Sd) #(vector) McNamara 6.18
+        field=(E_i.E.reshape(1,3)@D)*spread_factor(Si,Sd)*np.exp(-1j*K*Sd) #(vector) McNamara 6.18
         #diffracted field should be less powerful than the incident field
         assert np.linalg.norm(E_i.E)>=np.linalg.norm(field), f"Ed should be less powerful Ei but Ei={np.linalg.norm(E_i.E)} and Ed= {np.linalg.norm(field)} dyadic coeff {D}"
         E_i.E=field.reshape(3,)
@@ -779,7 +813,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
         for sol in this_solved_list:
             sol.rx_antenna=rx_antenna
             sol.compute_rx_angles()
-            Ae=(lam**2/(4*pi))*RX_GAIN*radiation_pattern(sol.rx_el,sol.rx_az)
+            Ae=(LAMBDA**2/(4*pi))*RX_GAIN*radiation_pattern(sol.rx_el,sol.rx_az)
             sol.power=(1/2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2
             #sol.show_antennas_alignement()
             print(f" rx {receiver} path {sol.path_type}: angles theta {sol.rx_el*180/pi} phi {sol.rx_az*180/pi}")
@@ -832,7 +866,6 @@ def EM_fields_plots(df_path,order=3,name="notnamed"):
             color_for_type,position,ticks=plot_utils.set_color_for_type(path_type,order)
             #total power from each source
             power=to_db(np.sum(data_for_type["path_power"].values))
-            #power=FieldPower.compute_power(data_for_type['field_strength'].values) #receive power in dB    
             ax1.bar(x=position, height=power,width=width,color=color_for_type,label=path_type)     
             #power delay profile
             nelem=len(data_for_type['field_strength'])

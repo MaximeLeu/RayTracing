@@ -9,7 +9,7 @@ Properties of various materials
 """
 
 import pandas as pd
-from scipy.constants import epsilon_0, pi
+from scipy.constants import epsilon_0, pi,c
 #relative permittivity= epsilon
 #relative permeability=mu
 #electrical conductivity=sigma
@@ -22,6 +22,11 @@ MIN_TREE_HEIGHT=10
 MAX_TREE_HEIGHT=20
 TREE_SIZE=2
 FREQUENCY=12.5*1e9 #in Hz
+
+LAMBDA=c/FREQUENCY
+K=2*pi/LAMBDA
+Z_0=120*pi
+
 ITU="ITU-R P.2040-2"
 
 

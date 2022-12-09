@@ -108,15 +108,15 @@ def create_dummy_place():
 def create_two_rays_place(npoints=20,plot=False):
     geometry="two_rays"
     #add ground
-    ground = geom.Square.by_2_corner_points(np.array([[0, 0, 0], [70, 24, 0]]))
+    step=50
+    ground = geom.Square.by_2_corner_points(np.array([[0, 0, 0], [step*npoints+200, 24, 0]]))
     #add properties
     ground.properties=set_properties("ground")
     #create place
     place = geom.OrientedPlace(geom.OrientedSurface(ground))
     #add TX and RX
     tx = np.array([5., 12., 15.]).reshape(-1, 3)
-    step=50
-    rx0 = place.get_centroid().reshape(-1,3)+[0,0,5]
+    rx0 = tx+np.array([100,0,-5])
     for receiver in range(npoints):
         rx =rx0+np.array([receiver*step,0,0])
         place.add_set_of_points(rx)
