@@ -54,9 +54,9 @@ def to_db(field_power):
     return db[0] if np.isscalar(field_power) else db
 
 def radiation_pattern(theta,phi):  
-    F=np.sin(theta) #scalar
+    F=np.cos(theta)#*np.sin(theta) #scalar
     F=abs(F)
-    print(f"rad pattern {F}")
+    print(f"theta {theta*180/pi} rad pattern {F}")
     return F 
 
 class Antenna:
@@ -124,15 +124,16 @@ class Antenna:
     
     def to_spherical(point):
        """
-       transform the given point into spherical coordinate relative to the antenna's basis
+       transform the given point into spherical coordinates
        """
-       #TODO: careful with the definitino of theta, maybe theta=pi/2-theta!!! 
-       #for the moment theta=from z to y (remember z is the direction of the path)
-       x, y, z = point.T
-       hxy = np.hypot(x, y)
-       r = np.hypot(hxy, z)
-       el = np.arctan2(hxy, z)
-       az = np.arctan2(y, x)
+       x=point[0]
+       y=point[1]
+       z=point[2]
+       hxy=np.sqrt(x**2+y**2)
+       r = np.sqrt(hxy**2+z**2)
+       el = np.arctan2(hxy, z) #from z to ray
+       az = np.arctan2(y, x) #from x to proj ray on xy
+       
        return r,el,az
 
     def plot_antenna_frame(self,ax,colors):
@@ -264,21 +265,22 @@ class ElectromagneticField:
         Computes the field radiated 1m away from the antenna in the direction of the path
         """
         r,phi,theta=tx_antenna.incident_angles(path[1]) 
+        theta+=pi/2
+        print(f"path 1 {path[1]} r {r}")
         #transform r_VV into the basis of the antenna!!!
         new_point=tx_antenna.pp_W2A(path[1])
         r_vv=vv_normalize(new_point) #tx_antenna.position=[0,0,0]
         
-
         #field in antenna's coordinates
         E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)
         Einits=E0*np.sqrt(radiation_pattern(theta, phi))*np.exp(-1j*K*r)/r
-        Einit=Einits*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.polarisation),r_vv))
-        
+        print(f"Einits1 {Einits} exp {np.exp(-1j*K*r)} sqrt {np.sqrt(radiation_pattern(theta,phi))}")
+        Einit=Einits*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_W2A(tx_antenna.polarisation)),r_vv))
+        print(f"Einit2 {Einits} E0 {E0}")
         
         #tx_antenna.antenna_tests(path)
         
-        #test=np.dot(Einit,tx_antenna.basis[2])
-        #assert test<(1e-5),f'ERROR: field is not transverse {Einit}, dot {test}'
+        assert np.dot(Einit,r_vv)<(1e-5),f'ERROR: field is not transverse {Einit}, dot {np.dot(Einit,r_vv)}'
             
         Einit=tx_antenna.vv_A2W(Einit) #return to world coordinates
         return ElectromagneticField(E=Einit)
@@ -388,7 +390,7 @@ class ElectromagneticField:
             vectors, norms = geom.normalize_path(path)
             si = vectors[0, :] #normalised incident vector
             sr = vectors[1, :] #normalised reflected vector
-            #incident angle and transmission angle
+
             theta_i=np.arccos(np.dot(-surface_normal,si)) #incident angle
             assert(theta_i<pi/2),f'strange incident angle: theta_i= {theta_i*180/pi} degrees'
             r_par,r_per=ElectromagneticField.fresnel_coeffs(E_i,theta_i,roughness,epsilon_eff_2)
@@ -398,9 +400,7 @@ class ElectromagneticField:
             ei_par= vv_normalize(np.cross(e_per,si))
             er_par= vv_normalize(np.cross(e_per,sr))
             
-            #check that decomposition is correct
-            #a=np.dot(E_i.E,e_per)*e_per+np.dot(E_i.E,ei_par)*ei_par
-            #assert(a==E_i.E).all(),f"A: {a}, B: {E_i.E}"
+            
             
             R=e_per.reshape(3,1)@e_per.reshape(1,3)*r_per + ei_par.reshape(3,1)@er_par.reshape(1,3)*r_par #3x3 matrix, McNamara 3.39
             assert(R.shape==(3,3))
@@ -414,11 +414,17 @@ class ElectromagneticField:
             #R,norms,_,_,_,_,_=dyadic_ref_coeff(paths[i],reflection_polygon)
             R,norms,e_per,ei_par, er_par,r_par,r_per=dyadic_ref_coeff(paths[i],reflection_polygon)
             
+            #check that decomposition is correct
+            #a=np.dot(E_r.E,e_per)*e_per+np.dot(E_r.E,ei_par)*ei_par
+            #assert np.allclose(a,E_r.E), f" REF: decomposition failed: {a}, field: {E_r.E}"
+            
             Si= norms[0]#norm of incident ray
             Sr= norms[1]#norm of reflected ray  
             E_r=ElectromagneticField.account_for_trees(E_r,np.array([paths[i][0],paths[i][1]]),rtp.place) #account for TX-->ref # incident field at the point of reflection.
             spread_factor=Si/(Si+Sr)
+            #spread_factor=1
             field=(E_r.E.reshape(1,3)@R)*np.exp(-1j*K*Sr)*spread_factor
+            #field=(E_r.E.reshape(1,3)@R.T)*np.exp(-1j*K*Sr)*spread_factor
             #reflected field should be of lesser intensity than the incident field
             assert np.linalg.norm(E_i.E)>=np.linalg.norm(field), f"incident field strength {np.linalg.norm(E_i.E)} reflected field strength {np.linalg.norm(field)} dyadic coeff {R}"
             E_r.E=field.reshape(3,)          
@@ -707,11 +713,18 @@ def my_field_computation(rtp,save_name="problem_fields"):
             sol.tx_antenna=tx_antenna
             sol.antenna_path=tx_antenna.path_to_antenna_reference_frame(sol.world_path)
             
-            E_los=ElectromagneticField.from_path(sol.world_path,tx_antenna)
+            E_los=ElectromagneticField.from_path(sol.world_path,sol.tx_antenna)
             E_los=ElectromagneticField.account_for_trees(E_los,sol.world_path,rtp.place)
             sol.field=E_los.E
-            
+            if (sol.field>10).any():
+                print(f"ERROR: field:{sol.field}")
+                print(f"path {sol.world_path}")
+                print(f"tx antenna: {sol.tx_antenna.position}")
+                print(f"len {sol.path_len}")
+                #assert(1==2)
             solved_list.append(sol)  
+        else:
+            assert(1==2),f'NO LOS'
         return 
        
     #TODO: account for trees for reflections, without duplicate in diffractions  
@@ -885,7 +898,7 @@ def EM_fields_plots(df_path,order=3,name="notnamed"):
         ax2.legend() 
         ax2.grid()
         plt.savefig(f"../results/EM_plots_{name}'.pdf", dpi=300)
-        plt.show()
+        #plt.show()
         
     return fig
 

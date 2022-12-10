@@ -50,8 +50,12 @@ def two_rays_geometry(L,ztx,zrx):
     return dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx
     
 
+def radiation_pattern(theta):
+    #its the same for RX and TX
+    return np.cos(theta)
+
 def compute_Ae(theta_rx):
-    Ae=(LAMBDA**2/(4*pi))*RX_GAIN*np.sin(theta_rx+pi/2)
+    Ae=(LAMBDA**2/(4*pi))*RX_GAIN*radiation_pattern(theta_rx)
     return Ae    
     
 def two_rays_fields_1(L,ztx,zrx):
@@ -111,32 +115,34 @@ def two_rays_fields_1(L,ztx,zrx):
         new_vv=vv@mat.T
         return new_vv
     
-    
     def vv_A2W(vv,antenna_position):
         new_vv=vv@mat
         return new_vv
     
     
-    print()
-    print(f'{pp_W2A(tx,tx)} should have 000')
-    print(f'{pp_W2A(rx,tx)} should have 00{dlos}')
+    # print()
+    # print(f'{pp_W2A(tx,tx)} should have 000')
+    # print(f'{pp_W2A(rx,tx)} should have 00{dlos}')
     
-    print(f'{vv_W2A(new_x,tx)} should have 100')
-    print(f'{vv_W2A(new_y,tx)} should have 010')
-    print(f'{vv_W2A(new_z,tx)} should have 001')
+    # print(f'{vv_W2A(new_x,tx)} should have 100')
+    # print(f'{vv_W2A(new_y,tx)} should have 010')
+    # print(f'{vv_W2A(new_z,tx)} should have 001')
+    #print(f'{vv_W2A(d1_vv,tx)} should have {np.array([0,np.sin(theta_tx),np.cos(theta_tx)])}')
+
 
     E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*Pin/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)
     
     Elos=E0*np.exp(-1j*K*dlos)/dlos*new_y
-    Elos=vv_A2W(Elos, tx)
+    #Elos=vv_A2W(Elos, tx)
 
     per_vv=vv_normalize(np.cross(d1_vv,d2_vv))
     par_vv=vv_normalize(np.cross(per_vv,d1_vv))
-    E0ref=E0*np.sqrt(abs(np.sin(pi/2+theta_tx)))
+    E0ref=E0*np.sqrt(radiation_pattern(theta_tx))
+    
     Eref=E0ref*np.exp(-1j*K*(d1+d2))/(d1*d2)*(gamma_par*np.dot(new_y,par_vv)*par_vv \
                                              +gamma_per*np.dot(new_y,per_vv)*per_vv)
     
-    Eref=vv_A2W(Eref, tx)
+    #Eref=vv_A2W(Eref, tx)
     
     P_rx=1/(2*Z_0)*(compute_Ae(0)*(np.linalg.norm(np.real(Elos)))**2+compute_Ae(theta_rx)*(np.linalg.norm(np.real(Eref)))**2)
     db=10*np.log10(P_rx/FREQUENCY)
@@ -213,7 +219,7 @@ if __name__ == '__main__':
     for receiver in range(nreceivers):
         rx_df=df.loc[df['rx_id'] == receiver]
         rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]   
-        simu[receiver]=to_db(np.sum(rx_df['path_power'])/FREQUENCY)
+        simu[receiver]=to_db(np.sum(rx_df['path_power'])/1)
         dists[receiver]=np.linalg.norm(tx-rx_coord)
         
         print(f'RX {receiver}')
