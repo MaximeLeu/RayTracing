@@ -1,3 +1,4 @@
+#pylint: disable=invalid-name,line-too-long
 # Plotting libraries
 from raytracing import plot_utils
 
@@ -40,7 +41,7 @@ def pick_random_consecutive(choice,how_many):
 
 def random_point_on_line(P1,P2):
     #gives a random point that is on the segment defined by P1 and P2
-    d=np.array(P2-P1) 
+    d=np.array(P2-P1)
     length=norm(d)
     d=d/length #unit direction vector from P1 to P2
     k=random.uniform(0,length)
@@ -75,19 +76,19 @@ def normalize_path(points):
 def polygon_line_intersection(polygon,points):
     #returns the point that is the intersection between the polygon and the line
     #https://stackoverflow.com/questions/5666222/3d-line-plane-intersection
-    epsilon=1e-6    
+    epsilon=1e-6
     normal=polygon.get_normal()
     planePoint=polygon.points[1, :]
 
     rayDirection = points[1]-points[0]
     rayPoint = points[0]
-    ndotu = np.dot(rayDirection,normal) 
+    ndotu = np.dot(rayDirection,normal)
     if abs(ndotu) < epsilon:
         print ("no intersection or line is within plane")
         return None
     w = rayPoint - planePoint
     si = -np.dot(w,normal) / ndotu
-    intersection = w + si * rayDirection + planePoint    
+    intersection = w + si * rayDirection + planePoint
     return intersection
 
 
@@ -260,7 +261,7 @@ def project_points(points, matrix, around_point=None):
     :return: the projected points
     :rtype: numpy.ndarray *shape=(N, 3)*
     """
-    
+
     # TODO: improve this so it takes advantage of array contiguity
 
     if not (isinstance(around_point, Omitted) or isinstance(around_point, NoneType)):
@@ -846,11 +847,11 @@ def polygons_obstruct_line_path(polygons, points, return_polygons=False):
     z_max = pB[2]
 
     tol = 1e-8
-    
+
     if return_polygons:
         obstructions=[]
         pol=[]
-    
+
     for polygon in polygons:
         projected_polygon = polygon.project(matrix)
         domain = projected_polygon.get_domain()
@@ -884,11 +885,11 @@ def tree_obstruction_length(polygons, points):
     Checks if polyhedrons obstructs a path between two points and
     returns the lenght of the path that is going through the polyhedrons
     """
-    obstructions=polygons_obstruct_line_path(polygons, points, return_polygons=True)      
+    obstructions=polygons_obstruct_line_path(polygons, points, return_polygons=True)
     if len(obstructions)==0:
         #no obstruction
         return 0
-    
+
     length=[]
     #print(obstructions)
     for i in range(0,len(obstructions)):
@@ -899,7 +900,7 @@ def tree_obstruction_length(polygons, points):
         in_point=polygon_line_intersection(obstructions[i][0],points)
         out_point=polygon_line_intersection(obstructions[i][1],points)
         assert in_point is not None and out_point is not None, "computation error"
-        length.append(norm(in_point-out_point))                 
+        length.append(norm(in_point-out_point))
     return length
 
 
@@ -1543,15 +1544,15 @@ class OrientedPolygon(OrientedGeometry):
             raise ValueError(f'Cannot cast geotype {geotype} to polygon.')
         points = np.array(data.pop('points'))
         loaded_polygon=OrientedPolygon(points, **data)
-        
+
         loaded_polygon.part = data.pop('part') #TESTING
         loaded_polygon.properties = data.pop('properties') #TESTING
         loaded_polygon.building_id = data.pop('building_id')
-        
-        
+
+
         return loaded_polygon #todo TEST
 
-    
+
     def to_json(self, filename=None):
         data = dict(
             super().to_json(),
@@ -1794,8 +1795,8 @@ class Square(OrientedPolygon):
         assert np.array_equal(P1,P2)==False, "points must be different (P1=P2)"
         assert (P1[2]==P2[2]), "points must define a plane (y1!=y2)"
         assert P1[1]!=P2[1] and P1[0]!=P2[0],"points must be diagonally opposite"
-        
-        
+
+
         points = array_utils.sort_by_columns(points)
         p = np.empty((4, 3), dtype=float)
         p[:-2, :] = points[0, :]
@@ -1804,6 +1805,7 @@ class Square(OrientedPolygon):
         p[-1, 0] = points[0, 0]
         return Square(p)
 
+    @staticmethod
     def by_center_and_side(center,side,rotate=False):
         #side is the length of the side
         #rotate=True will randomly rotate the square
@@ -1811,14 +1813,14 @@ class Square(OrientedPolygon):
         P2=np.array([center[0]-side/2,center[1]-side/2,center[2]])
         points=np.array([P1,P2])
         square=Square.by_2_corner_points(points)
-        if rotate:  
+        if rotate:
             angle=random.randint(0,90)
-            square=shapely.affinity.rotate(square.get_shapely(), angle, origin='center', use_radians=False) 
+            square=shapely.affinity.rotate(square.get_shapely(), angle, origin='center', use_radians=False)
             square=np.array(shapely.geometry.mapping(square)["coordinates"][0])
             square=np.c_[square, np.ones(len(square))] #add some z coordinate
         return Square(square)
-        
-        
+
+
 
 class OrientedSurface(OrientedGeometry):
     """
@@ -1842,7 +1844,7 @@ class OrientedSurface(OrientedGeometry):
             for polygon in self.polygons:
                 polygon.properties=set_properties(building_type)
                 polygon.part="ground"
-                
+
         elif isinstance(polygons[0], OrientedPolygon):
             self.polygons = polygons
         else:
@@ -1918,7 +1920,7 @@ class OrientedPolyhedron(OrientedGeometry):
     :type attributes: any
     """
     BUILDING_ID=0
-    
+
     def __init__(self, polygons,building_type=None, **attributes):
         super().__init__(**attributes)
         self.aux_surface = OrientedSurface(polygons)
@@ -1931,7 +1933,7 @@ class OrientedPolyhedron(OrientedGeometry):
     def __len__(self):
         return len(self.polygons)
 
-    def __str__(self): 
+    def __str__(self):
         return f'Polyhedron({len(self)} polygons) id {self.building_id}, building_type {self.building_type}'
 
     def equals(self,polyhedron):
@@ -1989,19 +1991,19 @@ class OrientedPolyhedron(OrientedGeometry):
 
         if ret:
             return ax
-        
+
     def overlap(self,polyhedron):
         flag=False
         candidate_top_face=polyhedron.get_top_face().get_shapely()
         top_face=self.get_top_face().get_shapely()
-        if(top_face.intersects(candidate_top_face)==True):
+        if top_face.intersects(candidate_top_face)==True:
             flag=True
-        if(top_face.touches(candidate_top_face)==True):
+        if top_face.touches(candidate_top_face)==True:
             #it's ok if the faces touch but do not intersect
             flag=False
         return flag
-    
-    
+
+
     def extend_polyhedron(self,meters):
         top=self.get_top_face().get_shapely() #get top face
         ext_top=top.buffer(meters, resolution=2, join_style=2, mitre_limit=1,single_sided=True) #extend top face
@@ -2010,7 +2012,7 @@ class OrientedPolyhedron(OrientedGeometry):
         ext_points=np.c_[ext_points, np.zeros(len(ext_points))] #add some z coordinate
         extended_polyhedron=Building.by_polygon_and_height(polygon=ext_points,height=10) #height don't matter
         return extended_polyhedron
-    
+
 
 class Pyramid(OrientedPolyhedron):
     """
@@ -2151,7 +2153,7 @@ class Building(OrientedPolyhedron):
         bottom_points = np.column_stack([x, y, z0])
 
         polygon = OrientedPolygon(bottom_points)
-        
+
         return Building.by_polygon_and_height(polygon, height, make_ccw=make_ccw, keep_ground=keep_ground)
 
 
@@ -2239,11 +2241,11 @@ class OrientedPlace(OrientedGeometry):
         if geotype != 'place':
             raise ValueError(f'Cannot cast geotype {geotype} to place.')
         surface = OrientedSurface.from_json(data=data.pop('surface'))
-        polyhedra = [OrientedPolyhedron.from_json(data=poly_data) for poly_data in data.pop('polyhedra')]   
+        polyhedra = [OrientedPolyhedron.from_json(data=poly_data) for poly_data in data.pop('polyhedra')]
         points = np.array(data.pop('points'))
         return OrientedPlace(surface, polyhedra, points, **data)
 
-    
+
     def to_json(self, filename=None):
         data = dict(
             super().to_json(),
@@ -2349,14 +2351,14 @@ class OrientedPlace(OrientedGeometry):
         if ret:
             return ax
 
-    
+
     def overlap_place(self,polyhedron):
         """
         determines if the polyhedron intersect any polyhedron of the place
         the polyhedrons can touch, but not intersect.
         Works by comparing if their top faces intersect (ignoring the z value)
-        """  
-        for the_polyhedron in self.polyhedra:   
+        """
+        for the_polyhedron in self.polyhedra:
             if the_polyhedron.overlap(polyhedron):
                 return True
         return False
@@ -2374,8 +2376,8 @@ class OrientedPlace(OrientedGeometry):
 
 
     def add_tree(self,tree_size,how_close_to_buildings=2):
-        """       
-        Adds a tree at a random spot in the place. 
+        """
+        Adds a tree at a random spot in the place.
         Crashes if there is not much more space left to put a tree
         Parameters
         ----------
@@ -2391,7 +2393,7 @@ class OrientedPlace(OrientedGeometry):
             tree=Building.by_polygon_and_height(tree_top, tree_height)
             tree.building_type="tree"
             return tree
-        
+
         def random_point_inside_polygon(number, polygon):
             #Only works on 2D shapely polygons
             points = []
@@ -2401,24 +2403,24 @@ class OrientedPlace(OrientedGeometry):
                 if polygon.contains(pnt):
                     points.append(pnt)
             return points
-        
+
         meters=how_close_to_buildings+tree_size/2
         ground = self.surface.polygons[0].get_shapely()
         zone=ground
         for polyhedron in self.polyhedra:
             the_ext_poly=polyhedron.extend_polyhedron(meters)
             the_ext_top=the_ext_poly.get_top_face().get_shapely()
-            zone=zone.difference(the_ext_top)   
-        
+            zone=zone.difference(the_ext_top)
+
         tree_spot=random_point_inside_polygon(1, zone)[0]
         tree_spot=np.array([tree_spot.x,tree_spot.y,0])
         tree=create_tree(tree_spot,tree_size)
         self.add_polyhedron(tree)
-        
+
         # VISUALISATION
         # extended_place=OrientedPlace(OrientedSurface(self.surface.polygons))
         # if(isinstance(zone,shapely.geometry.MultiPolygon)):
-        #     zones=list(zone.geoms)  
+        #     zones=list(zone.geoms)
         #     for zone in zones:
         #         zone_points=np.array(shapely.geometry.mapping(zone)["coordinates"])[0]
         #         zone_points=np.c_[zone_points, np.zeros(len(zone_points))] #add some z coordinate
@@ -2429,13 +2431,13 @@ class OrientedPlace(OrientedGeometry):
         #     zone_points=np.c_[zone_points, np.zeros(len(zone_points))] #add some z coordinate
         #     zone=Building.by_polygon_and_height(polygon=zone_points,height=25) #height don't matter
         #     extended_place.add_polyhedron(zone,allow_overlap=True)
-               
+
         # fig = plt.figure("extended_place")
         # fig.set_dpi(300)
         # ax = fig.add_subplot(projection='3d')
         # extended_place.center_3d_plot(ax)
-        # ax = extended_place.plot3d(ax=ax)  
-        return 
+        # ax = extended_place.plot3d(ax=ax)
+        return
 
 
 
@@ -2457,14 +2459,14 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     :rtype: OrientedPlace
     """
     gdf = gpd.read_file(roof_top_file)
-    
+
     if center:
         bounds = gdf.total_bounds
         x = (bounds[0] + bounds[2]) / 2
         y = (bounds[1] + bounds[3]) / 2
 
         gdf['geometry'] = gdf['geometry'].translate(-x, -y)
-    
+
     def func(series: gpd.GeoSeries):
         return Building.by_polygon2d_and_height(series['geometry'], series['height'], keep_ground=False)
 
@@ -2477,11 +2479,11 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     points[:2, 1] = bounds[0, 1]
     points[2:, 1] = bounds[1, 1]
     ground_surface = OrientedSurface(points,"road")
-    
+
     place = OrientedPlace(ground_surface)
     place.polyhedra = polyhedra
-   
-        
+
+
     #from building id set building types:
     for polyhedron in place.polyhedra:
         the_id=polyhedron.polygons[0].building_id
@@ -2491,9 +2493,9 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
         #from building types set polygon properties
         for polygon in polyhedron.polygons:
             polygon.properties=set_properties(the_type)
-        
-    #to check everything is well set:    
-    #place.to_json("../data/the_generated_place.json")  
+
+    #to check everything is well set:
+    #place.to_json("../data/the_generated_place.json")
     return place
 
 
@@ -2505,21 +2507,21 @@ def preprocess_geojson(filename,drop_missing_heights=False):
     add random data about the polygons (mu,epsilon,sigma)
     add random building types amongst "office","appartments","garage"
     add building ids
-    
+
     save and load the new .geojson
     :param filename: the filepath
     :type filename: str
     """
     gdf = gpd.read_file(filename)
-     
+
     # Only keeping polygon (sometimes points are given)
     gdf = gdf[[isinstance(g, shPolygon) for g in gdf['geometry']]]
-    
+
     minHeight=25
     maxHeight=40
     height=np.round(np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)),1)
-    if not 'height' in gdf.columns:  
-        print("Missing ALL height data, adding random heights between {} m and {} m".format(minHeight,maxHeight))    
+    if not 'height' in gdf.columns:
+        print("Missing ALL height data, adding random heights between {} m and {} m".format(minHeight,maxHeight))
         gdf['height']=height
 
     if drop_missing_heights:
@@ -2528,7 +2530,7 @@ def preprocess_geojson(filename,drop_missing_heights=False):
     elif gdf['height'].isna().any():
         how_many_missing=gdf['height'].isna().sum()
         print(f"Missing {how_many_missing} height data, adding random heights between {minHeight} m and {maxHeight} m")
-        gdf['height'] = np.where(gdf['height'].isna(), np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)), gdf['height']) 
+        gdf['height'] = np.where(gdf['height'].isna(), np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)), gdf['height'])
 
     if not 'building_type' in gdf.columns:
         types=["office","appartments","garage"]
@@ -2538,15 +2540,15 @@ def preprocess_geojson(filename,drop_missing_heights=False):
             rand=np.random.randint(0,len(types)-1)
             names[i]=types[rand]
         gdf['building_type']=names
-        
-        
+
+
     ids=np.arange(0,len(gdf),1)
     gdf['building_id']=ids
-    gdf.to_crs(epsg=3035, inplace=True)  # To make buildings look more realistic, there may be a better choice :)    
-    
+    gdf.to_crs(epsg=3035, inplace=True)  # To make buildings look more realistic, there may be a better choice :)
+
     with open('dataframe.geojson' , 'w') as file:
-        gdf.to_file(filename, driver="GeoJSON") 
-      
+        gdf.to_file(filename, driver="GeoJSON")
+
 
 def sample_geojson(filename,nBuildings):
     """
@@ -2561,12 +2563,12 @@ def sample_geojson(filename,nBuildings):
     :return: the sampled filepath
     :rtype: str
     """
-    
+
     gdf = gpd.read_file(filename)
     gdf=gdf.sample(nBuildings)
-    
+
     p=Path(filename)
     sampled_name=p.stem+"_sampled"+p.suffix
     with open('dataframe.geojson' , 'w') as file:
-        gdf.to_file(sampled_name, driver="GeoJSON") 
+        gdf.to_file(sampled_name, driver="GeoJSON")
     return sampled_name

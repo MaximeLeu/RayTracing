@@ -1,3 +1,4 @@
+#pylint: disable=invalid-name,line-too-long
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -6,14 +7,16 @@ Created on Tue Nov 29 14:52:10 2022
 File containing the functions used to create the places.
 @author: max
 """
+#packages
+import numpy as np
+import matplotlib.pyplot as plt
+
 #self written imports
 import raytracing.geometry as geom
 import plot_utils
 from materials_properties import set_properties
 
-#packages
-import numpy as np
-import matplotlib.pyplot as plt
+
 
 
 def plot_place(place,tx):
@@ -24,13 +27,13 @@ def plot_place(place,tx):
     ax.set_ylabel('y')
     ax.set_zlabel('z')
     plot_utils.add_points_to_3d_ax(ax=ax, points=tx, label="TX")
-    place.center_3d_plot(ax)   
+    place.center_3d_plot(ax)
     ax = place.plot3d(ax=ax)
-   
+
     plt.legend()
     plt.show(block=False)
-    plt.pause(0.001) 
-
+    plt.pause(0.001)
+    return
 
 def create_small_place(npoints=3):
     geometry="small"
@@ -38,13 +41,13 @@ def create_small_place(npoints=3):
     geometry_filename='../data/small.geojson'
     geom.preprocess_geojson(geometry_filename)
     place = geom.generate_place_from_rooftops_file(geometry_filename)
-    #add TX and RX   
+    #add TX and RX
     tx = np.array([3, 38, 18]).reshape(-1, 3)
-    rx=np.array([0,25,1.5]).reshape(-1,3)
+    rx=np.array([5,15,1.5]).reshape(-1,3)
     for i in range(npoints):
         place.add_set_of_points(rx)
-        rx =rx+np.array([0,-4,0])    
-    #save and plot    
+        rx =rx+np.array([0,-4,0])
+    #save and plot
     place.to_json(filename="../data/small.json")
     plot_place(place,tx)
     return place,tx,geometry
@@ -64,7 +67,7 @@ def create_levant_place(npoints=15):
     TX_HEIGHT=3
     #add TX and RX
     tx=(MAXWELL_COORDINATES+[5,0,MAXWELL_HEIGHT+TX_HEIGHT]).reshape(-1, 3)
-    rx0=(MAXWELL_COORDINATES+[-25,0,RX_HEIGHT]).reshape(-1,3)  
+    rx0=(MAXWELL_COORDINATES+[-25,0,RX_HEIGHT]).reshape(-1,3)
     dist=np.linalg.norm(rx0-ST_BARBE_COORD)
     step=dist/npoints
     for receiver in range(npoints):
@@ -73,7 +76,7 @@ def create_levant_place(npoints=15):
     #plot
     print(f"MAXWELL: {MAXWELL_COORDINATES} barb: {ST_BARBE_COORD} distance maxwell-barb={dist} m" )
     plot_place(place,tx)
-    
+
     return place,tx,geometry
 
 
@@ -94,7 +97,7 @@ def create_dummy_place():
         for polygon in building.polygons:
             polygon.properties=set_properties("appartments")
     #create place
-    place = geom.OrientedPlace(geom.OrientedSurface(ground),buildings) 
+    place = geom.OrientedPlace(geom.OrientedSurface(ground),buildings)
     #add TX and RX
     tx = np.array([5., 12., 5.]).reshape(-1, 3)
     rx = np.array([65., 12., 5.]).reshape(-1, 3)
@@ -121,7 +124,7 @@ def create_two_rays_place(npoints=20,plot=False):
         rx =rx0+np.array([receiver*step,0,0])
         place.add_set_of_points(rx)
     #save and plot
-    place.to_json(filename="../data/two_rays.json")    
+    place.to_json(filename="../data/two_rays.json")
     if plot:
         plot_place(place,tx)
     return place, tx, geometry
@@ -147,6 +150,6 @@ def create_my_geometry():
 
 if __name__ == '__main__':
     create_levant_place(npoints=10)
-    
-    
-    
+
+
+

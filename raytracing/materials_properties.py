@@ -1,3 +1,4 @@
+#pylint: disable=invalid-name,line-too-long
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -96,10 +97,10 @@ DF_PROPERTIES=pd.concat([pd.DataFrame.from_records([air,concrete,brick,wood,glas
 if not 'epsilon_eff' in DF_PROPERTIES.columns:
     #if required, the imaginary part of the relative permittivity  can be obtained:=17.98*sigma/f (see ITU), 17.98=1/(2pi epsilon_0 *1e9)
     DF_PROPERTIES['epsilon_eff']=DF_PROPERTIES["epsilon"]-1j*DF_PROPERTIES["sigma"]/(epsilon_0*2*pi*FREQUENCY)
-    
-    
+
+
 def set_properties(building_type):
-  
+
     def create_dict(material):
         mu=str(DF_PROPERTIES.loc[DF_PROPERTIES["material"]==material]["mu"].values[0])
         epsilon=str(DF_PROPERTIES.loc[DF_PROPERTIES["material"]==material]["epsilon"].values[0])
@@ -108,12 +109,12 @@ def set_properties(building_type):
         epsilon_eff=str(DF_PROPERTIES.loc[DF_PROPERTIES["material"]==material]["epsilon_eff"].values[0])
         properties={"material":material, "mu":mu,"epsilon":epsilon,"sigma":sigma, "roughness":roughness, "epsilon_eff":epsilon_eff}
         return properties
-    
+
     match building_type:
         case "office":
             properties=create_dict("glass")
         case "appartments":
-            properties=create_dict("brick")  
+            properties=create_dict("brick")
         case "garage":
             properties=create_dict("concrete")
         case "road":

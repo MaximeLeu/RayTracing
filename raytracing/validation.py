@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
+#pylint: disable=invalid-name,line-too-long
 # -*- coding: utf-8 -*-
 """
 Created on Thu Nov 17 15:38:52 2022
 Code to validate the program
 @author: max
 """
+#packages
+import csv
+import numpy as np
+from scipy.constants import c, pi
+import matplotlib.pyplot as plt
+
+
 #self written imports
 from raytracing import file_utils
 from electromagnetism import to_db
@@ -13,11 +21,7 @@ import place_utils
 
 from multithread_solve import multithread_solve_place
 from materials_properties import FREQUENCY
-#packages
-import numpy as np
-from scipy.constants import c, pi
-import matplotlib.pyplot as plt
-import csv
+
 
 LAMBDA=c/FREQUENCY
 
@@ -36,7 +40,7 @@ def read_csv(file):
         for row in lines:
             x.append(round(float(row[0])))
             y.append(float(row[1]))
-    return x,y 
+    return x,y
 
 
 def compute_path_loss(tx,rx):
@@ -61,19 +65,19 @@ def plot_claude_comparison(df,maxwell_base,tx):
         for receiver in range(nreceivers):
             rx_df=df.loc[df['rx_id'] == receiver]#all data for this rx
             simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values)/FREQUENCY)
-            #simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)        
+            #simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)
             rx_coord=rx_df["receiver"].values[0]
             dist_maxwell=np.linalg.norm(maxwell_base-rx_coord) #distance between the receiver and the maxwell
-            simu_x[receiver]=dist_maxwell       
+            simu_x[receiver]=dist_maxwell
         return simu_x, simu_y
-    
+
     #path loss
     nreceivers=len(df['rx_id'].unique())
     pl=np.zeros(nreceivers)
     for receiver in range(nreceivers):
         rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]
         pl[receiver]=compute_path_loss(tx, rx_coord)
-    
+
     #claude's measures
     if FREQUENCY==12.5*1e9:
         x,y=read_csv("claude_12_feb.csv")
@@ -85,9 +89,9 @@ def plot_claude_comparison(df,maxwell_base,tx):
         assert 1==2, "frequency does not match claude's"
 
     #my simulation
-    simu_x,simu_y=read_simu(df,maxwell_base)    
-    
-    
+    simu_x,simu_y=read_simu(df,maxwell_base)
+
+
     fig = plt.figure(figsize=(20,20))
     ax = fig.add_subplot(1, 1, 1)
     ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/1e9} GHz')
@@ -95,11 +99,11 @@ def plot_claude_comparison(df,maxwell_base,tx):
     ax.plot(x1,y1,color='red', marker='o',label="october measures")
     ax.plot(simu_x,simu_y,color="orange",marker='o',label='simulation')
     ax.plot(simu_x,pl,marker='o',label='path loss')
-    ax.grid()  
+    ax.grid()
     ax.set_xlabel('distance to Maxwell building [m]')
     ax.set_ylabel('Received power [dB]')
     ax.legend()
-    plt.show() 
+    plt.show()
     return
 
 
@@ -110,7 +114,7 @@ def small_vs_path_loss(npoints=15,order=2):
     place,tx,geometry=place_utils.create_small_place(npoints)
     solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='small',order=order)
     df=file_utils.load_df(solved_em_path)
-    
+
     simu_y=np.zeros(npoints)
     simu_x=np.zeros(npoints)
     pl=np.zeros(npoints)
@@ -121,24 +125,24 @@ def small_vs_path_loss(npoints=15,order=2):
         simu_x[receiver]=np.linalg.norm(rx_coord-tx) #distance TX-RX
         simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values)/FREQUENCY)
         #simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)
-    
-    
+
+
     #plots
     fig = plt.figure(figsize=(20,20))
     ax = fig.add_subplot(1, 1, 1)
     ax.set_title(f'Comparison between path loss and model at {FREQUENCY/1e9} GHz')
     ax.plot(simu_x,simu_y,color="orange",marker='o',label='simulation')
     ax.plot(simu_x,pl,marker='o',label='path loss')
-    ax.grid()  
+    ax.grid()
     ax.set_xlabel('RX-TX distance')
-    ax.set_ylabel('Received power [dB]') 
+    ax.set_ylabel('Received power [dB]')
     ax.legend()
-    plt.show() 
+    plt.show()
     return
 
 def levant_vs_measures(npoints=15,order=3):
     place,tx,geometry=place_utils.create_levant_place(npoints)
-    solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='levant_claude',order=order) 
+    solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='levant_claude',order=order)
     df=file_utils.load_df(solved_em_path)
     tx=tx[0]
     maxwell_base=[tx[0],tx[1],1]
@@ -146,12 +150,49 @@ def levant_vs_measures(npoints=15,order=3):
     return
 
 
+def plot_claude_only():
+    #plt.rcParams.update({'font.size': 22})
+    x,y=read_csv("claude_12_feb.csv")
+    x1,y1=read_csv("claude_12_oct.csv")
+    
+    fig = plt.figure(figsize=(20,8))
+    ax = fig.add_subplot(1, 1, 1)
+    ax.set_title('Measurements at 12.5 GHz')
+    ax.plot(x,y,color='green', marker='o',label="february")
+    ax.plot(x1,y1,color='red', marker='o',label="october")
+    ax.grid()
+    ax.set_xlabel('distance from Maxwell building [m]')
+    ax.set_ylabel('Received power [dB]')
+    ax.set_xlim(30,90)
+    ax.set_ylim(-60,-35)
+    ax.legend(loc='lower left')
+    plt.savefig("claude_125.eps", dpi=150)
+    
+    
+    x,y=read_csv("claude_30_feb.csv")
+    x1,y1=read_csv("claude_30_oct.csv")
+    fig2 = plt.figure(figsize=(20,8))
+    ax2 = fig2.add_subplot(1, 1, 1)
+    ax2.set_title('Measurements at 30 GHz')
+    ax2.plot(x,y,color='green', marker='o',label="february")
+    ax2.plot(x1,y1,color='red', marker='o',label="october")
+    ax2.grid()
+    ax2.set_xlabel('distance from Maxwell building [m]')
+    ax2.set_ylabel('Received power [dB]')
+    ax2.set_xlim(30,90)
+    ax2.set_ylim(-60,-35)
+    ax2.legend(loc='lower left')
+    plt.savefig("claude_30.eps", dpi=150)
+ 
+    
+    plt.show()
+    return
 
 #ALWAYS RESTART KERNEL BEFORE LAUNCH
 if __name__ == '__main__':
     #care to go modify the E field frequency adequately in materials properties as well beforehand.
     plt.close('all')
 
-    levant_vs_measures(npoints=16*3,order=2)
+    plot_claude_only()
+    #levant_vs_measures(npoints=16*2,order=2)
     #small_vs_path_loss(npoints=16,order=2)
-    

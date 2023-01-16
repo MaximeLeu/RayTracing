@@ -1,14 +1,13 @@
-from raytracing import geometry as geom
-from raytracing import plot_utils
-from raytracing import file_utils
-
-
+#pylint: disable=invalid-name,line-too-long
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from tqdm import tqdm
 import json
 
+from raytracing import geometry as geom
+from raytracing import plot_utils
+from raytracing import file_utils
 
 
 class RayTracingProblem:

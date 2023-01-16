@@ -1,3 +1,7 @@
+#pylint: disable=invalid-name,line-too-long
+
+# Utils
+import sys
 # Plotting libraries
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as mplot3d
@@ -6,8 +10,7 @@ import matplotlib.colors as mcolors
 # Numerical libraries
 import numpy as np
 
-# Utils
-import sys
+
 
 anim = dict(
     pause=False,
@@ -18,7 +21,7 @@ anim = dict(
 
 
 def set_color_for_type(path_type,order):
-    colors=list(mcolors.TABLEAU_COLORS) #10 different colors 
+    colors=list(mcolors.TABLEAU_COLORS) #10 different colors
     all_types=["LOS","R","D","RR","RD","RRR","RRD","RRRR","RRRD"]
     slicer=2*order+1
     if(slicer>len(all_types) or slicer >len(colors)):
@@ -26,7 +29,7 @@ def set_color_for_type(path_type,order):
     types=all_types[0:slicer]
     ind=types.index(path_type)
     return colors[ind],ind,types
-    
+
 
 
 def get_subplot_row_columns(amount_of_plots):
@@ -48,13 +51,13 @@ def get_subplot_row_columns(amount_of_plots):
             ncols=3
         case 6:
             nrows=2
-            ncols=3    
-        
+            ncols=3
+
         case _:
             nrows=6
             ncols=6
             print(f"plot_utils.py: Please define adequate subplot settings when there are {amount_of_plots} plots")
-    
+
     return nrows,ncols
 
 
@@ -66,7 +69,7 @@ def plot_vec(ax,vec,color,origin):
 def plot_world_frame(ax,colors):
     world_basis=[np.array([1,0,0]),np.array([0,1,0]),np.array([0,0,1])]
     origin=np.array([0,0,0])
-    for i in range(3):  
+    for i in range(3):
         plot_vec(ax,world_basis[i],colors[i],origin=origin)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
