@@ -4,8 +4,8 @@
 import sys
 # Plotting libraries
 import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d as mplot3d
-import matplotlib.patches as patches
+from mpl_toolkits import mplot3d
+from matplotlib import patches
 import matplotlib.colors as mcolors
 # Numerical libraries
 import numpy as np

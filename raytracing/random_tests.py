@@ -22,19 +22,18 @@ import itertools
 plt.close('all')
 
 
-geometry_filename='../data/small.geojson'
-geom.preprocess_geojson(geometry_filename)
-original_place = geom.generate_place_from_rooftops_file(geometry_filename)
 
 
-for i in range (0,10):
-    original_place.add_tree(3)
 
-#-------------------------------------------------------------
-fig = plt.figure("original place and computed zone")
-fig.set_dpi(300)
-ax = fig.add_subplot(projection='3d')
-original_place.center_3d_plot(ax)
-ax = original_place.plot3d(ax=ax)    
+if __name__ == "__main__":
+  a=np.array([np.array([1,2,3]),np.array([4,5,6])])
+  
+  b=9.117715180773833e-15
+  assert(-1e-5<b<1e-5)
+  
+  a=["a","b","c","d","e"]
+  for i in enumerate(a):
+      print(i)
 
-
+      
+     

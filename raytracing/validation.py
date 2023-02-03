@@ -44,8 +44,11 @@ def read_csv(file):
 
 
 def compute_path_loss(tx,rx):
+    """
+    Simple path loss model using friis transmission formula
+    """
     d=np.linalg.norm(tx-rx)
-    pr_pt=RX_GAIN*TX_GAIN*(LAMBDA/(4*pi*d))**2
+    pr_pt=RX_GAIN*TX_GAIN*(LAMBDA/(4*pi*d))**2 #pr/pt
     pl=10*np.log10(pr_pt)
     return pl
 
@@ -111,7 +114,7 @@ def small_vs_path_loss(npoints=15,order=2):
     """
     comparison of the fields obtained on the small place and path loss.
     """
-    place,tx,geometry=place_utils.create_small_place(npoints)
+    place,tx,_=place_utils.create_small_place(npoints)
     solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='small',order=order)
     df=file_utils.load_df(solved_em_path)
 
@@ -141,7 +144,7 @@ def small_vs_path_loss(npoints=15,order=2):
     return
 
 def levant_vs_measures(npoints=15,order=3):
-    place,tx,geometry=place_utils.create_levant_place(npoints)
+    place,tx,_=place_utils.create_levant_place(npoints)
     solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='levant_claude',order=order)
     df=file_utils.load_df(solved_em_path)
     tx=tx[0]
@@ -193,6 +196,6 @@ if __name__ == '__main__':
     #care to go modify the E field frequency adequately in materials properties as well beforehand.
     plt.close('all')
 
-    plot_claude_only()
-    #levant_vs_measures(npoints=16*2,order=2)
+    #plot_claude_only()
+    levant_vs_measures(npoints=16*2,order=2)
     #small_vs_path_loss(npoints=16,order=2)

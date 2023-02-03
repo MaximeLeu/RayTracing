@@ -15,10 +15,6 @@ from electromagnetism import my_field_computation,EM_fields_plots,EM_fields_data
 import file_utils
 import place_utils
 
-
-
-
-
 #single threaded driver code
 if __name__ == '__main__':
     plt.close('all') #close all previous plots
@@ -34,7 +30,7 @@ if __name__ == '__main__':
     solve=True
     ORDER=3
 
-    if solve==True:
+    if solve:
         #compute the rays
         problem = RayTracingProblem(tx, place)
         problem.solve(max_order=ORDER,receivers_indexs=None)
@@ -50,16 +46,4 @@ if __name__ == '__main__':
         EM_fields_data(results_path)
 
         problem.plot_all_rays()
-
-
-
-
-
-
-
-
-
-
-
-
-
+        

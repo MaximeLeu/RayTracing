@@ -16,13 +16,10 @@ import matplotlib.pyplot as plt
 
 from ray_tracing import RayTracingProblem
 import place_utils
-import plot_utils
 
-from electromagnetism import my_field_computation,ElectromagneticField
-from electromagnetism import RADIATION_POWER, TX_GAIN,RX_GAIN,Antenna,vv_normalize, to_db
+from electromagnetism import my_field_computation,ElectromagneticField,\
+    RADIATION_POWER, TX_GAIN,RX_GAIN,Antenna,vv_normalize, to_db
 from materials_properties import FREQUENCY,DF_PROPERTIES,LAMBDA,K,Z_0
-
-
 
 
 Pin=1
@@ -56,7 +53,8 @@ def two_rays_geometry(L,ztx,zrx):
 
 def radiation_pattern(theta):
     #its the same for RX and TX
-    return np.cos(theta)
+    pattern=np.cos(theta)
+    return pattern
 
 def compute_Ae(theta_rx):
     Ae=(LAMBDA**2/(4*pi))*RX_GAIN*radiation_pattern(theta_rx)
@@ -65,7 +63,7 @@ def compute_Ae(theta_rx):
 def two_rays_fields_1(L,ztx,zrx):
     """
     L is the distance between the bases of the antennas.
-    Ztx is TX antenna height, zrx is RX antenna height
+    ztx is TX antenna height, zrx is RX antenna height
     """
     dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx= two_rays_geometry(L,ztx,zrx)
     #csts
@@ -84,9 +82,9 @@ def two_rays_fields_1(L,ztx,zrx):
     rx=np.array([0,L,zrx])
     g=np.array([0,L1,0])
     #vectors
-    dlos_vv=vv_normalize(rx-tx)
-    d1_vv=vv_normalize(g-tx)
-    d2_vv=vv_normalize(rx-g)
+    dlos_vv=vv_normalize(rx-tx)# tx-->rx
+    d1_vv=vv_normalize(g-tx)#tx-->g
+    d2_vv=vv_normalize(rx-g)#g-->rx
 
     #REFERENCE FRAMES:
     #world
@@ -95,8 +93,8 @@ def two_rays_fields_1(L,ztx,zrx):
     z=np.array([0,0,1])
 
     #antenna
-    new_z=dlos_vv
-    new_x=vv_normalize(np.cross(np.array([0,0,1]),new_z))
+    new_z=dlos_vv #TODO: modify schematic accordingly
+    new_x=x#vv_normalize(np.cross(np.array([0,0,1]),new_z))
     new_y=vv_normalize(np.cross(new_x,new_z))
 
 
@@ -131,10 +129,10 @@ def two_rays_fields_1(L,ztx,zrx):
     # print(f'{vv_W2A(new_x)} should have 100')
     # print(f'{vv_W2A(new_y)} should have 010')
     # print(f'{vv_W2A(new_z)} should have 001')
-    #print(f'{vv_W2A(d1_vv)} should have {np.array([0,np.sin(theta_tx),np.cos(theta_tx)])}')
+    # print(f'{vv_W2A(d1_vv)} should have {np.array([0,np.sin(theta_tx),np.cos(theta_tx)])}')
 
-
-    E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*Pin/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)
+#TODO: problem: E0 is not a vector but should be.
+    E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*Pin/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)*new_y
 
     Elos=E0*np.exp(-1j*K*dlos)/dlos*new_y
     #Elos=vv_A2W(Elos, tx)
@@ -157,9 +155,9 @@ def two_rays_fields_1(L,ztx,zrx):
 
 def matlab(L,ztx,zrx):
     #http://www.wirelesscommunication.nl/reference/chaptr03/pel/tworay.htm
-    matlab  = RX_GAIN*TX_GAIN*((LAMBDA/(4*np.pi*L))**2)* 4 *(np.sin(2*np.pi*zrx*ztx/(LAMBDA*L)))**2
-    matlab =10*np.log10(matlab)
-    return matlab
+    ans  = RX_GAIN*TX_GAIN*((LAMBDA/(4*np.pi*L))**2)* 4 *(np.sin(2*np.pi*zrx*ztx/(LAMBDA*L)))**2
+    ans =10*np.log10(ans)
+    return ans
 
 
 def compare_models():
@@ -171,12 +169,12 @@ def compare_models():
     sol_matlab=np.zeros(len(dists))
     sol_two_rays_fields_1=np.zeros(len(dists))
 
-    for d in range(0,len(dists)):
-        L=dists[d]
+    for ind,L in enumerate(dists):
         dlos=np.sqrt((ztx-zrx)**2+L**2)
-        pl[d]=compute_path_loss(dlos)
-        sol_two_rays_fields_1[d]=two_rays_fields_1(L=L,ztx=ztx,zrx=zrx)
-        sol_matlab[d]=matlab(L=L,ztx=ztx,zrx=zrx)
+        pl[ind]=compute_path_loss(dlos)
+        sol_two_rays_fields_1[ind]=two_rays_fields_1(L=L,ztx=ztx,zrx=zrx)
+        sol_matlab[ind]=matlab(L=L,ztx=ztx,zrx=zrx)
+
 
     fig=plt.figure()
     fig.set_dpi(300)
@@ -243,3 +241,5 @@ if __name__ == '__main__':
     ax.set_ylabel('Received power (pr/pt)[dB]')
     ax.legend()
     plt.show()
+    
+    print(f'TX gain*rxGain {np.sqrt(TX_GAIN*RX_GAIN)}')

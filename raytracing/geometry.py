@@ -1,7 +1,4 @@
 #pylint: disable=invalid-name,line-too-long
-# Plotting libraries
-from raytracing import plot_utils
-
 # Numerical libraries
 import numpy as np
 from numpy.linalg import norm
@@ -23,11 +20,14 @@ import itertools
 import pickle
 import uuid
 import json
-from raytracing import file_utils
-from raytracing import container_utils
 from pathlib import Path
 import random
+
+from raytracing import plot_utils,file_utils,container_utils
+
+
 from materials_properties import set_properties, MIN_TREE_HEIGHT,MAX_TREE_HEIGHT
+
 
 
 #midpoint between 2 points
@@ -1996,9 +1996,9 @@ class OrientedPolyhedron(OrientedGeometry):
         flag=False
         candidate_top_face=polyhedron.get_top_face().get_shapely()
         top_face=self.get_top_face().get_shapely()
-        if top_face.intersects(candidate_top_face)==True:
+        if top_face.intersects(candidate_top_face):
             flag=True
-        if top_face.touches(candidate_top_face)==True:
+        if top_face.touches(candidate_top_face):
             #it's ok if the faces touch but do not intersect
             flag=False
         return flag
@@ -2521,7 +2521,7 @@ def preprocess_geojson(filename,drop_missing_heights=False):
     maxHeight=40
     height=np.round(np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)),1)
     if not 'height' in gdf.columns:
-        print("Missing ALL height data, adding random heights between {} m and {} m".format(minHeight,maxHeight))
+        print(f"Missing ALL height data, adding random heights between {minHeight} m and {maxHeight} m")
         gdf['height']=height
 
     if drop_missing_heights:
@@ -2534,7 +2534,7 @@ def preprocess_geojson(filename,drop_missing_heights=False):
 
     if not 'building_type' in gdf.columns:
         types=["office","appartments","garage"]
-        print("Missing building_type data, randomly adding {} ".format(types))
+        print(f"Missing building_type data, randomly adding {types}")
         names = [{}]*len(gdf)
         for i in range(0,len(names)):
             rand=np.random.randint(0,len(types)-1)

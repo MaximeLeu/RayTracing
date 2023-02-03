@@ -74,16 +74,17 @@ class Antenna:
     def __str__(self):
         return f'Antenna: position: {self.position} eff: {self.radiation_efficiency} E0={self.E0}'
 
-    @staticmethod
-    def parametric_from_normal_and_point(normal,point):
-        """
-        Returns the parametric equation of the plane described by its normal and a point.
-        It will return all four coefficients such that: a*x + b*y + c*z + d = 0.
-        """
-        normal=vv_normalize(normal)
-        aa, bb, cc = normal
-        dd=-np.dot(point, normal)
-        return aa,bb,cc,dd
+    # @staticmethod
+    #UNUSED
+    # def parametric_from_normal_and_point(normal,point):
+    #     """
+    #     Returns the parametric equation of the plane described by its normal and a point.
+    #     It will return all four coefficients such that: a*x + b*y + c*z + d = 0.
+    #     """
+    #     normal=vv_normalize(normal)
+    #     aa, bb, cc = normal
+    #     dd=-np.dot(point, normal)
+    #     return aa,bb,cc,dd
 
     def align_antenna_to_point(self,point):
         """
@@ -156,10 +157,9 @@ class Antenna:
         Change the reference frame of a point
         from world-->antenna
         """
-        mat=self.mat
         origin=self.position
         tr_point=point-origin #translate
-        new_point=tr_point@mat.T #rotate
+        new_point=tr_point@(self.mat.T) #rotate
         return new_point
 
     def pp_A2W(self,point):
@@ -167,9 +167,8 @@ class Antenna:
         Change the reference frame of a point
         from antenna-->world
         """
-        mat=self.mat
         origin=self.position
-        new_point=mat.T@point
+        new_point=self.mat.T@point
         new_point= new_point+origin
         return new_point
 
@@ -178,8 +177,7 @@ class Antenna:
         Change the reference frame of a vector
         from world-->antenna
         """
-        mat=self.mat
-        new_vv=vector@mat.T
+        new_vv=vector@(self.mat.T)
         return new_vv
 
     def vv_A2W(self,vector):
@@ -187,8 +185,7 @@ class Antenna:
         Change the reference frame of a vector
         from antenna-->world
         """
-        mat=self.mat
-        new_vv=vector@mat
+        new_vv=vector@(self.mat)
         return new_vv
 
 
@@ -302,7 +299,7 @@ class ElectromagneticField:
         return E0
 
     @staticmethod
-    def fresnel_coeffs(E,theta_i,roughness,epsilon_eff_2):
+    def fresnel_coeffs(theta_i,roughness,epsilon_eff_2):
         assert 0<theta_i<pi/2, f"theta_i={theta_i*180/pi} degrees, but should between 0,90"
         #assuming the first medium is air
         sqrt=np.sqrt(epsilon_eff_2-(np.sin(theta_i))**2)
@@ -360,7 +357,7 @@ class ElectromagneticField:
     def my_reflect(E_i,reflections_path,surfaces_ids,rtp):
         """
         Compute the E field at the end of a reflection (reflection can be multiple) in V/m
-        E_i is the field at the first reflection point
+        E_i is the field at the first interaction point
         """
         def split_reflections_path(reflections_path):
             """
@@ -400,14 +397,12 @@ class ElectromagneticField:
 
             theta_i=np.arccos(np.dot(-surface_normal,si)) #incident angle
             assert(theta_i<pi/2),f'strange incident angle: theta_i= {theta_i*180/pi} degrees'
-            r_par,r_per=ElectromagneticField.fresnel_coeffs(E_i,theta_i,roughness,epsilon_eff_2)
+            r_par,r_per=ElectromagneticField.fresnel_coeffs(theta_i,roughness,epsilon_eff_2)
 
             #dyadic reflection coeff McNamara 3.3, 3.4, 3.5, 3.6
             e_per=vv_normalize(np.cross(si, sr))
             ei_par= vv_normalize(np.cross(e_per,si))
             er_par= vv_normalize(np.cross(e_per,sr))
-
-
 
             R=e_per.reshape(3,1)@e_per.reshape(1,3)*r_per + ei_par.reshape(3,1)@er_par.reshape(1,3)*r_par #3x3 matrix, McNamara 3.39
             assert R.shape==(3,3)
@@ -416,10 +411,11 @@ class ElectromagneticField:
         E_r=ElectromagneticField()
         E_r.E=E_i.E
         paths=split_reflections_path(reflections_path)
-        for i in range(0,len(surfaces_ids)):
-            reflection_polygon=rtp.polygons[surfaces_ids[i]]
-            #R,norms,_,_,_,_,_=dyadic_ref_coeff(paths[i],reflection_polygon)
-            R,norms,e_per,ei_par, er_par,r_par,r_per=dyadic_ref_coeff(paths[i],reflection_polygon)
+
+        for ind, surf_id in enumerate(surfaces_ids):
+            reflection_polygon=rtp.polygons[surf_id]
+            #R,norms,_,_,_,_,_=dyadic_ref_coeff(paths[ind],reflection_polygon)
+            R,norms,e_per,ei_par, er_par,r_par,r_per=dyadic_ref_coeff(paths[ind],reflection_polygon)
 
             #check that decomposition is correct
             #a=np.dot(E_r.E,e_per)*e_per+np.dot(E_r.E,ei_par)*ei_par
@@ -427,18 +423,23 @@ class ElectromagneticField:
 
             Si= norms[0]#norm of incident ray
             Sr= norms[1]#norm of reflected ray
-            E_r=ElectromagneticField.account_for_trees(E_r,np.array([paths[i][0],paths[i][1]]),rtp.place) #account for TX-->ref # incident field at the point of reflection.
+            E_r=ElectromagneticField.account_for_trees(E_r,np.array([paths[ind][0],paths[ind][1]]),rtp.place) #account for TX-->ref # incident field at the point of reflection.
             spread_factor=Si/(Si+Sr)
             #spread_factor=1
             field=(E_r.E.reshape(1,3)@R)*np.exp(-1j*K*Sr)*spread_factor
             #field=(E_r.E.reshape(1,3)@R.T)*np.exp(-1j*K*Sr)*spread_factor
             #reflected field should be of lesser intensity than the incident field
-            assert np.linalg.norm(E_i.E)>=np.linalg.norm(field), f"incident field strength {np.linalg.norm(E_i.E)} reflected field strength {np.linalg.norm(field)} dyadic coeff {R}"
+            assert np.linalg.norm(E_i.E)>=np.linalg.norm(field), f"|E_i| {np.linalg.norm(E_i.E)} |E_r| {np.linalg.norm(field)} R= {R}"
             E_r.E=field.reshape(3,)
+        
         last_path=paths[-1] #[Tx,R,RX]
         last_path=np.array([last_path[1],last_path[2]]) #[R,RX]
         E_r=ElectromagneticField.account_for_trees(E_r,last_path,rtp.place) #account for ref-->RX
         return E_r
+
+
+
+
 
     @staticmethod
     def my_diff(E_i,diff_path,diff_surfaces_ids,corner_points,rtp,receiver):
@@ -805,7 +806,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
 
 
     #Add trees
-    for i in range(0,N_TREES):
+    for _ in range(0,N_TREES):
         rtp.place.add_tree(tree_size=TREE_SIZE)
 
     #compute everything
@@ -830,7 +831,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
             Ae=(LAMBDA**2/(4*pi))*RX_GAIN*radiation_pattern(sol.rx_el,sol.rx_az)
             sol.power=(1/2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2
             #sol.show_antennas_alignement()
-            print(f" rx {receiver} path {sol.path_type}: angles theta {sol.rx_el*180/pi} phi {sol.rx_az*180/pi}")
+            print(f" rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi} phi {sol.rx_az*180/pi}")
             sol.add_to_df(df)
 
         solution.append(this_solved_list) #TODO: list of all the solutions, useless
@@ -841,8 +842,6 @@ def my_field_computation(rtp,save_name="problem_fields"):
         for sol in this_rx_sols:
             if (sol.field>10).any():
                 print("ERRORRRRR")
-
-
     return df
 
 

@@ -37,9 +37,9 @@ def merge_solved_problems(full_problem,solved_problems,save_name):
         #get solved problem index
         all_receivers=problem.place.set_of_points
         solved_receiver=problem.solved_receivers[0]
-        for i in range(len(all_receivers)):
-            if all(all_receivers[i]==solved_receiver):
-                index=i
+        for ind, receiver in enumerate(all_receivers):
+            if all(receiver==solved_receiver):
+                index=ind
         full_problem.reflections[index]=problem.reflections[index]
         full_problem.diffractions[index]=problem.diffractions[index]
     full_problem.solved_receivers=full_problem.place.set_of_points
@@ -63,7 +63,7 @@ def multithread_solve_place(place,tx,save_name,N_CPU=16,order=3):
     pool.close()
     pool.join()
 
-    #merge the problems solutions
+    #merge the solved_problems into one full_problem
     full_problem = RayTracingProblem(tx, place)
     solved_rays_path=merge_solved_problems(full_problem, solved_problems, save_name)
     full_problem.plot_all_rays()
@@ -85,9 +85,3 @@ if __name__ == "__main__":
     #place,tx,geometry=place_utils.create_levant_place(npoints=15)
 
     multithread_solve_place(place, tx,"multithread_place_test")
-
-
-
-
-
-

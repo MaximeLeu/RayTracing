@@ -44,7 +44,7 @@ def create_small_place(npoints=3):
     #add TX and RX
     tx = np.array([3, 38, 18]).reshape(-1, 3)
     rx=np.array([5,15,1.5]).reshape(-1,3)
-    for i in range(npoints):
+    for _ in range(npoints):
         place.add_set_of_points(rx)
         rx =rx+np.array([0,-4,0])
     #save and plot
