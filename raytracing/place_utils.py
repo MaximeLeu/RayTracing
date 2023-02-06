@@ -74,7 +74,7 @@ def create_levant_place(npoints=15):
         rx =rx0+np.array([-receiver*step,0,0])
         place.add_set_of_points(rx)
     #plot
-    print(f"MAXWELL: {MAXWELL_COORDINATES} barb: {ST_BARBE_COORD} distance maxwell-barb={dist} m" )
+    print(f"MAXWELL: {MAXWELL_COORDINATES} barb: {ST_BARBE_COORD} distance maxwell-barb={dist:.2f} m" )
     plot_place(place,tx)
 
     return place,tx,geometry
@@ -118,8 +118,8 @@ def create_two_rays_place(npoints=20,plot=False):
     #create place
     place = geom.OrientedPlace(geom.OrientedSurface(ground))
     #add TX and RX
-    tx = np.array([5., 12., 15.]).reshape(-1, 3)
-    rx0 = tx+np.array([100,0,-5])
+    tx = np.array([5., 12., 30.]).reshape(-1, 3)
+    rx0 = tx+np.array([100,0,-20])
     for receiver in range(npoints):
         rx =rx0+np.array([receiver*step,0,0])
         place.add_set_of_points(rx)

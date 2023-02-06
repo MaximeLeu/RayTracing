@@ -59,7 +59,7 @@ def to_db(field_power):
 def radiation_pattern(theta,phi):
     F=np.cos(theta)#*np.sin(theta) #scalar
     F=abs(F)
-    print(f"theta {theta*180/pi} rad pattern {F}")
+    print(f"theta {theta*180/pi:.2f}\u00b0 rad pattern={F:.2f}")
     return F
 
 class Antenna:
@@ -72,7 +72,7 @@ class Antenna:
         self.mat=None
 
     def __str__(self):
-        return f'Antenna: position: {self.position} eff: {self.radiation_efficiency} E0={self.E0}'
+        return f'Antenna: position: {self.position} efficiency: {self.radiation_efficiency} E0={self.E0}'
 
     # @staticmethod
     #UNUSED
@@ -266,9 +266,8 @@ class ElectromagneticField:
         """
         Computes the field radiated 1m away from the antenna in the direction of the path
         """
-        r,phi,theta=tx_antenna.incident_angles(path[1])
-        theta+=pi/2
-        print(f"path 1 {path[1]} r {r}")
+        r,theta,phi=tx_antenna.incident_angles(path[1])
+        #theta+=pi/2 #TODO check that definitio of theta is right. Should it be 0 or 90 in the LOS case?
         #transform r_VV into the basis of the antenna!!!
         new_point=tx_antenna.pp_W2A(path[1])
         r_vv=vv_normalize(new_point) #tx_antenna.position=[0,0,0]
@@ -276,10 +275,9 @@ class ElectromagneticField:
         #field in antenna's coordinates
         E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)
         Einits=E0*np.sqrt(radiation_pattern(theta, phi))*np.exp(-1j*K*r)/r
-        print(f"Einits1 {Einits} exp {np.exp(-1j*K*r)} sqrt {np.sqrt(radiation_pattern(theta,phi))}")
+        print(f"Einits1 {Einits:.2f} exp {np.exp(-1j*K*r):.2f} sqrt {np.sqrt(radiation_pattern(theta,phi)):.2f}")
         Einit=Einits*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_W2A(tx_antenna.polarisation)),r_vv))
-        print(f"Einit2 {Einits} E0 {E0}")
-
+        print(f"Einit2 {Einits:.2f} E0 {E0:.2f}")
         #tx_antenna.antenna_tests(path)
 
         assert np.dot(Einit,r_vv)<(1e-5),f'ERROR: field is not transverse {Einit}, dot {np.dot(Einit,r_vv)}'
@@ -300,7 +298,7 @@ class ElectromagneticField:
 
     @staticmethod
     def fresnel_coeffs(theta_i,roughness,epsilon_eff_2):
-        assert 0<theta_i<pi/2, f"theta_i={theta_i*180/pi} degrees, but should between 0,90"
+        assert 0<theta_i<pi/2, f"theta_i={theta_i*180/pi}\u00b0, but should between 0,90\u00b0"
         #assuming the first medium is air
         sqrt=np.sqrt(epsilon_eff_2-(np.sin(theta_i))**2)
         cosi=np.cos(theta_i)
@@ -337,7 +335,7 @@ class ElectromagneticField:
                 L_db=0.39*((FREQUENCY/10**6)**0.39)*d**0.25
                 #attenuation=1/(10**(L_db/10))
                 attenuation=1 #TODO
-                print(f"attenuation: {L_db} dB, thus attenuation factor= {attenuation} ")
+                print(f"attenuation: {L_db:.2f} dB, thus attenuation factor= {attenuation:.2f} ")
                 E.E=E.E*attenuation
         return E
 
@@ -396,7 +394,7 @@ class ElectromagneticField:
             sr = vectors[1, :] #normalised reflected vector
 
             theta_i=np.arccos(np.dot(-surface_normal,si)) #incident angle
-            assert(theta_i<pi/2),f'strange incident angle: theta_i= {theta_i*180/pi} degrees'
+            assert(theta_i<pi/2),f'strange incident angle: theta_i= {theta_i*180/pi}\u00b0'
             r_par,r_per=ElectromagneticField.fresnel_coeffs(theta_i,roughness,epsilon_eff_2)
 
             #dyadic reflection coeff McNamara 3.3, 3.4, 3.5, 3.6
@@ -503,8 +501,8 @@ class ElectromagneticField:
 
             # text right after Mc 6.12 for these asserts:
             try:
-                assert 0<=phi_i<=n*pi , f"phi_i ={phi_i*180/pi} cannot be inside the wedge, alpha={(2-n)*pi*180/pi}"
-                assert 0<=phi_d<=n*pi, f"phi_d {phi_d*180/pi} cannot be inside the wedge, alpha={(2-n)*pi*180/pi}"
+                assert 0<=phi_i<=n*pi , f"phi_i ={phi_i*180/pi}\u00b0 cannot be inside the wedge, alpha={(2-n)*pi*180/pi}\u00b0"
+                assert 0<=phi_d<=n*pi, f"phi_d {phi_d*180/pi}\u00b0 cannot be inside the wedge, alpha={(2-n)*pi*180/pi}\u00b0"
             except AssertionError:
                 print("ERROR: some diffracted rays may be inside the geometry, the receiver may be inside a building.")
                 fig2 = plt.figure(f"ERROR: Rays reaching RX{receiver} inside geometry",figsize=(8,5))
@@ -553,7 +551,7 @@ class ElectromagneticField:
 
         alpha=pi-np.arccos(np.dot(n_0,n_1)) #angles between two planes = pi-angles between their outwards normals
         n=2-alpha/pi #doesn't need to be an integer (McNamara 4.26)
-        assert 0<alpha<pi and 1<=n<=2, f"alpha= {alpha*180/pi}, we restrict ourselves to wedges with interior angles in 0,180"
+        assert 0<alpha<pi and 1<=n<=2, f"alpha= {alpha*180/pi}\u00b0, we restrict ourselves to wedges with interior angles in 0,180\u00b0"
 
         e= vv_normalize(np.diff(corner_points, axis=0).reshape(-1)) #edge
 
@@ -725,10 +723,12 @@ def my_field_computation(rtp,save_name="problem_fields"):
             E_los=ElectromagneticField.account_for_trees(E_los,sol.world_path,rtp.place)
             sol.field=E_los.E
             if (sol.field>10).any():
-                print(f"ERROR: field:{sol.field}")
+                print("----POTENTIAL ERROR-----")
+                print(f"field:{sol.field}")
                 print(f"path {sol.world_path}")
                 print(f"tx antenna: {sol.tx_antenna.position}")
-                print(f"len {sol.path_len}")
+                print(f"len {sol.path_len:.2f}")
+                print("----END ERROR REPORT----")
             solved_list.append(sol)
         else:
             print(f'NO LOS for RX{receiver}')
@@ -813,6 +813,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
     solution=[]
     df=pd.DataFrame(columns=['rx_id','receiver','path_type','time_to_receiver','field_strength','path_power'])
     for receiver in range(0,len(rtp.solved_receivers)):
+        print(" ")
         print(f"EM SOLVING RECEIVER {receiver}")
         tx_antenna=Antenna(tx)
         rx_antenna=Antenna(rtp.receivers[receiver])
@@ -829,19 +830,20 @@ def my_field_computation(rtp,save_name="problem_fields"):
             sol.rx_antenna=rx_antenna
             sol.compute_rx_angles()
             Ae=(LAMBDA**2/(4*pi))*RX_GAIN*radiation_pattern(sol.rx_el,sol.rx_az)
-            sol.power=(1/2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2
+            #sol.power=(1/2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2
+            sol.power=1/2*Ae*(np.linalg.norm(np.real(sol.field)))**2
             #sol.show_antennas_alignement()
-            print(f" rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi} phi {sol.rx_az*180/pi}")
+            print(f" rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi:.2f}\u00b0 phi {sol.rx_az*180/pi:.2f}\u00b0")
             sol.add_to_df(df)
 
         solution.append(this_solved_list) #TODO: list of all the solutions, useless
     file_utils.save_df(df,save_name)#saves into the result folder
 
 
-    for this_rx_sols in solution:
-        for sol in this_rx_sols:
-            if (sol.field>10).any():
-                print("ERRORRRRR")
+    # for this_rx_sols in solution:
+    #     for sol in this_rx_sols:
+    #         if (sol.field>10).any():
+    #             print("ERRORRRRR")
     return df
 
 

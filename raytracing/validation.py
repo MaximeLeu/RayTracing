@@ -53,6 +53,7 @@ def compute_path_loss(tx,rx):
     return pl
 
 
+
 def plot_claude_comparison(df,maxwell_base,tx):
     """
     df: dataframe of the solved problem
@@ -97,15 +98,16 @@ def plot_claude_comparison(df,maxwell_base,tx):
 
     fig = plt.figure(figsize=(20,20))
     ax = fig.add_subplot(1, 1, 1)
-    ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/1e9} GHz')
+    ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/1e9} GHz',fontsize=20)
     ax.plot(x,y,color='green', marker='o',label="february measures")
     ax.plot(x1,y1,color='red', marker='o',label="october measures")
     ax.plot(simu_x,simu_y,color="orange",marker='o',label='simulation')
     ax.plot(simu_x,pl,marker='o',label='path loss')
     ax.grid()
-    ax.set_xlabel('distance to Maxwell building [m]')
-    ax.set_ylabel('Received power [dB]')
-    ax.legend()
+    ax.tick_params(axis='both', which='major', labelsize=20)
+    ax.set_xlabel('distance to Maxwell building [m]',fontsize=20)
+    ax.set_ylabel('Received power [dB]',fontsize=20)
+    ax.legend(fontsize=20)
     plt.show()
     return
 
@@ -133,13 +135,14 @@ def small_vs_path_loss(npoints=15,order=2):
     #plots
     fig = plt.figure(figsize=(20,20))
     ax = fig.add_subplot(1, 1, 1)
-    ax.set_title(f'Comparison between path loss and model at {FREQUENCY/1e9} GHz')
+    ax.set_title(f'Comparison between path loss and model at {FREQUENCY/1e9} GHz', fontsize=20)
     ax.plot(simu_x,simu_y,color="orange",marker='o',label='simulation')
     ax.plot(simu_x,pl,marker='o',label='path loss')
     ax.grid()
-    ax.set_xlabel('RX-TX distance')
-    ax.set_ylabel('Received power [dB]')
-    ax.legend()
+    ax.tick_params(axis='both', which='major', labelsize=20)
+    ax.set_xlabel('RX-TX distance',fontsize=20)
+    ax.set_ylabel('Received power [dB]',fontsize=20)
+    ax.legend(fontsize=20)
     plt.show()
     return
 
