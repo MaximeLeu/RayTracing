@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 #self written imports
 from raytracing import file_utils
-from electromagnetism import to_db
+from electromagnetism import to_db,path_loss
 from electromagnetism import RX_GAIN,TX_GAIN
 import place_utils
 
@@ -41,17 +41,6 @@ def read_csv(file):
             x.append(round(float(row[0])))
             y.append(float(row[1]))
     return x,y
-
-
-def compute_path_loss(tx,rx):
-    """
-    Simple path loss model using friis transmission formula
-    """
-    d=np.linalg.norm(tx-rx)
-    pr_pt=RX_GAIN*TX_GAIN*(LAMBDA/(4*pi*d))**2 #pr/pt
-    pl=10*np.log10(pr_pt)
-    return pl
-
 
 
 def plot_claude_comparison(df,maxwell_base,tx):
@@ -80,7 +69,8 @@ def plot_claude_comparison(df,maxwell_base,tx):
     pl=np.zeros(nreceivers)
     for receiver in range(nreceivers):
         rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]
-        pl[receiver]=compute_path_loss(tx, rx_coord)
+        d=np.linalg.norm(tx-rx_coord)
+        pl[receiver]=path_loss(d)
 
     #claude's measures
     if FREQUENCY==12.5*1e9:
@@ -126,8 +116,9 @@ def small_vs_path_loss(npoints=15,order=2):
     for receiver in range(npoints):
         rx_df=df.loc[df['rx_id'] == receiver]
         rx_coord=rx_df["receiver"].values[0]
-        pl[receiver]=compute_path_loss(tx, rx_coord)
-        simu_x[receiver]=np.linalg.norm(rx_coord-tx) #distance TX-RX
+        d=np.linalg.norm(tx-rx_coord)
+        pl[receiver]=path_loss(d)
+        simu_x[receiver]=d #distance TX-RX
         simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values)/FREQUENCY)
         #simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)
 
@@ -200,5 +191,5 @@ if __name__ == '__main__':
     plt.close('all')
 
     #plot_claude_only()
-    levant_vs_measures(npoints=16*2,order=2)
+    levant_vs_measures(npoints=16*1,order=2)
     #small_vs_path_loss(npoints=16,order=2)

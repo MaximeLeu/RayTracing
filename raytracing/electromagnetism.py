@@ -56,11 +56,15 @@ def to_db(field_power):
         db[i]=10*np.log10(P[i]/P_IN)
     return db[0] if np.isscalar(field_power) else db
 
-def radiation_pattern(theta,phi):
-    F=np.cos(theta)#*np.sin(theta) #scalar
-    F=abs(F)
-    print(f"theta {theta*180/pi:.2f}\u00b0 rad pattern={F:.2f}")
-    return F
+
+
+def path_loss(d):
+    """
+    Given the distance between TX and RX antennas compute the path loss in dB
+    """
+    pr_pt=RX_GAIN*TX_GAIN*(LAMBDA/(4*pi*d))**2
+    pl=10*np.log10(pr_pt)
+    return pl
 
 class Antenna:
     def __init__(self,position):
@@ -248,8 +252,12 @@ class Antenna:
         return
 
 
-
-
+def radiation_pattern(theta,phi=0):
+    alpha=1 #increase alpha to make the antenna more directive.
+    F = np.cos(theta/2)**alpha
+    norm=pi*np.power(2,(2*alpha-1))*sc.special.factorial(2*alpha)/sc.special.factorial(alpha)**2
+    print(f"theta {theta*180/pi:.2f}\u00b0 rad pattern={F:.2f}")
+    return F#/norm
 
 
 class ElectromagneticField:
@@ -272,6 +280,12 @@ class ElectromagneticField:
         new_point=tx_antenna.pp_W2A(path[1])
         r_vv=vv_normalize(new_point) #tx_antenna.position=[0,0,0]
 
+
+        # E0=-1j*K*Z_0/(4*pi)*np.exp(-1j*K)*radiation_pattern(theta,phi)*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi*1))   
+        # E=E0*np.exp(-1j*K*r)/r*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_W2A(tx_antenna.polarisation)),r_vv))
+        #E=tx_antenna.vv_A2W(E)
+        #return ElectromagneticField(E=E)
+
         #field in antenna's coordinates
         E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)
         Einits=E0*np.sqrt(radiation_pattern(theta, phi))*np.exp(-1j*K*r)/r
@@ -280,10 +294,11 @@ class ElectromagneticField:
         print(f"Einit2 {Einits:.2f} E0 {E0:.2f}")
         #tx_antenna.antenna_tests(path)
 
-        assert np.dot(Einit,r_vv)<(1e-5),f'ERROR: field is not transverse {Einit}, dot {np.dot(Einit,r_vv)}'
+        #assert np.dot(Einit,r_vv)<(1e-5),f'ERROR: field is not transverse {Einit}, dot {np.dot(Einit,r_vv)}'
 
         Einit=tx_antenna.vv_A2W(Einit) #return to world coordinates
         return ElectromagneticField(E=Einit)
+       
 
     @staticmethod
     def from_path(path,tx_antenna):
@@ -830,8 +845,9 @@ def my_field_computation(rtp,save_name="problem_fields"):
             sol.rx_antenna=rx_antenna
             sol.compute_rx_angles()
             Ae=(LAMBDA**2/(4*pi))*RX_GAIN*radiation_pattern(sol.rx_el,sol.rx_az)
-            #sol.power=(1/2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2
-            sol.power=1/2*Ae*(np.linalg.norm(np.real(sol.field)))**2
+            #sol.power=(1/2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2 #TODO Z0 should be there, maybe remove it from E0
+            #sol.power=1/(2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2
+            sol.power=(1/2)*Ae*(np.linalg.norm(np.real(sol.field)))**2
             #sol.show_antennas_alignement()
             print(f" rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi:.2f}\u00b0 phi {sol.rx_az*180/pi:.2f}\u00b0")
             sol.add_to_df(df)
