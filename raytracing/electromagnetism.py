@@ -34,7 +34,7 @@ P_IN=1
 RADIATION_EFFICIENCY=1
 RADIATION_POWER=RADIATION_EFFICIENCY*P_IN
 
-ALPHA=2 #increase alpha to make the antenna more directive.
+ALPHA=20 #increase alpha to make the antenna more directive.
 TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians, approx 45
 RX_GAIN=4*pi*1/((pi/9)**2) #20 degree beamwidth  approx 103
 
@@ -245,7 +245,7 @@ class Antenna:
         F = np.cos(theta/2)**(2*ALPHA)
         norm=pi*np.power(2,(1-2*ALPHA),dtype=float)*sc.special.factorial(2*ALPHA)/(sc.special.factorial(ALPHA)**2)
         print(f"theta {theta*180/pi:.2f}\u00b0 rad pattern={F:.2f}")
-        return F/norm #TODO norm the radiatio pattern
+        return F/norm
 
     @staticmethod
     def compute_Ae(theta_rx,phi_rx=0):
@@ -277,7 +277,8 @@ class ElectromagneticField:
         #return ElectromagneticField(E=E)
 
         #field in antenna's coordinates
-        E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)
+        #E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)
+        E0=-1j*Z_0*np.exp(-1j*K*1)
         Einits=E0*np.sqrt(Antenna.radiation_pattern(theta, phi))*np.exp(-1j*K*r)/r
         Einit=Einits*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_W2A(tx_antenna.polarisation)),r_vv))
         #tx_antenna.antenna_tests(path)

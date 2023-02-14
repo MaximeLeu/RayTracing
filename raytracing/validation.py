@@ -9,21 +9,17 @@ Code to validate the program
 #packages
 import csv
 import numpy as np
-from scipy.constants import c, pi
 import matplotlib.pyplot as plt
 
 
 #self written imports
 from raytracing import file_utils
 from electromagnetism import to_db,path_loss
-from electromagnetism import RX_GAIN,TX_GAIN
 import place_utils
 
 from multithread_solve import multithread_solve_place
 from materials_properties import FREQUENCY
 
-
-LAMBDA=c/FREQUENCY
 
 def read_csv(file):
     """
@@ -57,7 +53,7 @@ def plot_claude_comparison(df,maxwell_base,tx):
         simu_x=np.zeros(nreceivers)
         for receiver in range(nreceivers):
             rx_df=df.loc[df['rx_id'] == receiver]#all data for this rx
-            simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values)/12500000) #TODO why divide by 12.5M
+            simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values))
             rx_coord=rx_df["receiver"].values[0]
             dist_maxwell=np.linalg.norm(maxwell_base-rx_coord) #distance between the receiver and the maxwell 
             #TODO results maybe shifted, maybe dist_maxwell=norm maxwell_base-rx_base
@@ -85,10 +81,10 @@ def plot_claude_comparison(df,maxwell_base,tx):
     #my simulation
     simu_x,simu_y=read_simu(df,maxwell_base)
 
-
+    #plotting
     fig = plt.figure(figsize=(20,20))
     ax = fig.add_subplot(1, 1, 1)
-    ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/1e9} GHz',fontsize=20)
+    ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/(1e9)} GHz',fontsize=20)
     ax.plot(x,y,color='green', marker='o',label="february measures")
     ax.plot(x1,y1,color='red', marker='o',label="october measures")
     ax.plot(simu_x,simu_y,color="orange",marker='o',label='simulation')
@@ -119,7 +115,7 @@ def small_vs_path_loss(npoints=15,order=2):
         d=np.linalg.norm(tx-rx_coord)
         pl[receiver]=path_loss(d)
         simu_x[receiver]=d #distance TX-RX
-        simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values)/FREQUENCY) #TODO why divide by frequency
+        simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values))
 
 
     #plots
@@ -183,9 +179,7 @@ def plot_claude_only():
 
 #ALWAYS RESTART KERNEL BEFORE LAUNCH
 if __name__ == '__main__':
-    #care to go modify the E field frequency adequately in materials properties as well beforehand.
     plt.close('all')
-
     #plot_claude_only()
     levant_vs_measures(npoints=16*1,order=2)
     #small_vs_path_loss(npoints=16,order=2)

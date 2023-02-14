@@ -138,7 +138,8 @@ def two_rays_fields(L,ztx,zrx):
         # print(f'{vv_W2RX(-d2_vv)} should have {np.array([0,-np.sin(theta_rx),np.cos(theta_rx)])}')
         return new_vv
     
-    E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)*tx_y
+    #E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)*tx_y
+    E0=-1j*Z_0*np.exp(-1j*K*1)*tx_y
     Elos=E0*np.sqrt(Antenna.radiation_pattern(0))*np.exp(-1j*K*dlos)/dlos
 
     per_vv=vv_normalize(np.cross(d1_vv,d2_vv))
@@ -162,7 +163,7 @@ def two_rays_fields(L,ztx,zrx):
     ref_power=1/(2*Z_0)*Antenna.compute_Ae(theta_rx)*(np.linalg.norm(np.real(Eref)))**2
     P_rx=los_power+ref_power
         
-    db=to_db(P_rx/(12.5*1e6))#TODO why divide by frequency here to make it match to path loss
+    db=to_db(P_rx)
     assert(np.linalg.norm(Eref)<np.linalg.norm(Elos))
     return db
 
@@ -239,7 +240,7 @@ def compare_two_rays_and_simu(npoints):
     ax.set_ylabel(r'Received power ($p_{rx}/p_{tx}$)[dB]')
     ax.legend()
     plt.show()
-    plt.savefig(f"../plots/comparison_two_rays_simu.eps", format='eps', dpi=1000)
+    plt.savefig("../plots/comparison_two_rays_simu.eps", format='eps', dpi=1000)
     print(f'TXgain*RXgain={np.sqrt(TX_GAIN*RX_GAIN):.2f}')
     return
 
