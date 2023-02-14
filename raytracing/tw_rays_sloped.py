@@ -8,10 +8,10 @@ Created on Sun Feb  5 19:42:15 2023
 import matplotlib.pyplot as plt
 import numpy as np
 
-L=50
+L=10
 ZTX=3
-ZRX=30
-ALPHA=np.pi/6
+ZRX=2
+ALPHA=np.pi/12 #slope of the incline
 
 h=L*np.sin(ALPHA)
 d=np.sqrt(L**2-h**2)
@@ -74,4 +74,5 @@ plt.title('Sloped two rays')
 plt.show()
 
 print(f"Given L={L:.2f}m, alpha={ALPHA*180/np.pi:.2f}\u00b0, ZTX={ZTX:.2f}m and ZRX={ZRX:.2f}m")
-print(f"d={d:.2f}m, h={h:.2f}m, d1={d1:.2f}m, d2={d2:.2f}m, theta={theta*180/np.pi:.2f}\u00b0, theta_rx={theta_rx*180/np.pi:.2f}\u00b0, theta_tx={theta_tx*180/np.pi:.2f}\u00b0")
+print(f"d={d:.2f}m, h={h:.2f}m, d1={d1:.2f}m, d2={d2:.2f}m, L1={L1:.2f}m, L2={L2:.2f}m")
+print(f"theta={theta*180/np.pi:.2f}\u00b0, theta_rx={theta_rx*180/np.pi:.2f}\u00b0, theta_tx={theta_tx*180/np.pi:.2f}\u00b0")

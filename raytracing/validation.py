@@ -57,10 +57,10 @@ def plot_claude_comparison(df,maxwell_base,tx):
         simu_x=np.zeros(nreceivers)
         for receiver in range(nreceivers):
             rx_df=df.loc[df['rx_id'] == receiver]#all data for this rx
-            simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values)/FREQUENCY)
-            #simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)
+            simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values)/12500000) #TODO why divide by 12.5M
             rx_coord=rx_df["receiver"].values[0]
-            dist_maxwell=np.linalg.norm(maxwell_base-rx_coord) #distance between the receiver and the maxwell
+            dist_maxwell=np.linalg.norm(maxwell_base-rx_coord) #distance between the receiver and the maxwell 
+            #TODO results maybe shifted, maybe dist_maxwell=norm maxwell_base-rx_base
             simu_x[receiver]=dist_maxwell
         return simu_x, simu_y
 
@@ -119,8 +119,7 @@ def small_vs_path_loss(npoints=15,order=2):
         d=np.linalg.norm(tx-rx_coord)
         pl[receiver]=path_loss(d)
         simu_x[receiver]=d #distance TX-RX
-        simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values)/FREQUENCY)
-        #simu_y[receiver]=FieldPower.compute_power(rx_df["field_strength"].values,STYLE=2)
+        simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values)/FREQUENCY) #TODO why divide by frequency
 
 
     #plots
@@ -163,8 +162,7 @@ def plot_claude_only():
     ax.set_xlim(30,90)
     ax.set_ylim(-60,-35)
     ax.legend(loc='lower left')
-    plt.savefig("claude_125.eps", dpi=150)
-    
+    plt.savefig("../plots/claude_125.eps", dpi=150)
     
     x,y=read_csv("claude_30_feb.csv")
     x1,y1=read_csv("claude_30_oct.csv")
@@ -179,9 +177,7 @@ def plot_claude_only():
     ax2.set_xlim(30,90)
     ax2.set_ylim(-60,-35)
     ax2.legend(loc='lower left')
-    plt.savefig("claude_30.eps", dpi=150)
- 
-    
+    plt.savefig("../plots/claude_30.eps", dpi=150)
     plt.show()
     return
 

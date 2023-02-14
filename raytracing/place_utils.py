@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 #self written imports
 import raytracing.geometry as geom
 import plot_utils
-from materials_properties import set_properties
+from materials_properties import set_properties, LAMBDA
 
 
 
@@ -26,13 +26,14 @@ def plot_place(place,tx):
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
+    
     plot_utils.add_points_to_3d_ax(ax=ax, points=tx, label="TX")
     place.center_3d_plot(ax)
     ax = place.plot3d(ax=ax)
-
     plt.legend()
     plt.show(block=False)
     plt.pause(0.001)
+   # plt.savefig(f"../plots/thePlace.png", format='png', dpi=1000)
     return
 
 def create_small_place(npoints=3):
@@ -111,15 +112,15 @@ def create_dummy_place():
 def create_two_rays_place(npoints=20,plot=False):
     geometry="two_rays"
     #add ground
-    step=50
-    ground = geom.Square.by_2_corner_points(np.array([[0, 0, 0], [step*npoints+200, 24, 0]]))
+    step=10#10*LAMBDA
+    ground = geom.Square.by_2_corner_points(np.array([[0, 0, 0], [step*npoints+50, 24, 0]]))
     #add properties
     ground.properties=set_properties("ground")
     #create place
     place = geom.OrientedPlace(geom.OrientedSurface(ground))
     #add TX and RX
     tx = np.array([5., 12., 30.]).reshape(-1, 3)
-    rx0 = tx+np.array([100,0,-20])
+    rx0 = tx+np.array([50,0,-20])
     for receiver in range(npoints):
         rx =rx0+np.array([receiver*step,0,0])
         place.add_set_of_points(rx)
@@ -149,7 +150,10 @@ def create_my_geometry():
     return place,tx, geometry
 
 if __name__ == '__main__':
-    create_levant_place(npoints=10)
+    #create_levant_place(npoints=10)
+    place,tx,geometry=create_two_rays_place(npoints=5)
+    plot_place(place, tx)
+    
 
 
 

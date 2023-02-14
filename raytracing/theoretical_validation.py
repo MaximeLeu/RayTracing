@@ -4,27 +4,28 @@
 """
 Created on Tue Nov 29 11:49:38 2022
 
-Testing two rays model vs my simulator
+Comparaison between the two rays model and the simulator,
+also includes comparaisons with a simplified two rays model, and path loss
 
-@author: max
+@author: Maxime Leurquin
 """
 #packages
 import numpy as np
 from scipy.constants import pi
 import matplotlib.pyplot as plt
 
-
 from ray_tracing import RayTracingProblem
 import place_utils
+import plot_utils
 
 from electromagnetism import my_field_computation,ElectromagneticField,\
-    RADIATION_POWER, TX_GAIN,RX_GAIN,Antenna,vv_normalize, to_db, radiation_pattern, path_loss
+     TX_GAIN,RX_GAIN, P_IN,Antenna,vv_normalize, to_db, path_loss
 from materials_properties import FREQUENCY,DF_PROPERTIES,LAMBDA,K,Z_0
 
-
-Pin=1
-
-def matlab(L,ztx,zrx):
+def simplified_two_rays(L,ztx,zrx):
+    """
+    Simplified two rays model, only valid when the distance between tx and rx is large
+    """
     #http://www.wirelesscommunication.nl/reference/chaptr03/pel/tworay.htm
     ans  = RX_GAIN*TX_GAIN*((LAMBDA/(4*np.pi*L))**2)* 4 *(np.sin(2*np.pi*zrx*ztx/(LAMBDA*L)))**2
     ans =10*np.log10(ans)
@@ -51,9 +52,6 @@ def two_rays_geometry(L,ztx,zrx):
     return dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx
 
 
-def compute_Ae(theta_rx):
-    Ae=(LAMBDA**2/(4*pi))*RX_GAIN*radiation_pattern(theta_rx)
-    return Ae
 
 def two_rays_fields(L,ztx,zrx):
     """
@@ -62,15 +60,8 @@ def two_rays_fields(L,ztx,zrx):
     """
     dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx= two_rays_geometry(L,ztx,zrx)
     #csts
-    epsilon_eff_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=='air']["epsilon_eff"].values[0]
     epsilon_eff_2=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=='concrete']["epsilon_eff"].values[0]
-    epsilon_ratio=epsilon_eff_2/epsilon_eff_1
-
-    #fresnel
-    sqrt=np.sqrt(epsilon_ratio-np.sin(theta)**2)
-    gamma_par=np.linalg.norm((epsilon_ratio*np.cos(theta)-sqrt)/((epsilon_ratio*np.cos(theta)+sqrt)))
-    gamma_per=np.linalg.norm((np.cos(theta)-sqrt)/(np.cos(theta)+sqrt))
-
+    gamma_par,gamma_per=ElectromagneticField.fresnel_coeffs(pi/2-theta, 0, epsilon_eff_2)
 
     #definitions:
     tx=np.array([0,0,ztx])
@@ -88,118 +79,132 @@ def two_rays_fields(L,ztx,zrx):
     z=np.array([0,0,1])
 
     #tx antenna
-    new_z=dlos_vv #TODO: modify schematic accordingly
-    new_x=x#vv_normalize(np.cross(np.array([0,0,1]),new_z))
-    new_y=vv_normalize(np.cross(new_x,new_z))
+    tx_z=dlos_vv #TODO: modify schematic accordingly
+    tx_x=x
+    tx_y=vv_normalize(np.cross(tx_x,tx_z))
 
-
-    mat=np.array([
-                [np.dot(new_x,x),np.dot(new_x,y),np.dot(new_x,z)],
-               [np.dot(new_y,x),np.dot(new_y,y),np.dot(new_y,z)],
-               [np.dot(new_z,x),np.dot(new_z,y),np.dot(new_z,z)],
-               ])
-
-    def pp_A2W(point,antenna_position):
-        new_point=point@mat
-        return new_point+antenna_position
-
-    def pp_W2A(point,antenna_position):
-        tr_point=point-antenna_position
-        new_point=tr_point@mat.T
-        return new_point
-
-    def vv_W2A(vv):
-        new_vv=vv@mat.T
-        return new_vv
-
-    def vv_A2W(vv):
-        new_vv=vv@mat
-        return new_vv
-
-
-    # print()
-    # print(f'{pp_W2A(tx,tx)} should have 000')
-    # print(f'{pp_W2A(rx,tx)} should have 00{dlos}')
-
-    # print(f'{vv_W2A(new_x)} should have 100')
-    # print(f'{vv_W2A(new_y)} should have 010')
-    # print(f'{vv_W2A(new_z)} should have 001')
-    # print(f'{vv_W2A(d1_vv)} should have {np.array([0,np.sin(theta_tx),np.cos(theta_tx)])}')
-
-    E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*Pin/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)*new_y
-    #E0=np.sqrt(2*Z_0*TX_GAIN*Pin/(4*pi))*new_y
-    #E0=1j*K*Z_0*np.exp(-1j*K*1)/(4*pi)*new_y #radiation pattern =1 in the los case
-    Elos=E0*np.exp(-1j*K*dlos)/dlos
+    #rx antenna
+    rx_z=-dlos_vv #TODO: modify schematic accordingly
+    rx_x=x
+    rx_y=-vv_normalize(np.cross(rx_x,rx_z))
     
-    #Elos=vv_A2W(Elos, tx)
+    tx_basis=[tx_x,tx_y,tx_z]
+    rx_basis=[rx_x,rx_y,rx_z]
+    
+    def show_antennas_alignement():
+        """
+        shows the TX and RX antennas reference frames, and the world frame
+        some vectors may not appear to be unit vectors, however they are:
+        its just matplotlib scaling the axes.
+        """
+        def plot_antenna_frame(antenna_basis,antenna_position,ax,colors):
+            """
+            plots the antenna reference frame on ax
+            """
+            for i in range(3):
+                plot_utils.plot_vec(ax,antenna_basis[i],colors[i],origin=antenna_position)
+            return ax
+        fig=plt.figure()
+        fig.set_dpi(300)
+        ax=fig.add_subplot(1,1,1,projection='3d')
+        colors=['r','g','b']
+        ax=plot_utils.plot_world_frame(ax, colors)
+        ax=plot_antenna_frame(tx_basis,tx,ax,colors)
+        ax=plot_antenna_frame(rx_basis,rx,ax,colors)
+        ax.legend()
+        plt.show()
+        return
+    #show_antennas_alignement()
+    
+    def vv_TX2W(vv):
+        tx_mat=np.array([
+                    [np.dot(tx_x,x),np.dot(tx_x,y),np.dot(tx_x,z)],
+                   [np.dot(tx_y,x),np.dot(tx_y,y),np.dot(tx_y,z)],
+                   [np.dot(tx_z,x),np.dot(tx_z,y),np.dot(tx_z,z)],
+                   ])
+        new_vv=vv@tx_mat
+        return new_vv
+
+    def vv_W2RX(vv):
+        rx_mat=np.array([
+                    [np.dot(rx_x,x),np.dot(rx_x,y),np.dot(rx_x,z)],
+                   [np.dot(rx_y,x),np.dot(rx_y,y),np.dot(rx_y,z)],
+                   [np.dot(rx_z,x),np.dot(rx_z,y),np.dot(rx_z,z)],
+                   ])
+        new_vv=vv@rx_mat.T
+        # print(f'{vv_W2RX(rx_x)} should have 100')
+        # print(f'{vv_W2RX(rx_y)} should have 010')
+        # print(f'{vv_W2RX(rx_z)} should have 001')
+        # print(f'{vv_W2RX(-d2_vv)} should have {np.array([0,-np.sin(theta_rx),np.cos(theta_rx)])}')
+        return new_vv
+    
+    E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)*tx_y
+    Elos=E0*np.sqrt(Antenna.radiation_pattern(0))*np.exp(-1j*K*dlos)/dlos
 
     per_vv=vv_normalize(np.cross(d1_vv,d2_vv))
     par_vv=vv_normalize(np.cross(per_vv,d1_vv))
-    #E0ref=E0*np.sqrt(radiation_pattern(theta_tx))
-    E0ref=E0*(radiation_pattern(theta_tx))
-
     
-    Eref=E0ref*np.exp(-1j*K*(d1+d2))/(d1*d2)*(gamma_par*np.dot(new_y,par_vv)*par_vv \
-                                           +gamma_per*np.dot(new_y,per_vv)*per_vv)
+    E0ref=E0*np.sqrt(Antenna.radiation_pattern(theta_tx))
+    Eref=E0ref*np.exp(-1j*K*(d1+d2))/(d1+d2)*(gamma_par*np.dot(tx_y,par_vv)*par_vv \
+                                           +gamma_per*np.dot(tx_y,per_vv)*per_vv)
 
-    #Eref=vv_A2W(Eref, tx)
-
-    #P_rx=1/(2*Z_0)*(compute_Ae(0)*(np.linalg.norm(np.real(Elos)))**2+compute_Ae(theta_rx)*(np.linalg.norm(np.real(Eref)))**2)
-    P_rx=1/2*compute_Ae(0)*(np.linalg.norm(np.real(Elos)))**2+compute_Ae(theta_rx)*(np.linalg.norm(np.real(Eref)))**2
-    db=10*np.log10(P_rx/FREQUENCY)
-
+    #put the fields relative to the rx frame 
+    #in_tx_frame=np.real(Elos)
+    Elos=vv_TX2W(Elos)
+    Eref=vv_TX2W(Eref)
+    #in_world_frame=np.real(Elos)
+    Elos=vv_W2RX(Elos)
+    Eref=vv_W2RX(Eref)
+    #in_rx_frame=(np.real(Elos))
+    #print(f"Elos in rx frame {in_rx_frame} and in tx frame {in_tx_frame} in world_frame {in_world_frame}")
+    
+    los_power=1/(2*Z_0)*Antenna.compute_Ae(0)*(np.linalg.norm(np.real(Elos)))**2
+    ref_power=1/(2*Z_0)*Antenna.compute_Ae(theta_rx)*(np.linalg.norm(np.real(Eref)))**2
+    P_rx=los_power+ref_power
+        
+    db=to_db(P_rx/(12.5*1e6))#TODO why divide by frequency here to make it match to path loss
     assert(np.linalg.norm(Eref)<np.linalg.norm(Elos))
     return db
 
 
 
-
-
 def compare_models():
+    """
+    Comparison between path loss, the two rays model, and the simplified two rays model
+    """
     ztx=30
     zrx=2
-    #dists=np.arange(30,500*1e3,100) #distances between the bases of the antennas
     dists=np.arange(5*ztx*zrx,500*1e3,100) #distances between the bases of the antennas
 
     pl=np.zeros(len(dists))
-    sol_matlab=np.zeros(len(dists))
+    sol_simplified_two_rays=np.zeros(len(dists))
     sol_two_rays_fields=np.zeros(len(dists))
 
     for ind,L in enumerate(dists):
         dlos=np.sqrt((ztx-zrx)**2+L**2)
         pl[ind]=path_loss(dlos)
         sol_two_rays_fields[ind]=two_rays_fields(L=L,ztx=ztx,zrx=zrx)
-        sol_matlab[ind]=matlab(L=L,ztx=ztx,zrx=zrx)
+        sol_simplified_two_rays[ind]=simplified_two_rays(L=L,ztx=ztx,zrx=zrx)
 
 
     fig=plt.figure()
     fig.set_dpi(300)
     ax=fig.add_subplot(1,1,1)
-
-    dists=10*np.log10(dists)
+    ax.set_xscale('log')
     ax.plot(dists,pl,'b',label="path loss")
-    #ax.plot(dists,sol_matlab,'y',label="matlab")
-
+    ax.plot(dists,sol_simplified_two_rays,'y',label="simplified two rays")
     ax.plot(dists,sol_two_rays_fields,'r',label='two rays')
 
     ax.grid()
     ax.set_title('comparison between two rays and path loss')
-    ax.set_xlabel('distance between tx and rx bases 10log10 (m)')
-    ax.set_ylabel('Received power (pr/pt)[dB]')
+    ax.set_xlabel('distance between tx and rx bases (m)')
+    ax.set_ylabel(r'Received power ($p_{rx}/p_{tx}$)[dB]')
     ax.legend()
     plt.show()
     return ax
 
- 
-if __name__=='__main__':
-
-    plt.close('all')
-    place,tx,geometry=place_utils.create_two_rays_place(npoints=50,plot=True)
-    rx=place.set_of_points
-    #print(f'rx {rx} first {rx[1]}')
-    compare_models()
-
-
+def compare_two_rays_and_simu(npoints):
+    place,tx,geometry=place_utils.create_two_rays_place(npoints,plot=True)
     problem = RayTracingProblem(tx, place)
     problem.solve(max_order=2,receivers_indexs=None)
     problem.plot_all_rays()
@@ -207,20 +212,19 @@ if __name__=='__main__':
 
     #simu solve
     df=my_field_computation(problem,results_path)
-
     nreceivers=len(df['rx_id'].unique())
     sol_two_rays_fields=np.zeros(nreceivers)
     simu=np.zeros(nreceivers)
     dists=np.zeros(nreceivers)
+
     for receiver in range(nreceivers):
         rx_df=df.loc[df['rx_id'] == receiver]
         rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]
-        simu[receiver]=to_db(np.sum(rx_df['path_power'])/FREQUENCY)
-        dists[receiver]=np.linalg.norm(tx-rx_coord)
-
-        print(f'RX {receiver}')
+        simu[receiver]=to_db(np.sum(rx_df['path_power']))
+        rx_base=np.array([rx_coord[0],rx_coord[1],0])
+        tx_base=np.array([tx[0][0],tx[0][1],0])
+        dists[receiver]=np.linalg.norm(tx_base-rx_base)
         sol_two_rays_fields[receiver]=two_rays_fields(L=dists[receiver],ztx=tx[0][2],zrx=rx_coord[2])
-
 
     fig=plt.figure()
     fig.set_dpi(300)
@@ -232,8 +236,16 @@ if __name__=='__main__':
     ax.grid()
     ax.set_title('comparison between two rays and simu')
     ax.set_xlabel('distance between tx and rx (m)')
-    ax.set_ylabel('Received power (pr/pt)[dB]')
+    ax.set_ylabel(r'Received power ($p_{rx}/p_{tx}$)[dB]')
     ax.legend()
     plt.show()
-    
+    plt.savefig(f"../plots/comparison_two_rays_simu.eps", format='eps', dpi=1000)
     print(f'TXgain*RXgain={np.sqrt(TX_GAIN*RX_GAIN):.2f}')
+    return
+
+
+if __name__=='__main__':
+
+    plt.close('all')
+    compare_two_rays_and_simu(npoints=100)
+    compare_models()

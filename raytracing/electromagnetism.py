@@ -34,9 +34,9 @@ P_IN=1
 RADIATION_EFFICIENCY=1
 RADIATION_POWER=RADIATION_EFFICIENCY*P_IN
 
-
-TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians
-RX_GAIN=4*pi*1/((pi/9)**2) #20 degree beamwidth
+ALPHA=2 #increase alpha to make the antenna more directive.
+TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians, approx 45
+RX_GAIN=4*pi*1/((pi/9)**2) #20 degree beamwidth  approx 103
 
 def vv_normalize(vv):
     norm=np.linalg.norm(vv)
@@ -66,6 +66,8 @@ def path_loss(d):
     pl=10*np.log10(pr_pt)
     return pl
 
+
+#TODO conversion from TX to world and from RX to world as well!
 class Antenna:
     def __init__(self,position):
         self.position=position   #the position of the antenna
@@ -73,28 +75,16 @@ class Antenna:
         self.radiation_efficiency=1
         self.E0=None         #the field radiated 1m away from the antenna
         self.polarisation=None
-        self.mat=None
+        self.mat=None #change of basis matrix
 
     def __str__(self):
-        return f'Antenna: position: {self.position} efficiency: {self.radiation_efficiency} E0={self.E0}'
-
-    # @staticmethod
-    #UNUSED
-    # def parametric_from_normal_and_point(normal,point):
-    #     """
-    #     Returns the parametric equation of the plane described by its normal and a point.
-    #     It will return all four coefficients such that: a*x + b*y + c*z + d = 0.
-    #     """
-    #     normal=vv_normalize(normal)
-    #     aa, bb, cc = normal
-    #     dd=-np.dot(point, normal)
-    #     return aa,bb,cc,dd
+        return f'Antenna: position: {self.position} orientation: {self.basis} efficiency: {self.radiation_efficiency} E0={self.E0}'
 
     def align_antenna_to_point(self,point):
         """
         create a new reference frame in the antenna
         new_z=unit vector from antenna to point
-        new_x=unit vector perp to new_z and parallel to ground (so perp to z)
+        new_x=unit vector perp to new_z and parallel to ground (so perp to world_z)
         new_y=cross(new_x,new_z)
         """
         new_z=vv_normalize(point-self.position)
@@ -123,7 +113,7 @@ class Antenna:
 
     def incident_angles(self,point):
         """
-        given the antenna basis and the incoming ray
+        given the antenna basis a point on the incoming ray
         returns elevation and azimuth angles of incident path in radians
         """
         new_point=self.pp_W2A(point)
@@ -138,11 +128,10 @@ class Antenna:
         x=point[0]
         y=point[1]
         z=point[2]
-        hxy=np.sqrt(x**2+y**2)
+        hxy=np.sqrt(x**2+y**2) #proj of r on plane xy
         r = np.sqrt(hxy**2+z**2)
         el = np.arctan2(hxy, z) #from z to ray
-        az = np.arctan2(y, x) #from x to proj ray on xy
-
+        az = np.arctan2(y, x) #from x to proj ray on plane xy
         return r,el,az
 
     def plot_antenna_frame(self,ax,colors):
@@ -193,12 +182,12 @@ class Antenna:
         return new_vv
 
 
-    def path_to_antenna_reference_frame(self,path):
-        new_path=[]
-        for point in path:
-            new_point=self.pp_W2A(point)
-            new_path.append(new_point)
-        return new_path
+    def path_W2A(self,path):
+        """
+        Change the reference frame of a path (table of points)
+        from world-->antenna
+        """
+        return [self.pp_W2A(point) for point in path]
 
 
     def antenna_tests(self,path):
@@ -251,14 +240,17 @@ class Antenna:
         assert np.isclose(np.dot(self.basis[1],self.basis[2]),0),"y is not perp to z"
         return
 
+    @staticmethod
+    def radiation_pattern(theta,phi=0):
+        F = np.cos(theta/2)**(2*ALPHA)
+        norm=pi*np.power(2,(1-2*ALPHA),dtype=float)*sc.special.factorial(2*ALPHA)/(sc.special.factorial(ALPHA)**2)
+        print(f"theta {theta*180/pi:.2f}\u00b0 rad pattern={F:.2f}")
+        return F/norm #TODO norm the radiatio pattern
 
-def radiation_pattern(theta,phi=0):
-    alpha=1 #increase alpha to make the antenna more directive.
-    F = np.cos(theta/2)**alpha
-    norm=pi*np.power(2,(2*alpha-1))*sc.special.factorial(2*alpha)/sc.special.factorial(alpha)**2
-    print(f"theta {theta*180/pi:.2f}\u00b0 rad pattern={F:.2f}")
-    return F#/norm
-
+    @staticmethod
+    def compute_Ae(theta_rx,phi_rx=0):
+        Ae=(LAMBDA**2/(4*pi))*RX_GAIN*Antenna.radiation_pattern(theta_rx,phi_rx)
+        return Ae
 
 class ElectromagneticField:
 
@@ -275,27 +267,20 @@ class ElectromagneticField:
         Computes the field radiated 1m away from the antenna in the direction of the path
         """
         r,theta,phi=tx_antenna.incident_angles(path[1])
-        #theta+=pi/2 #TODO check that definitio of theta is right. Should it be 0 or 90 in the LOS case?
         #transform r_VV into the basis of the antenna!!!
         new_point=tx_antenna.pp_W2A(path[1])
         r_vv=vv_normalize(new_point) #tx_antenna.position=[0,0,0]
 
-
-        # E0=-1j*K*Z_0/(4*pi)*np.exp(-1j*K)*radiation_pattern(theta,phi)*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi*1))   
+        # E0=-1j*K*Z_0/(4*pi)*np.exp(-1j*K)*Antenna.radiation_pattern(theta,phi)*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi*1))   
         # E=E0*np.exp(-1j*K*r)/r*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_W2A(tx_antenna.polarisation)),r_vv))
         #E=tx_antenna.vv_A2W(E)
         #return ElectromagneticField(E=E)
 
         #field in antenna's coordinates
         E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)
-        Einits=E0*np.sqrt(radiation_pattern(theta, phi))*np.exp(-1j*K*r)/r
-        print(f"Einits1 {Einits:.2f} exp {np.exp(-1j*K*r):.2f} sqrt {np.sqrt(radiation_pattern(theta,phi)):.2f}")
+        Einits=E0*np.sqrt(Antenna.radiation_pattern(theta, phi))*np.exp(-1j*K*r)/r
         Einit=Einits*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_W2A(tx_antenna.polarisation)),r_vv))
-        print(f"Einit2 {Einits:.2f} E0 {E0:.2f}")
         #tx_antenna.antenna_tests(path)
-
-        #assert np.dot(Einit,r_vv)<(1e-5),f'ERROR: field is not transverse {Einit}, dot {np.dot(Einit,r_vv)}'
-
         Einit=tx_antenna.vv_A2W(Einit) #return to world coordinates
         return ElectromagneticField(E=Einit)
        
@@ -313,8 +298,12 @@ class ElectromagneticField:
 
     @staticmethod
     def fresnel_coeffs(theta_i,roughness,epsilon_eff_2):
+        """
+        Computes fresnel coefficients.
+        theta_i is the angle between the incident ray and the normal to the surface
+        """
         assert 0<theta_i<pi/2, f"theta_i={theta_i*180/pi}\u00b0, but should between 0,90\u00b0"
-        #assuming the first medium is air
+        #assuming the first medium is air -> eps_eff_1=1
         sqrt=np.sqrt(epsilon_eff_2-(np.sin(theta_i))**2)
         cosi=np.cos(theta_i)
         r_par=(epsilon_eff_2*cosi-sqrt) / (epsilon_eff_2*cosi+sqrt)    #Rh
@@ -409,7 +398,7 @@ class ElectromagneticField:
             sr = vectors[1, :] #normalised reflected vector
 
             theta_i=np.arccos(np.dot(-surface_normal,si)) #incident angle
-            assert(theta_i<pi/2),f'strange incident angle: theta_i= {theta_i*180/pi}\u00b0'
+            assert(0<theta_i<pi/2),f'strange incident angle: theta_i= {theta_i*180/pi}\u00b0'
             r_par,r_per=ElectromagneticField.fresnel_coeffs(theta_i,roughness,epsilon_eff_2)
 
             #dyadic reflection coeff McNamara 3.3, 3.4, 3.5, 3.6
@@ -732,7 +721,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
             sol.rx_id=receiver
             sol.path_type="LOS"
             sol.tx_antenna=tx_antenna
-            sol.antenna_path=tx_antenna.path_to_antenna_reference_frame(sol.world_path)
+            sol.antenna_path=tx_antenna.path_W2A(sol.world_path)
 
             E_los=ElectromagneticField.from_path(sol.world_path,sol.tx_antenna)
             E_los=ElectromagneticField.account_for_trees(E_los,sol.world_path,rtp.place)
@@ -768,7 +757,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
                 sol.rx_id=receiver
                 sol.path_type='R'*order
                 sol.tx_antenna=tx_antenna
-                sol.antenna_path=tx_antenna.path_to_antenna_reference_frame(sol.world_path)
+                sol.antenna_path=tx_antenna.path_W2A(sol.world_path)
                 sol.compute_tx_angles()
 
                 E_i=ElectromagneticField.from_path([sol.tx,first_interaction],sol.tx_antenna)
@@ -813,7 +802,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
                 sol.rx_id=receiver
                 sol.path_type='R'*(order-1)+'D'
                 sol.tx_antenna=tx_antenna
-                sol.antenna_path=tx_antenna.path_to_antenna_reference_frame(sol.world_path)
+                sol.antenna_path=tx_antenna.path_W2A(sol.world_path)
                 sol.compute_tx_angles()
                 sol.field=this_E.E
                 solved_list.append(sol)
@@ -844,10 +833,9 @@ def my_field_computation(rtp,save_name="problem_fields"):
         for sol in this_solved_list:
             sol.rx_antenna=rx_antenna
             sol.compute_rx_angles()
-            Ae=(LAMBDA**2/(4*pi))*RX_GAIN*radiation_pattern(sol.rx_el,sol.rx_az)
-            #sol.power=(1/2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2 #TODO Z0 should be there, maybe remove it from E0
-            #sol.power=1/(2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2
-            sol.power=(1/2)*Ae*(np.linalg.norm(np.real(sol.field)))**2
+            Ae=Antenna.compute_Ae(sol.rx_el,sol.rx_az)
+            sol.power=1/(2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2
+            #sol.power=(1/2)*Ae*(np.linalg.norm(np.real(sol.field)))**2
             #sol.show_antennas_alignement()
             print(f" rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi:.2f}\u00b0 phi {sol.rx_az*180/pi:.2f}\u00b0")
             sol.add_to_df(df)
