@@ -139,13 +139,15 @@ def two_rays_fields(L,ztx,zrx):
         return new_vv
     
     #E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)*tx_y
+    
+    
     E0=-1j*Z_0*np.exp(-1j*K*1)*tx_y
     Elos=E0*np.sqrt(Antenna.radiation_pattern(0))*np.exp(-1j*K*dlos)/dlos
-
     per_vv=vv_normalize(np.cross(d1_vv,d2_vv))
     par_vv=vv_normalize(np.cross(per_vv,d1_vv))
     
-    E0ref=E0*np.sqrt(Antenna.radiation_pattern(theta_tx))
+    #E0ref=E0*np.sqrt(Antenna.radiation_pattern(theta_tx))
+    E0ref=E0*np.sqrt(Antenna.radiation_pattern(theta_tx)) #TODO why take sqrt of radiation pattern
     Eref=E0ref*np.exp(-1j*K*(d1+d2))/(d1+d2)*(gamma_par*np.dot(tx_y,par_vv)*par_vv \
                                            +gamma_per*np.dot(tx_y,per_vv)*per_vv)
 

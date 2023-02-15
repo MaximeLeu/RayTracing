@@ -57,6 +57,8 @@ def plot_claude_comparison(df,maxwell_base,tx):
             rx_coord=rx_df["receiver"].values[0]
             dist_maxwell=np.linalg.norm(maxwell_base-rx_coord) #distance between the receiver and the maxwell 
             #TODO results maybe shifted, maybe dist_maxwell=norm maxwell_base-rx_base
+            rx_base=np.array([rx_coord[0],rx_coord[1],0])
+            dist_maxwell=np.linalg.norm(maxwell_base-rx_base)
             simu_x[receiver]=dist_maxwell
         return simu_x, simu_y
 

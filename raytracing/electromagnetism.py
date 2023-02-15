@@ -34,9 +34,11 @@ P_IN=1
 RADIATION_EFFICIENCY=1
 RADIATION_POWER=RADIATION_EFFICIENCY*P_IN
 
-ALPHA=20 #increase alpha to make the antenna more directive.
-TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians, approx 45
+ALPHA=0 #increase alpha to make the antenna more directive.
+TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians
 RX_GAIN=4*pi*1/((pi/9)**2) #20 degree beamwidth  approx 103
+#TX_GAIN=1 #TODO ACCOUNT FOR TX GAIN IN SIMU, same for RX gain.
+#RX_GAIN=1
 
 def vv_normalize(vv):
     norm=np.linalg.norm(vv)
@@ -125,9 +127,7 @@ class Antenna:
         """
         transform the given point into spherical coordinates
         """
-        x=point[0]
-        y=point[1]
-        z=point[2]
+        x,y,z=point
         hxy=np.sqrt(x**2+y**2) #proj of r on plane xy
         r = np.sqrt(hxy**2+z**2)
         el = np.arctan2(hxy, z) #from z to ray
@@ -143,7 +143,6 @@ class Antenna:
         for i in range(3):
             plot_utils.plot_vec(ax,antenna_basis[i],colors[i],origin=origin)
         return ax
-
 
     def pp_W2A(self,point):
         """
@@ -181,10 +180,9 @@ class Antenna:
         new_vv=vector@(self.mat)
         return new_vv
 
-
     def path_W2A(self,path):
         """
-        Change the reference frame of a path (table of points)
+        Change the reference frame of a path (list of points)
         from world-->antenna
         """
         return [self.pp_W2A(point) for point in path]
@@ -269,17 +267,12 @@ class ElectromagneticField:
         r,theta,phi=tx_antenna.incident_angles(path[1])
         #transform r_VV into the basis of the antenna!!!
         new_point=tx_antenna.pp_W2A(path[1])
-        r_vv=vv_normalize(new_point) #tx_antenna.position=[0,0,0]
-
-        # E0=-1j*K*Z_0/(4*pi)*np.exp(-1j*K)*Antenna.radiation_pattern(theta,phi)*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi*1))   
-        # E=E0*np.exp(-1j*K*r)/r*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_W2A(tx_antenna.polarisation)),r_vv))
-        #E=tx_antenna.vv_A2W(E)
-        #return ElectromagneticField(E=E)
+        r_vv=vv_normalize(new_point) #tx_antenna.position=[0,0,0] in tx frame
 
         #field in antenna's coordinates
-        #E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)
-        E0=-1j*Z_0*np.exp(-1j*K*1)
-        Einits=E0*np.sqrt(Antenna.radiation_pattern(theta, phi))*np.exp(-1j*K*r)/r
+        E0=-1j*Z_0*np.exp(-1j*K*1) #TODO maybe missing *K
+        Einits=E0*np.sqrt(Antenna.radiation_pattern(theta, phi))*np.exp(-1j*K*r)/r #TODO why take sqrt of radiation pattern
+        #Einits=E0*Antenna.radiation_pattern(theta, phi)*np.exp(-1j*K*r)/r
         Einit=Einits*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_W2A(tx_antenna.polarisation)),r_vv))
         #tx_antenna.antenna_tests(path)
         Einit=tx_antenna.vv_A2W(Einit) #return to world coordinates
