@@ -20,6 +20,7 @@ import place_utils
 from multithread_solve import multithread_solve_place
 from materials_properties import FREQUENCY
 
+from theoretical_validation import two_rays_fields
 
 def read_csv(file):
     """
@@ -39,7 +40,7 @@ def read_csv(file):
     return x,y
 
 
-def plot_claude_comparison(df,maxwell_base,tx):
+def plot_claude_comparison(df,maxwell_base,tx,compare_two_rays):
     """
     df: dataframe of the solved problem
     """
@@ -65,10 +66,16 @@ def plot_claude_comparison(df,maxwell_base,tx):
     #path loss
     nreceivers=len(df['rx_id'].unique())
     pl=np.zeros(nreceivers)
+    sol_two_rays=np.zeros(nreceivers)
     for receiver in range(nreceivers):
         rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]
         d=np.linalg.norm(tx-rx_coord)
         pl[receiver]=path_loss(d)
+        
+        tx_base=np.array([tx[0],tx[1],0])
+        rx_base=np.array([rx_coord[0],rx_coord[1],0])
+        L=np.linalg.norm(tx_base-rx_base)
+        sol_two_rays[receiver]=two_rays_fields(L,ztx=tx[2],zrx=rx_coord[2],slope=None)
 
     #claude's measures
     if FREQUENCY==12.5*1e9:
@@ -91,6 +98,10 @@ def plot_claude_comparison(df,maxwell_base,tx):
     ax.plot(x1,y1,color='red', marker='o',label="october measures")
     ax.plot(simu_x,simu_y,color="orange",marker='o',label='simulation')
     ax.plot(simu_x,pl,marker='o',label='path loss')
+    
+    if compare_two_rays:
+        ax.plot(simu_x,sol_two_rays,color="black",marker='o',label='two rays')
+    
     ax.grid()
     ax.tick_params(axis='both', which='major', labelsize=20)
     ax.set_xlabel('distance to Maxwell building [m]',fontsize=20)
@@ -134,15 +145,16 @@ def small_vs_path_loss(npoints=15,order=2):
     plt.show()
     return
 
-def levant_vs_measures(npoints=15,order=3):
+def levant_vs_measures(npoints=15,order=3,compare_two_rays=False):
     place,tx,_=place_utils.create_levant_place(npoints)
     solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='levant_claude',order=order)
     df=file_utils.load_df(solved_em_path)
     tx=tx[0]
     maxwell_base=[tx[0],tx[1],1]
-    plot_claude_comparison(df,maxwell_base,tx)
+    plot_claude_comparison(df,maxwell_base,tx,compare_two_rays)
     return
 
+    
 
 def plot_claude_only():
     #plt.rcParams.update({'font.size': 22})
@@ -183,5 +195,6 @@ def plot_claude_only():
 if __name__ == '__main__':
     plt.close('all')
     #plot_claude_only()
-    levant_vs_measures(npoints=16*1,order=2)
-    #small_vs_path_loss(npoints=16,order=2)
+    levant_vs_measures(npoints=16*1,order=3,compare_two_rays=True)
+    #small_vs_path_loss(npoints=16*10,order=2)
+    

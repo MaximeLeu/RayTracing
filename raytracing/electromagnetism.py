@@ -34,9 +34,10 @@ P_IN=1
 RADIATION_EFFICIENCY=1
 RADIATION_POWER=RADIATION_EFFICIENCY*P_IN
 
-ALPHA=0 #increase alpha to make the antenna more directive.
+ALPHA=14#increase alpha to make the antenna more directive.
 TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians
 RX_GAIN=4*pi*1/((pi/9)**2) #20 degree beamwidth  approx 103
+RX_GAIN=RX_GAIN*30 #*170 at 30GHz and *30 at 12.5GHz
 #TX_GAIN=1 #TODO ACCOUNT FOR TX GAIN IN SIMU, same for RX gain.
 #RX_GAIN=1
 
@@ -64,7 +65,7 @@ def path_loss(d):
     """
     Given the distance between TX and RX antennas compute the path loss in dB
     """
-    pr_pt=RX_GAIN*TX_GAIN*(LAMBDA/(4*pi*d))**2
+    pr_pt=(LAMBDA/(4*pi*d))**2 *RX_GAIN*TX_GAIN*Antenna.radiation_pattern(theta=0,phi=0)**2
     pl=10*np.log10(pr_pt)
     return pl
 
@@ -242,8 +243,8 @@ class Antenna:
     def radiation_pattern(theta,phi=0):
         F = np.cos(theta/2)**(2*ALPHA)
         norm=pi*np.power(2,(1-2*ALPHA),dtype=float)*sc.special.factorial(2*ALPHA)/(sc.special.factorial(ALPHA)**2)
-        print(f"theta {theta*180/pi:.2f}\u00b0 rad pattern={F:.2f}")
-        return F/norm
+        #print(f"theta {theta*180/pi:.2f}\u00b0 rad pattern={F:.2f}")
+        return F#/norm
 
     @staticmethod
     def compute_Ae(theta_rx,phi_rx=0):
@@ -270,9 +271,9 @@ class ElectromagneticField:
         r_vv=vv_normalize(new_point) #tx_antenna.position=[0,0,0] in tx frame
 
         #field in antenna's coordinates
-        E0=-1j*Z_0*np.exp(-1j*K*1) #TODO maybe missing *K
-        Einits=E0*np.sqrt(Antenna.radiation_pattern(theta, phi))*np.exp(-1j*K*r)/r #TODO why take sqrt of radiation pattern
-        #Einits=E0*Antenna.radiation_pattern(theta, phi)*np.exp(-1j*K*r)/r
+        #E0=-1j*Z_0*np.exp(-1j*K*1)/(4*pi)
+        E0=-1j*1/(4*pi)*138
+        Einits=E0*Antenna.radiation_pattern(theta, phi)*np.exp(-1j*K*r)/r
         Einit=Einits*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_W2A(tx_antenna.polarisation)),r_vv))
         #tx_antenna.antenna_tests(path)
         Einit=tx_antenna.vv_A2W(Einit) #return to world coordinates
@@ -828,7 +829,8 @@ def my_field_computation(rtp,save_name="problem_fields"):
             sol.rx_antenna=rx_antenna
             sol.compute_rx_angles()
             Ae=Antenna.compute_Ae(sol.rx_el,sol.rx_az)
-            sol.power=1/(2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2
+            sol.power=1/(2*Z_0)*Ae*(np.linalg.norm(np.real(sol.field)))**2 #TODO account for TX_GAIN here
+            sol.power=sol.power*TX_GAIN #TODO add P_IN here
             #sol.power=(1/2)*Ae*(np.linalg.norm(np.real(sol.field)))**2
             #sol.show_antennas_alignement()
             print(f" rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi:.2f}\u00b0 phi {sol.rx_az*180/pi:.2f}\u00b0")

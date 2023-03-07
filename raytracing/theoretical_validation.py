@@ -27,7 +27,8 @@ def simplified_two_rays(L,ztx,zrx):
     Simplified two rays model, only valid when the distance between tx and rx is large
     """
     #http://www.wirelesscommunication.nl/reference/chaptr03/pel/tworay.htm
-    ans  = RX_GAIN*TX_GAIN*((LAMBDA/(4*np.pi*L))**2)* 4 *(np.sin(2*np.pi*zrx*ztx/(LAMBDA*L)))**2
+    #ans  = RX_GAIN*TX_GAIN*((LAMBDA/(4*np.pi*L))**2)*(2*np.sin(K*zrx*ztx/L))**2
+    ans = RX_GAIN*TX_GAIN*Antenna.radiation_pattern(theta=0,phi=0)**2*(LAMBDA**2)/(4*pi)*1/(Z_0)* ((2/L)*np.sin(K*zrx*ztx/L))**2 *30 
     ans =10*np.log10(ans)
     return ans
 
@@ -47,18 +48,48 @@ def two_rays_geometry(L,ztx,zrx):
     theta_tx=np.arcsin(2*zrx*L/(dlos*dref))#law of sines
     theta_rx=2*theta-theta_tx
     
-    assert(0<theta_rx<pi/2), f'antennas are too close theta_RX {theta_rx*180/pi}\u00b0 L={L}m L2={L2}m theta={theta*180/pi}\u00b0'
-    assert(0<theta_tx<pi/2), f'antennas are too close theta_TX {theta_tx*180/pi}\u00b0 L={L}m L2={L2}m theta={theta*180/pi}\u00b0'
+    #assert(0<theta_rx<pi/2), f'antennas are too close theta_RX {theta_rx*180/pi}\u00b0 L={L}m L2={L2}m theta={theta*180/pi}\u00b0'
+    #assert(0<theta_tx<pi/2), f'antennas are too close theta_TX {theta_tx*180/pi}\u00b0 L={L}m L2={L2}m theta={theta*180/pi}\u00b0'
     return dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx
 
 
+def two_rays_geometry_sloped(L,ztx,zrx,slope):
+    """
+    L is the distance between the bases of the antennas.
+    Ztx is TX antenna height, zrx is RX antenna height
+    slope is the angle of the slope in RADIANS
+    """
+    #L2
+    a=ztx**2-zrx**2
+    b=2*zrx**2*L+2*zrx**2*ztx*np.sin(slope)-2*ztx**2*zrx*np.sin(slope)
+    c=-zrx**2*L**2-2*zrx**2*ztx*L*np.sin(slope)
+    determinant=b**2-4*a*c
+    assert(determinant>=0)
+    L2=(-b+np.sqrt(determinant))/(2*a)
+    assert(L2>0)
+    
+    #rest
+    L1=L-L2
+    d1=np.sqrt(ztx**2+L1**2+2*ztx*L1*np.sin(slope))
+    d2=np.sqrt(zrx**2+L2**2-2*zrx*L2*np.sin(slope))
+    theta=np.arcsin(np.cos(slope)*ztx/d1)
+    dlos=np.sqrt(d1**2+d2**2+2*d1*d2*np.cos(2*theta))
+    theta_tx=np.arcsin(d2/dlos*np.sin(2*theta))
+    theta_rx=np.arcsin(d1/dlos*np.sin(2*theta))
+    dref=d1+d2
+    return dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx
 
-def two_rays_fields(L,ztx,zrx):
+
+def two_rays_fields(L,ztx,zrx,slope=None):
     """
     L is the distance between the bases of the antennas.
     ztx is TX antenna height, zrx is RX antenna height
     """
-    dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx= two_rays_geometry(L,ztx,zrx)
+    if slope is None:
+        dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx= two_rays_geometry(L,ztx,zrx)
+    else:
+        dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx= two_rays_geometry_sloped(L,ztx,zrx,pi/9)
+    
     #csts
     epsilon_eff_2=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=='concrete']["epsilon_eff"].values[0]
     gamma_par,gamma_per=ElectromagneticField.fresnel_coeffs(pi/2-theta, 0, epsilon_eff_2)
@@ -137,17 +168,15 @@ def two_rays_fields(L,ztx,zrx):
         # print(f'{vv_W2RX(rx_z)} should have 001')
         # print(f'{vv_W2RX(-d2_vv)} should have {np.array([0,-np.sin(theta_rx),np.cos(theta_rx)])}')
         return new_vv
+
+
+    E0=-1j*tx_y/(4*pi)*138
+    Elos=E0*Antenna.radiation_pattern(0)*np.exp(-1j*K*dlos)/dlos
     
-    #E0=-1j*K*Z_0*np.sqrt(2*Z_0*TX_GAIN*P_IN/(4*pi))*1/(4*pi)*np.exp(-1j*K*1)*tx_y
-    
-    
-    E0=-1j*Z_0*np.exp(-1j*K*1)*tx_y
-    Elos=E0*np.sqrt(Antenna.radiation_pattern(0))*np.exp(-1j*K*dlos)/dlos
     per_vv=vv_normalize(np.cross(d1_vv,d2_vv))
     par_vv=vv_normalize(np.cross(per_vv,d1_vv))
     
-    #E0ref=E0*np.sqrt(Antenna.radiation_pattern(theta_tx))
-    E0ref=E0*np.sqrt(Antenna.radiation_pattern(theta_tx)) #TODO why take sqrt of radiation pattern
+    E0ref=E0*Antenna.radiation_pattern(theta_tx)
     Eref=E0ref*np.exp(-1j*K*(d1+d2))/(d1+d2)*(gamma_par*np.dot(tx_y,par_vv)*par_vv \
                                            +gamma_per*np.dot(tx_y,per_vv)*per_vv)
 
@@ -163,8 +192,11 @@ def two_rays_fields(L,ztx,zrx):
     
     los_power=1/(2*Z_0)*Antenna.compute_Ae(0)*(np.linalg.norm(np.real(Elos)))**2
     ref_power=1/(2*Z_0)*Antenna.compute_Ae(theta_rx)*(np.linalg.norm(np.real(Eref)))**2
+    
     P_rx=los_power+ref_power
         
+    P_rx=P_rx*TX_GAIN
+            
     db=to_db(P_rx)
     assert(np.linalg.norm(Eref)<np.linalg.norm(Elos))
     return db
@@ -176,7 +208,7 @@ def compare_models():
     Comparison between path loss, the two rays model, and the simplified two rays model
     """
     ztx=30
-    zrx=2
+    zrx=10
     dists=np.arange(5*ztx*zrx,500*1e3,100) #distances between the bases of the antennas
 
     pl=np.zeros(len(dists))
@@ -194,16 +226,18 @@ def compare_models():
     fig.set_dpi(300)
     ax=fig.add_subplot(1,1,1)
     ax.set_xscale('log')
-    ax.plot(dists,pl,'b',label="path loss")
-    ax.plot(dists,sol_simplified_two_rays,'y',label="simplified two rays")
-    ax.plot(dists,sol_two_rays_fields,'r',label='two rays')
+    ax.plot(dists,sol_two_rays_fields,'r',label='Two rays')
+    ax.plot(dists,pl,'b',label="Friis")
+    ax.plot(dists,sol_simplified_two_rays,'y',label="Simplified two rays")
+    
 
     ax.grid()
-    ax.set_title('comparison between two rays and path loss')
+    ax.set_title(f'Comparison between two rays model and Friis at {FREQUENCY/(1e9)} GHz')
     ax.set_xlabel('distance between tx and rx bases (m)')
     ax.set_ylabel(r'Received power ($p_{rx}/p_{tx}$)[dB]')
     ax.legend()
     plt.show()
+    plt.savefig("../plots/comparison_theory2rays_PL_ez2rays.eps", format='eps', dpi=1000)
     return ax
 
 def compare_two_rays_and_simu(npoints):
@@ -247,8 +281,89 @@ def compare_two_rays_and_simu(npoints):
     return
 
 
+def draw_sloped_two_rays(L,ztx,zrx,slope):
+    h=L*np.sin(slope)
+    d=np.sqrt(L**2-h**2)
+
+    #ground
+    x_ground=[0,d]
+    y_ground=[0,-h]
+
+    #antennas
+    x_tx=[0,0]
+    y_tx=[0,ztx]
+    x_rx=[d,d]
+    y_rx=[-h,-h+zrx]
+
+    #los
+    x_los=[0,d]
+    y_los=[ztx,-h+zrx]
+    
+    dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx=two_rays_geometry_sloped(L,ztx,zrx,slope)
+    
+    #TX to G
+    d1_x=[0,L1*np.cos(slope)]
+    d1_y=[ztx,-L1*np.sin(slope)]
+
+    #G to RX
+    d2_x=[L1*np.cos(slope),d]
+    d2_y=[-L1*np.sin(slope),-h+zrx]
+    
+    plt.close("all")
+    plt.plot(x_ground,y_ground)
+    plt.plot(x_tx,y_tx)
+    plt.plot(x_rx,y_rx)
+    plt.plot(x_los,y_los)
+    plt.plot(d1_x,d1_y)
+    plt.plot(d2_x,d2_y)
+    plt.grid()
+    plt.title('Sloped two rays')
+    plt.show()
+
+    print(f"Given L={L:.2f}m, alpha={slope*180/np.pi:.2f}\u00b0, ZTX={ztx:.2f}m and ZRX={zrx:.2f}m")
+    print(f"d={d:.2f}m, h={h:.2f}m, d1={d1:.2f}m, d2={d2:.2f}m, L1={L1:.2f}m, L2={L2:.2f}m")
+    print(f"theta={theta*180/np.pi:.2f}\u00b0, theta_rx={theta_rx*180/np.pi:.2f}\u00b0, theta_tx={theta_tx*180/np.pi:.2f}\u00b0")
+    return
+
+
+def compare_sloped_flat():
+    """
+    Comparison between the sloped two rays model and the two rays model
+    """
+    ztx=30
+    zrx=10
+    dists=np.arange(5*ztx*zrx,500*1e3,100) #distances between the bases of the antennas
+    slope=pi/10
+    
+    sol_two_rays_fields_sloped=np.zeros(len(dists))
+    sol_two_rays_fields=np.zeros(len(dists))
+
+    for ind,L in enumerate(dists):
+        sol_two_rays_fields[ind]=two_rays_fields(L=L,ztx=ztx,zrx=zrx)
+        sol_two_rays_fields_sloped[ind]=two_rays_fields(L=L,ztx=ztx,zrx=zrx,slope=slope)
+
+
+    fig=plt.figure()
+    fig.set_dpi(300)
+    ax=fig.add_subplot(1,1,1)
+    ax.set_xscale('log')
+    ax.plot(dists,sol_two_rays_fields,'r',label='Two rays')
+    ax.plot(dists,sol_two_rays_fields_sloped,'y',label="sloped two rays")
+    
+
+    ax.grid()
+    ax.set_title(f'Comparison between two rays model and Friis at {FREQUENCY/(1e9)} GHz')
+    ax.set_xlabel('distance between tx and rx bases (m)')
+    ax.set_ylabel(r'Received power ($p_{rx}/p_{tx}$)[dB]')
+    ax.legend()
+    plt.show()
+    plt.savefig("../plots/comparison_theory2rays_PL_ez2rays.eps", format='eps', dpi=1000)
+    return ax
+
+
 if __name__=='__main__':
 
     plt.close('all')
     compare_two_rays_and_simu(npoints=100)
     compare_models()
+    compare_sloped_flat()

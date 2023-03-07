@@ -12,7 +12,7 @@ from scipy.constants import pi
 import scipy as sc
 from matplotlib.widgets import Slider
 
-ALPHA=0
+ALPHA=5
 
 if __name__=='__main__':
     plt.close("all")
@@ -22,14 +22,14 @@ if __name__=='__main__':
     def rad_pattern(alpha,param):
         F = np.cos(theta/2+param)**(2*alpha)
         norm=pi*np.power(2,(1-2*alpha),dtype=float)*sc.special.factorial(2*alpha)/sc.special.factorial(alpha)**2
-        return F/norm
+        return F#/norm
 
 
     F=rad_pattern(ALPHA,0)
     fig = plt.figure(figsize=(5,5))
     ax = fig.add_subplot(111, projection='polar')
     p = ax.plot(theta, F,linewidth=3)
-    plt.title('Radiation Pattern',fontsize=20)
+    plt.title(r'Radiation pattern for $\alpha$='+str(ALPHA),fontsize=20)
 
     power_slider_ax = plt.axes([0.2, 0.05, 0.6, 0.03])
     power_slider = Slider(power_slider_ax, 'Alpha', 0, 30, valinit=0, valstep=1)
