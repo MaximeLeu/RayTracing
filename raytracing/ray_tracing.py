@@ -380,7 +380,7 @@ class RayTracingProblem:
         """
         plot the ray paths for each receivers in a different subplot
         """
-        MAXPLOTS=4
+        MAXPLOTS=1
         fig = plt.figure("Ray traced places",figsize=(8,5))
         fig.set_dpi(300)
         nplots=len(self.solved_receivers)

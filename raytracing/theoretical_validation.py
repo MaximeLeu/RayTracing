@@ -268,7 +268,7 @@ def compare_two_rays_and_simu(npoints):
     ax=fig.add_subplot(1,1,1)
 
     ax.plot(dists,sol_two_rays_fields,'-or',label='two rays')
-    ax.plot(dists,simu,'-og',label="simu")
+    ax.plot(dists,simu,':*g',label="simu")
 
     ax.grid()
     ax.set_title('comparison between two rays and simu')

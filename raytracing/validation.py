@@ -195,6 +195,6 @@ def plot_claude_only():
 if __name__ == '__main__':
     plt.close('all')
     #plot_claude_only()
-    levant_vs_measures(npoints=16*1,order=3,compare_two_rays=True)
+    levant_vs_measures(npoints=16*1,order=2,compare_two_rays=True)
     #small_vs_path_loss(npoints=16*10,order=2)
     
