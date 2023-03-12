@@ -849,24 +849,6 @@ def my_field_computation(rtp,save_name="problem_fields"):
 
 
 
-def EM_fields_data(df_path):
-    df=file_utils.load_df(df_path)
-    nreceivers=len(df['rx_id'].unique())
-    for receiver in range(nreceivers):
-        if receiver in df['rx_id'].values:
-            rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]
-            print(f"------------data for receiver {receiver}, with coords {rx_coord}-------------------")
-            this_df=df.loc[df['rx_id'] == receiver]
-
-            if this_df['path_type'].str.contains("LOS").any():
-                print(f"RX {receiver} is in LOS")
-            else:
-                print(f"RX {receiver} is in NLOS")
-        else:
-            print("No path linking TX to RX was found for this receiver")
-    return
-
-
 def EM_fields_plots(df_path,order=3,name="notnamed"):
     df=file_utils.load_df(df_path)
     nreceivers=len(df['rx_id'].unique())

@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 #self written imports
 from ray_tracing import RayTracingProblem
-from electromagnetism import my_field_computation,EM_fields_plots,EM_fields_data
+from electromagnetism import my_field_computation,EM_fields_plots
 import place_utils
 
 
@@ -74,7 +74,6 @@ def multithread_solve_place(place,tx,save_name,N_CPU=16,order=3):
 
     #plot full problem
     #EM_fields_plots(solved_em_path,order=order,name=save_name)
-    EM_fields_data(solved_em_path)
     return solved_em_path,solved_rays_path
 
 
