@@ -12,49 +12,17 @@ from scipy.constants import pi
 import scipy as sc
 from matplotlib.widgets import Slider
 
+# Angle Increment
+theta = np.linspace(0, pi, 100)
+phi = np.linspace(0, 2*pi, 100)
 
-def interactive_pattern():
-    ALPHA=5
-    def rad_pattern(alpha,param):
-        F = np.cos(theta/2+param)**(2*alpha)
-        norm=pi*np.power(2,(1-2*alpha),dtype=float)*sc.special.factorial(2*alpha)/sc.special.factorial(alpha)**2
-        return F#/norm
-    
-    theta = np.linspace(0, 2*pi, 600)
 
-    F=rad_pattern(ALPHA,0)
-    fig = plt.figure(figsize=(5,5))
-    ax = fig.add_subplot(111, projection='polar')
-    p = ax.plot(theta, F,linewidth=3)
-    plt.title(r'Radiation pattern for $\alpha$='+str(ALPHA),fontsize=20)
-
-    power_slider_ax = plt.axes([0.2, 0.05, 0.6, 0.03])
-    power_slider = Slider(power_slider_ax, 'Alpha', 0, 30, valinit=0, valstep=1)
-    
-    param_slider_ax = plt.axes([0.2, 0.01, 0.6, 0.03])
-    param_slider = Slider(param_slider_ax, 'Param', 0, pi, valinit=0, valstep=0.01)
-
-    def update(val):
-        power = power_slider.val
-        param = param_slider.val
-        F = rad_pattern(power,param)
-        p[0].set_ydata(F)
-        ax.set_ylim(0, max(F))
-        fig.canvas.draw_idle()
-
-    power_slider.on_changed(update)
-    param_slider.on_changed(update)
-    
-    power_slider.label.set_size(20)
-    param_slider.label.set_size(20)
-    plt.xticks(fontsize=20)
-    plt.yticks(fontsize=20)
-    plt.show()
-    #power_slider_ax.set_visible(False)
-    #param_slider_ax.set_visible(False)
-    #plt.savefig(f"../plots/radiation_pattern_alpha{ALPHA}.eps", format='eps', dpi=1000)
-    return
-
+#Define the pattern function f here
+def f(theta,phi):
+    alpha=5
+    f = abs(np.cos(theta/2)**(2*alpha))
+    f=abs(np.sin(theta)**2) #DIPOLE ANTENNA
+    return f
 
 
 def spherical_to_cartesian(r, theta, phi):
@@ -64,17 +32,8 @@ def spherical_to_cartesian(r, theta, phi):
     return x, y, z
 
 
-#Define the pattern function f here
-def f(theta,phi):
-    f=abs(np.cos(theta)**4)
-    #f=abs(np.sin(theta)*(np.sin(phi))**2)
-    return f
-
+#3D radiation pattern plot.
 def plot_radiation_pattern():
-    # Angle Increment
-    theta = np.linspace(0, pi, 100)
-    phi = np.linspace(0, 2*pi, 100)
-
     #Compute pattern and normalize
     THETA,PHI=np.meshgrid(theta,phi)
     r=f(THETA,PHI)
@@ -84,8 +43,8 @@ def plot_radiation_pattern():
     #Plot 3D pattern
     fig = plt.figure(figsize=(20,20))
     ax = fig.add_subplot(111, projection='3d')
-    
     h=ax.plot_surface(X,Y,Z, cmap='jet', edgecolors='black', linewidth=1.1)
+    plt.title("3D Radiation pattern",fontsize=20)
     #fig.colorbar(h)
      
     #Plot X,Y,Z axises
@@ -105,14 +64,44 @@ def plot_radiation_pattern():
     return
 
 
+def plot_2D_radiation_pattern():
+    
+    r=f(theta,phi)
+    fig = plt.figure(figsize=(15,10))
+    fig.suptitle('Radiation patterns ', fontsize=20)
+    
+    #The elevation plane pattern is formed by slicing the 3D pattern
+    #through an orthogonal plane (either the x-z plane or the y-zplane). 
+    ax1 = fig.add_subplot(121, projection='polar')
+    ax1.plot(theta,r,linewidth=3)
+    ax1.plot(-theta, r,linewidth=3) # mirror the plot to show the other half
+    
+    #styling
+    #ax1.set_thetagrids([0,30, 60,90,120,150,180,210,240,270,300,330])
+    #ax1.set_rticks([-3, -10,-20],labels= ["-3dB", "-10dB","-20dB"])
+    ax1.set_rlabel_position(135)
+    ax1.grid(True,which="minor",linestyle= ":")
+    ax1.grid(True,which="major",linewidth= 1.2)
+    ax1.minorticks_on()
+    plt.title("Elevation plane pattern",fontsize=20)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    
+    #The azimuth plane pattern is formed by slicing through the 3D pattern in the horizontal plane, the x-y plane 
+    ax2 = fig.add_subplot(122, polar=True,projection='polar')
+    ax2.plot(phi,r,linewidth=3)
+    ax2.plot(-phi,r,linewidth=3)
+    plt.title("Azimuth plane pattern",fontsize=20)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    
+    plt.show()
+    #plt.savefig(f"../plots/radiation_pattern_alpha{ALPHA}.eps", format='eps', dpi=1000)
 
 
 if __name__=='__main__':
     plt.close("all")
-    
-    interactive_pattern()
     plot_radiation_pattern()
-
-    
+    plot_2D_radiation_pattern()
     
     
