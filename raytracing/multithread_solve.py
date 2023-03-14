@@ -73,7 +73,7 @@ def multithread_solve_place(place,tx,save_name,N_CPU=16,order=3):
     my_field_computation(full_problem,solved_em_path)
 
     #plot full problem
-    #EM_fields_plots(solved_em_path,order=order,name=save_name)
+    EM_fields_plots(solved_em_path,order=order,name=save_name)
     return solved_em_path,solved_rays_path
 
 
