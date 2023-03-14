@@ -22,6 +22,7 @@ def f(theta,phi):
     alpha=5
     f = abs(np.cos(theta/2)**(2*alpha))
     f=abs(np.sin(theta)**2) #DIPOLE ANTENNA
+    f=f*abs(np.cos(phi))
     return f
 
 
@@ -66,15 +67,25 @@ def plot_radiation_pattern():
 
 def plot_2D_radiation_pattern():
     
-    r=f(theta,phi)
+    r1=f(theta,np.pi/2)
+    if np.isscalar(r1):
+        r1=r1*np.ones_like(theta)
+    
+    r2=f(np.pi/2,phi)
+    if np.isscalar(r2):
+        #if f only depends on theta it returns a single number if not multiplied by ones
+        r2=r2*np.ones_like(phi)
+   
+        
+        
     fig = plt.figure(figsize=(15,10))
     fig.suptitle('Radiation patterns ', fontsize=20)
     
     #The elevation plane pattern is formed by slicing the 3D pattern
     #through an orthogonal plane (either the x-z plane or the y-zplane). 
     ax1 = fig.add_subplot(121, projection='polar')
-    ax1.plot(theta,r,linewidth=3)
-    ax1.plot(-theta, r,linewidth=3) # mirror the plot to show the other half
+    ax1.plot(theta,r1,linewidth=3)
+    ax1.plot(-theta, r1,linewidth=3) # mirror the plot to show the other half
     
     #styling
     #ax1.set_thetagrids([0,30, 60,90,120,150,180,210,240,270,300,330])
@@ -87,10 +98,12 @@ def plot_2D_radiation_pattern():
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
     
+    
+    
     #The azimuth plane pattern is formed by slicing through the 3D pattern in the horizontal plane, the x-y plane 
     ax2 = fig.add_subplot(122, polar=True,projection='polar')
-    ax2.plot(phi,r,linewidth=3)
-    ax2.plot(-phi,r,linewidth=3)
+    ax2.plot(phi,r2,linewidth=3)
+    ax2.plot(-phi,r2,linewidth=3)
     plt.title("Azimuth plane pattern",fontsize=20)
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
