@@ -12,9 +12,12 @@ if __name__ == '__main__':
 
     filename = '../data/small.geojson'
     place = geom.generate_place_from_rooftops_file(filename)
-
-    ax = place.plot3d(ret=True, poly_kwargs=dict(orientation=True, normal=True))
-
+    fig = plt.figure("the place")
+    fig.set_dpi(300)
+    ax = fig.add_subplot(projection='3d')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
     place.center_3d_plot(ax)
-
+    ax = place.plot3d(ax=ax,ret=True, poly_kwargs=dict(orientation=True, normal=True))
     plt.show()

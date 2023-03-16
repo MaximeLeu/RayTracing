@@ -13,7 +13,7 @@ from shapely.geometry import Point as shPoint
 import shapely
 import geopandas as gpd
 
-
+from scipy.spatial.transform import Rotation
 # Utils
 import matplotlib.pyplot as plt
 import itertools
@@ -26,7 +26,7 @@ import random
 from raytracing import plot_utils,file_utils,container_utils
 
 
-from materials_properties import set_properties, MIN_TREE_HEIGHT,MAX_TREE_HEIGHT
+from raytracing.materials_properties import set_properties, MIN_TREE_HEIGHT,MAX_TREE_HEIGHT
 
 
 
@@ -74,7 +74,7 @@ def normalize_path(points):
 
 
 def polygon_line_intersection(polygon,points):
-    #returns the point that is the intersection between the polygon and the line
+    #returns the point that is the intersection between the polygon and the line defined by a list of two points
     #https://stackoverflow.com/questions/5666222/3d-line-plane-intersection
     epsilon=1e-6
     normal=polygon.get_normal()
@@ -1530,6 +1530,7 @@ class OrientedPolygon(OrientedGeometry):
         self.properties=None #set at posteriori
         self.building_id= None #set at posteriori
         self.part="side"  #changed when top or bottom
+        
     def __len__(self):
         return self.points.shape[0]
 
@@ -1665,7 +1666,7 @@ class OrientedPolygon(OrientedGeometry):
 
     def get_normal(self):
         """
-        Returns the normal, as a unit vector, pointing outward of the polygon.
+        Returns the normal to the polygon as a unit vector.
 
         :return: the normal vector
         :rtype: np.ndarray *shape=(3)*
@@ -1779,36 +1780,60 @@ class OrientedPolygon(OrientedGeometry):
 
         if ret:
             return ax
+    
+    def rotate(self, axis, angle):
+        """
+        Rotates the polygon of a given angle around a given axis.
+        :param axis: a 3D vector indicating the axis of rotation
+        :type axis: numpy.ndarray *shape=(3,)*
+        :param angle: the angle of rotation in degrees
+        :type angle: float
+        """
+        print(f"polygon points BEFORE rotation {self.points}")
+        angle=np.radians(angle)
+        # 1. Translate the polygon to the origin
+        center = np.mean(self.points, axis=0)
+        translated_points = self.points - center
+        # 2. Calculate the rotation matrix
+        rotation = Rotation.from_rotvec(angle * axis)
+        rotation_matrix = rotation.as_matrix()
+
+        # 3. Apply the rotation matrix
+        rotated_points = np.dot(translated_points, rotation_matrix.T)
+
+        # 4. Translate the polygon back to its original position
+        self.points = rotated_points + center
+        print(f"polygon points after rotation {self.points}")
+        return self
 
 
 class Square(OrientedPolygon):
-
+    
     @staticmethod
     def by_2_corner_points(points):
         """
-        The points must be diagonally opposite and must define a flat plane
+        The points must be diagonally opposite and must define a quadrilateral
         P1=[x,y,z]
         points=[P1,P2]
         """
-        P1=points[0]
-        P2=points[1]
-        assert np.array_equal(P1,P2)==False, "points must be different (P1=P2)"
-        assert (P1[2]==P2[2]), "points must define a plane (y1!=y2)"
-        assert P1[1]!=P2[1] and P1[0]!=P2[0],"points must be diagonally opposite"
-
+        P1 = points[0]
+        P2 = points[1]
+        assert np.array_equal(P1, P2) == False, "points must be different (P1=P2)"
+        assert P1[1] != P2[1] and P1[0] != P2[0], "points must be diagonally opposite"
 
         points = array_utils.sort_by_columns(points)
         p = np.empty((4, 3), dtype=float)
-        p[:-2, :] = points[0, :]
-        p[1, 0] = points[1, 0]
-        p[2:, :] = points[1, :]
-        p[-1, 0] = points[0, 0]
+        p[0, :] = points[0, :]
+        p[1, :] = [points[0, 0], points[1, 1], points[0, 2]]
+        p[2, :] = points[1, :]
+        p[3, :] = [points[1, 0], points[0, 1], points[1, 2]]
         return Square(p)
+    
 
     @staticmethod
     def by_center_and_side(center,side,rotate=False):
         #side is the length of the side
-        #rotate=True will randomly rotate the square
+        #rotate=True will randomly rotate the square around the z axis
         P1=np.array([center[0]+side/2,center[1]+side/2,center[2]])
         P2=np.array([center[0]-side/2,center[1]-side/2,center[2]])
         points=np.array([P1,P2])
@@ -2056,7 +2081,7 @@ class Building(OrientedPolyhedron):
     """
 
     @staticmethod
-    def by_polygon_and_height(polygon, height, make_ccw=True, keep_ground=True):
+    def by_polygon_and_height(polygon, height, make_ccw=True, keep_ground=True,flat_roof=True):
         """
         Constructs a building from a 3D polygon on the ground.
 
@@ -2066,10 +2091,14 @@ class Building(OrientedPolyhedron):
         :type height: float or int
         :param make_ccw: if True, ensure that polygon is oriented correctly
         :type make_ccw: bool
+        :param flat_roof: if True, ensure that polygon roof is flat, even if its base is slanted
+        :type flat_roof: bool
         :param keep_ground: if True, will keep the ground polygon in the building
         :type keep_ground: bool
         :return: a building
         :rtype: Building
+        
+        In case flat_roof is True the height of the building is counted starting from the highest point of its base.
         """
 
         if isinstance(polygon, OrientedPolygon):
@@ -2080,8 +2109,14 @@ class Building(OrientedPolyhedron):
             raise ValueError(f'Type {type(polygon)} is not supported for polygon !')
 
         top_points = np.array(bottom_points)
-        top_points[:, -1] += float(height)
-
+        if flat_roof:
+            z_values= bottom_points[:, 2]  # Extract the height values from the input array
+            z_max=np.max(z_values)
+            top_points[:, -1] = float(z_max)
+            top_points[:, -1] += float(height)   
+        else:
+            top_points[:, -1] += float(height)
+            
         if make_ccw:
             if not is_ccw(top_points):
                 top_points = top_points[::-1, :]
@@ -2122,7 +2157,7 @@ class Building(OrientedPolyhedron):
         return Building(polygons)
 
     @staticmethod
-    def by_polygon2d_and_height(polygon, height, make_ccw=True, keep_ground=False):
+    def by_polygon2d_and_height(polygon, height, make_ccw=True, keep_ground=False,flat_roof=True):
         """
         Constructs a building from a 2D polygon.
 
@@ -2154,8 +2189,26 @@ class Building(OrientedPolyhedron):
 
         polygon = OrientedPolygon(bottom_points)
 
-        return Building.by_polygon_and_height(polygon, height, make_ccw=make_ccw, keep_ground=keep_ground)
+        return Building.by_polygon_and_height(polygon, height, make_ccw=make_ccw, keep_ground=keep_ground,flat_roof=flat_roof)
 
+
+    def building_on_slope(polygon,ground,height):
+        """
+        Constructs a building on a sloped ground
+        polygon: polygon describing the outline of the building
+        ground: the oriented surface representing the ground
+        height: the height of the building
+        """   
+        new_polygon=polygon
+        new_points=polygon.points.copy()
+        for i, point in enumerate(polygon.points):
+            point_below_ground=point.copy()
+            point_below_ground[-1]=-10000
+            line=np.array([point_below_ground,point])
+            point_on_ground=polygon_line_intersection(ground,line)
+            new_points[i]=point_on_ground
+        new_polygon.points=new_points
+        return Building.by_polygon_and_height(new_polygon, height, make_ccw=True, keep_ground=True,flat_roof=True)
 
 class Cube(OrientedPolyhedron):
     """
@@ -2468,7 +2521,7 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
         gdf['geometry'] = gdf['geometry'].translate(-x, -y)
 
     def func(series: gpd.GeoSeries):
-        return Building.by_polygon2d_and_height(series['geometry'], series['height'], keep_ground=False)
+        return Building.by_polygon2d_and_height(series['geometry'], series['height'], keep_ground=False, flat_roof=True)
 
     polyhedra = gdf.apply(func, axis=1).values.tolist()
     bounds = gdf.total_bounds.reshape(2, 2)
@@ -2534,6 +2587,7 @@ def preprocess_geojson(filename,drop_missing_heights=False):
 
     if not 'building_type' in gdf.columns:
         types=["office","appartments","garage"]
+        #types=["appartments"]
         print(f"Missing building_type data, randomly adding {types}")
         names = [{}]*len(gdf)
         for i in range(0,len(names)):

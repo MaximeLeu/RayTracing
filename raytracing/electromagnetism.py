@@ -34,7 +34,7 @@ P_IN=1
 RADIATION_EFFICIENCY=1
 RADIATION_POWER=RADIATION_EFFICIENCY*P_IN
 
-ALPHA=14#increase alpha to make the antenna more directive.
+ALPHA=10#increase alpha to make the antenna more directive.
 TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians
 RX_GAIN=4*pi*1/((pi/9)**2) #20 degree beamwidth  approx 103
 RX_GAIN=RX_GAIN*30 #*170 at 30GHz and *30 at 12.5GHz
@@ -878,7 +878,7 @@ def EM_fields_plots(df_path,order=3,name="notnamed"):
             individual_powers=np.zeros(nelem)
             for j in range(nelem):
                 individual_powers[j]=to_db(data_for_type['path_power'].values[j])
-            ax2.stem(data_for_type['time_to_receiver'].values, individual_powers,linefmt=color_for_type,label=path_type,basefmt=" ")
+            ax2.stem(data_for_type['time_to_receiver'].values*(1e9), individual_powers,linefmt=color_for_type,label=path_type,basefmt=" ")
 
         ax1.set_title(f'Total power from sources RX{receiver}')
         ax1.set_xticks(range(0,len(ticks)), ticks)
@@ -886,11 +886,11 @@ def EM_fields_plots(df_path,order=3,name="notnamed"):
         ax1.grid()
 
         ax2.set_title(f'Power delay Profile RX{receiver}')
-        ax2.set_xlabel('time to reach receiver (s)')
+        ax2.set_xlabel('time to reach receiver (ns)')
         ax2.set_ylabel('Received power [dB]')
         ax2.legend()
         ax2.grid()
-        plt.savefig(f"../results/EM_plots_{name}'.pdf", dpi=300)
+        plt.savefig(f"../plots/EM_plots_{name}'.pdf", dpi=300,bbox_inches='tight')
         #plt.show()
 
     return fig

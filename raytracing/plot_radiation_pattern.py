@@ -19,7 +19,7 @@ phi = np.linspace(0, 2*pi, 100)
 
 #Define the pattern function f here
 def f(theta,phi):
-    alpha=5
+    alpha=10
     f = abs(np.cos(theta/2)**(2*alpha))
    # f=abs(np.sin(theta)**2) #DIPOLE ANTENNA
     return f
@@ -104,12 +104,36 @@ def plot_2D_radiation_pattern():
     plt.yticks(fontsize=20)
     
     plt.show()
-    plt.savefig(f"../plots/2Dradiation_pattern.eps", format='eps', dpi=1000,bbox_inches='tight')
+    plt.savefig("../plots/2Dradiation_pattern.eps", format='eps', dpi=1000,bbox_inches='tight')
 
+def find_interval(value, array):
+    """
+    Finds the indices of the two closest numbers to a given value in a given array.
+    """
+    # Compute the absolute differences between the value and each element of the array
+    diff = np.abs(array - value)
+    # Find the index of the smallest difference
+    idx = np.argmin(diff)
+    
+    low_idx = max(0, idx - 1)
+    high_idx = min(len(array) - 1, idx)
+    return (low_idx, high_idx)
+
+def half_power_beamwidth():
+    r = f(theta,phi)
+    half_power = max(r) / 2
+    #Find the indices of the theta values where the radiation pattern is closest to the half power level
+    idx1,idx2=find_interval(half_power, r)
+    theta1,theta2=theta[idx1], theta[idx2]
+    # Compute the half power beamwidth as the mean of the two theta values closest to the half power level
+    hpbw=(theta2+theta1)/2
+    print(f"Half power beamwidth: {hpbw:.2f} radians ({np.degrees(hpbw):.2f} degrees)")
+    return
 
 if __name__=='__main__':
     plt.close("all")
     plot_radiation_pattern()
     plot_2D_radiation_pattern()
+    half_power_beamwidth()
     
     

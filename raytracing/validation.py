@@ -91,7 +91,7 @@ def plot_claude_comparison(df,maxwell_base,tx,compare_two_rays):
     simu_x,simu_y=read_simu(df,maxwell_base)
 
     #plotting
-    fig = plt.figure(figsize=(20,20))
+    fig = plt.figure(figsize=(20,8))
     ax = fig.add_subplot(1, 1, 1)
     ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/(1e9)} GHz',fontsize=20)
     ax.plot(x,y,color='green', marker='o',label="february measures")
@@ -108,6 +108,7 @@ def plot_claude_comparison(df,maxwell_base,tx,compare_two_rays):
     ax.set_ylabel('Received power [dB]',fontsize=20)
     ax.legend(fontsize=20)
     plt.show()
+    plt.savefig("../plots/levant_validation.eps", format='eps', dpi=1000,bbox_inches='tight')
     return
 
 
@@ -143,6 +144,7 @@ def small_vs_path_loss(npoints=15,order=2):
     ax.set_ylabel('Received power [dB]',fontsize=20)
     ax.legend(fontsize=20)
     plt.show()
+    #plt.savefig("../plots/small_place_vs_pathLoss.eps", format='eps', dpi=1000,bbox_inches='tight')
     return
 
 def levant_vs_measures(npoints=15,order=3,compare_two_rays=False):
@@ -172,7 +174,7 @@ def plot_claude_only():
     ax.set_xlim(30,90)
     ax.set_ylim(-60,-35)
     ax.legend(loc='lower left')
-    plt.savefig("../plots/claude_125.eps", dpi=150)
+    plt.savefig("../plots/claude_125.eps", dpi=150,bbox_inches='tight')
     
     x,y=read_csv("claude_30_feb.csv")
     x1,y1=read_csv("claude_30_oct.csv")
@@ -187,7 +189,7 @@ def plot_claude_only():
     ax2.set_xlim(30,90)
     ax2.set_ylim(-60,-35)
     ax2.legend(loc='lower left')
-    plt.savefig("../plots/claude_30.eps", dpi=150)
+    plt.savefig("../plots/claude_30.eps", dpi=150,bbox_inches='tight')
     plt.show()
     return
 
@@ -195,6 +197,6 @@ def plot_claude_only():
 if __name__ == '__main__':
     plt.close('all')
     #plot_claude_only()
-    levant_vs_measures(npoints=16*1,order=2,compare_two_rays=True)
-    #small_vs_path_loss(npoints=16*10,order=2)
+    levant_vs_measures(npoints=16*5,order=2,compare_two_rays=True)
+    #small_vs_path_loss(npoints=16*3,order=2)
     
