@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import raytracing.geometry as geom
 import plot_utils
 from materials_properties import set_properties, LAMBDA
-
+from numpy.linalg import norm
 
 
 
@@ -58,9 +58,8 @@ def create_small_place(npoints=3):
     for _ in range(npoints):
         place.add_set_of_points(rx)
         rx =rx+np.array([0,-4,0])
-    #save and plot
-    place.to_json(filename="../data/small.json")
-    plot_place(place,tx,show_normals=True)
+    #save
+    place.to_json(filename=f"../data/{geometry}.json")
     return place,tx,geometry
 
 
@@ -85,10 +84,8 @@ def create_levant_place(npoints=15):
     for receiver in range(npoints):
         rx =rx0+np.array([-receiver*step,0,0])
         place.add_set_of_points(rx)
-    #plot
-    print(f"MAXWELL: {MAXWELL_COORDINATES} barb: {ST_BARBE_COORD} distance maxwell-barb={dist:.2f} m" )
-    plot_place(place,tx,show_normals=True)
-
+    #save
+    place.to_json(filename=f"../data/{geometry}.json")
     return place,tx,geometry
 
 
@@ -115,13 +112,12 @@ def create_dummy_place():
     tx = np.array([5., 12., init_elevation+5.]).reshape(-1, 3)
     rx = np.array([65., 12.,init_elevation+ 5.]).reshape(-1, 3)
     place.add_set_of_points(rx)
-    #save and plot
+    #save
     place.to_json(filename=f"../data/{geometry}.json")
-    plot_place(place,tx,show_normals=True)
     return place, tx, geometry
 
 
-def create_two_rays_place(npoints=20,plot=False):
+def create_two_rays_place(npoints=20):
     geometry="two_rays"
     #add ground
     step=10#10*LAMBDA
@@ -136,11 +132,10 @@ def create_two_rays_place(npoints=20,plot=False):
     for receiver in range(npoints):
         rx =rx0+np.array([receiver*step,0,0])
         place.add_set_of_points(rx)
-    #save and plot
+    #save
     place.to_json(filename=f"../data/{geometry}.json")
-    if plot:
-        plot_place(place,tx)
     return place, tx, geometry
+
 
 #TODO: add receivers randomly otherwise they may end up inside buildings
 def create_my_geometry():
@@ -157,19 +152,18 @@ def create_my_geometry():
     tx = tx.reshape(-1, 3)
     rx = rx.reshape(-1, 3)
     place.add_set_of_points(rx)
-    #plot
-    plot_place(place,tx)
+    place.to_json(filename=f"../data/{geometry}.json")
     return place,tx, geometry
 
     
 
-def create_slanted_place(alpha):
-    geometry="slanted"
+def create_slanted_dummy(alpha):
+    geometry="slanted_dummy"
     #add ground and buildings
     init_elevation=10
     ground = geom.Square.by_2_corner_points(np.array([[0, 0, init_elevation], [70, 24, init_elevation]]))
-    ground=ground.rotate(axis=np.array([0, 1, 0]), angle=alpha)
-    ground=ground.rotate(axis=np.array([1, 0, 0]), angle=180) #othewise the normal is wrongly oriented
+    ground=ground.rotate(axis=np.array([0, 1, 0]), angle_deg=alpha)
+    ground=ground.rotate(axis=np.array([1, 0, 0]), angle_deg=180) #othewise the normal is wrongly oriented
 
     square_1 = geom.Square.by_2_corner_points(np.array([[13, 22, init_elevation], [17, 24, init_elevation]]))
     building_1 = geom.Building.building_on_slope(square_1, ground,10)
@@ -190,22 +184,142 @@ def create_slanted_place(alpha):
     tx = np.array([5., 12., init_elevation+10]).reshape(-1, 3)
     rx = np.array([65., 12.,init_elevation+ 10.]).reshape(-1, 3)
     place.add_set_of_points(rx)
-    #save and plot
+    #save
     place.to_json(filename=f"../data/{geometry}.json")
-    plot_place(place,tx,show_normals=True)
     return place, tx, geometry
 
 
+def create_slanted_levant(npoints=15):
+    geometry="slanted_levant"
+    geometry_filename='../data/place_levant.geojson'
+    geom.preprocess_geojson(geometry_filename)
+    #create buildings
+    place = geom.generate_place_from_rooftops_file(geometry_filename)
+    
+    #create grounds
+    deltaH=3
+    barb=np.array([-140, -90, 0])
+    vinci=np.array([-25,90,0])
+    stevin=np.array([20,-90,deltaH])
+    maxwell=np.array([140,90,deltaH])
+    ground1=geom.Square.by_2_corner_points(np.array([barb,vinci])) #flat ground between barb and vinci
+    ground1=ground1.rotate(axis=np.array([0,1,0]), angle_deg=180)
+    ground2=geom.Square.by_2_corner_points(np.array([vinci,stevin])) #slanted ground between vinci and stevin
+    ground3=geom.Square.by_2_corner_points(np.array([stevin,maxwell])) #flat ground between stevin and maxwell
+    ground3=ground3.rotate(axis=np.array([0,1,0]), angle_deg=180)
+    ground1.properties=set_properties("ground")
+    ground2.properties=set_properties("ground")
+    ground3.properties=set_properties("ground")
+    grounds=[ground1,ground2,ground3]
+    
+    #Rebuild buildings on the slanted grounds and reapply properties
+    buildings=[]
+    for i, polyhedron in enumerate (place.polyhedra):
+        top=polyhedron.get_top_face()
+        height=top.points[0][2]    
+        rebuilded=geom.Building.rebuild_building(top,grounds,height)
+        for building in rebuilded:
+            for rebuilt_polygon in building.polygons:
+                rebuilt_polygon.properties=set_properties(polyhedron.building_type)
+            buildings.append(building)
+        if polyhedron.building_id==12:
+            maxwell_top=place.polyhedra[i].get_top_face()
+    
+    #rebuild the place
+    place=geom.OrientedPlace(geom.OrientedSurface(grounds),buildings)
+    #place.surface=place.surface.translate(np.array([0,0,100])) #to check if normals are well set
+    
+    #Define coordinates of top and bottom of street
+    levant_top=np.array([57,-10,deltaH])
+    points=[levant_top,levant_top+np.array([0,0,100])]
+    levant_top=geom.polygon_line_intersection(grounds[2],points)
+    
+    levant_bottom=levant_top+([-100,0,-deltaH])
+    points=[levant_bottom,levant_bottom+np.array([0,0,100])]
+    levant_bottom=geom.polygon_line_intersection(grounds[0],points)
+
+    RX_HEIGHT=1.2
+    TX_HEIGHT=1.2
+    #add TX and RX    
+    dist_top2maxroof=np.linalg.norm(maxwell_top.points[0][2]-levant_top[2])
+    tx=levant_top+np.array([2,0,dist_top2maxroof+TX_HEIGHT])
+    tx=tx.reshape(-1, 3)
+
+    rx0=levant_top+np.array([-30,0,RX_HEIGHT])
+    print(f"rx0 {rx0}")
+    step=np.linalg.norm(levant_bottom-rx0)/npoints
+    for receiver in range(npoints):
+        rx=rx0+np.array([-step*receiver,0,0])
+        if rx[0]<stevin[0]: #in the slope
+            rx=geom.polygon_line_intersection(grounds[1],[rx,rx+np.array([0,0,100])])
+            rx=rx+np.array([0,0,RX_HEIGHT])
+        if rx[0]<vinci[0]: #on flat ground again
+            rx[2]=RX_HEIGHT
+        place.add_set_of_points(rx.reshape(-1, 3))
+         
+    place.to_json(filename=f"../data/{geometry}.json")
+    return place, tx, geometry
+
+    
+def test_place():
+    geometry="test_place"
+    # ground1 = geom.Square.by_2_corner_points(np.array([[0, 0, 10], [70, 24, 20]]))
+    # ground1.properties=set_properties("ground")
+    # ground2 = geom.Square.by_2_corner_points(np.array([[70, 24, 20], [90, 0, 20]]))
+    # ground2.properties=set_properties("ground")
+    # grounds=[ground1,ground2]
+    
+    barb=np.array([-100, -90, 0])
+    vinci=np.array([-25,90,0])
+    stevin=np.array([20,-90,10])
+    maxwell=np.array([125,90,10])
+    ground1=geom.Square.by_2_corner_points(np.array([barb,vinci])) #flat ground between stevin and maxwell
+    ground1=ground1.rotate(axis=np.array([0,1,0]), angle_deg=180)
+    ground2=geom.Square.by_2_corner_points(np.array([vinci,stevin])) #slanted ground between vinci and stevin
+    ground3=geom.Square.by_2_corner_points(np.array([stevin,maxwell])) #flat ground between stevin and maxwell
+    ground3=ground3.rotate(axis=np.array([0,1,0]), angle_deg=180)
+    ground1.properties=set_properties("ground")
+    ground2.properties=set_properties("ground")
+    ground3.properties=set_properties("ground")
+    grounds=[ground1,ground2,ground3]
+
+    square_1 = geom.Square.by_2_corner_points(np.array([[13, 22, 5], [30, 24, 5]]))
+    building_1 = geom.Building.building_on_slope(square_1, ground1,10)
+    buildings=[building_1]
+    for building in buildings:
+        for polygon in building.polygons:
+            polygon.properties=set_properties("appartments")
+    #create place
+    place = geom.OrientedPlace(grounds,buildings)
+    tx = np.array([5., 12., 20]).reshape(-1, 3)
+    place.to_json(filename=f"../data/{geometry}.json")
+    plot_place(place,tx)
+    #split the building
+    top=place.polyhedra[0].get_top_face()
+    
+    splits=top.split([ground2,ground3])
+    buildings=[]
+    buildings.extend(geom.Building.rebuild_building(top,grounds,20))
+    
+    # for split in splits:
+    #     buildings.append(geom.Building.by_polygon_and_height(split, 20, make_ccw=True, keep_ground=True,flat_roof=True))
+        
+    place = geom.OrientedPlace(grounds,buildings)   
+    return place, tx, geometry
+    
+
 
 if __name__ == '__main__':
-    #create_levant_place(npoints=10)
     plt.close("all")
     #place,tx,geometry=create_two_rays_place(npoints=5)
-    #plot_place(place, tx)
-    place,tx,geometry=create_slanted_place(10)
+    #place,tx,geometry=create_slanted_dummy(alpha=10)
     #place,tx,geometry=create_dummy_place()
     #place,tx,geometry=create_small_place(npoints=10)
     #place,tx,geometry=create_levant_place()
+    place,tx,geometry=create_slanted_levant(npoints=8)
+
+    #place,tx,geometry=test_place()
+    plot_place(place, tx,show_normals=True)
     
     
 

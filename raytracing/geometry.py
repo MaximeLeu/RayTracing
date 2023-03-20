@@ -49,6 +49,17 @@ def random_point_on_line(P1,P2):
     return rand_point
 
 
+def point_on_line(P1, P2, dist):
+    #compute the point at a distance dist from P1 on line [P1,P2]
+    # Calculate the direction vector of the line
+    dir_vec = P2 - P1
+    dir_len = np.linalg.norm(dir_vec)
+    unit_dir_vec = dir_vec / dir_len
+    # Calculate the point on the line at distance dist from P1
+    point_on_line = P1 + unit_dir_vec * dist
+    return point_on_line
+
+
 @numba.njit(cache=True)
 def cartesian_to_spherical(points):
     x, y, z = points.T
@@ -1537,6 +1548,11 @@ class OrientedPolygon(OrientedGeometry):
     def __str__(self):
         return f'Polygon({len(self)} points)'
 
+    def __eq__(self, other):
+        if isinstance(other, OrientedPolygon):
+            return np.array_equal(self.points, other.points)
+        return False
+    
     @staticmethod
     def from_json(data=None, filename=None):
         data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
@@ -1593,6 +1609,13 @@ class OrientedPolygon(OrientedGeometry):
                     pass
             """
         return self.shapely
+
+    @staticmethod
+    def shapely_to_oriented_polygon(shapely_polygon):
+        points_2d = np.array(shapely_polygon.exterior.coords)
+        points_3d = np.hstack((points_2d, np.zeros((len(points_2d), 1))))
+        return OrientedPolygon(points_3d)
+        
 
     def get_polygons_iter(self):
         yield self
@@ -1689,7 +1712,7 @@ class OrientedPolygon(OrientedGeometry):
         """
         point = point.reshape(3)
         if check_in_plane:
-            d = self.get_parametric()[3]
+            d = self.get_parametric(force=False)[3]
             normal = self.get_normal()
             if not np.allclose(np.dot(normal, point), -d, atol=plane_tol):
                 return False
@@ -1699,6 +1722,20 @@ class OrientedPolygon(OrientedGeometry):
         projected_point = project_points(point, matrix).reshape(3)
 
         return projected_polygon.get_shapely().intersects(shPoint(projected_point))
+
+    def points_contained(self,polygon):
+        """
+        Returns an array indicating whether each point in the given polygon is contained within this object.
+        :param polygon: OrientedPolygon object representing the polygon to test.
+        :type polygon: OrientedPolygon
+        :return: boolean array, indicating whether each point in the given polygon is contained within this shape
+        :rtype: numpy.ndarray of the same length as polygon.points
+        """
+        truth_array=np.zeros(len(polygon.points))
+        for i,point in enumerate(polygon.points):
+            if self.contains_point(point):
+                truth_array[i]=1
+        return truth_array
 
     def get_matrix(self, force=False):
         """
@@ -1781,7 +1818,7 @@ class OrientedPolygon(OrientedGeometry):
         if ret:
             return ax
     
-    def rotate(self, axis, angle):
+    def rotate(self, axis, angle_deg):
         """
         Rotates the polygon of a given angle around a given axis.
         :param axis: a 3D vector indicating the axis of rotation
@@ -1789,23 +1826,40 @@ class OrientedPolygon(OrientedGeometry):
         :param angle: the angle of rotation in degrees
         :type angle: float
         """
-        print(f"polygon points BEFORE rotation {self.points}")
-        angle=np.radians(angle)
+        angle=np.radians(angle_deg)
         # 1. Translate the polygon to the origin
         center = np.mean(self.points, axis=0)
         translated_points = self.points - center
         # 2. Calculate the rotation matrix
         rotation = Rotation.from_rotvec(angle * axis)
         rotation_matrix = rotation.as_matrix()
-
         # 3. Apply the rotation matrix
         rotated_points = np.dot(translated_points, rotation_matrix.T)
-
         # 4. Translate the polygon back to its original position
         self.points = rotated_points + center
-        print(f"polygon points after rotation {self.points}")
         return self
-
+    
+    def split(self,conflicting_polygons): 
+        """
+        Splits self into multiple non-overlapping polygons, by sucessively subtracting the
+        conflicting_polygons from self
+       :param conflicting_polygons: the `OrientedPolygon` objects that overlap with this polygon
+       :type conflicting_polygons: List[OrientedPolygon]
+       :return: a list of `OrientedPolygon` objects that are the non-overlapping portions of this polygon
+       :rtype: List[OrientedPolygon]
+       """
+        shapely_splitted=[]
+        selfShapely=self.get_shapely()
+        for polygon in conflicting_polygons:
+            diff=selfShapely
+            for conflict in conflicting_polygons:
+                if conflict!=polygon:
+                    diff=diff.difference(conflict.get_shapely())
+            shapely_splitted.append(diff)  #list of shapely polygons     
+        splitted=[]
+        for shapely_polygon in shapely_splitted:
+            splitted.append(OrientedPolygon.shapely_to_oriented_polygon(shapely_polygon))
+        return splitted
 
 class Square(OrientedPolygon):
     
@@ -1999,6 +2053,13 @@ class OrientedPolyhedron(OrientedGeometry):
             if polygon.part=="top":
                 return polygon
         assert 1==0, "could not get top face"
+        return
+    
+    def get_bottom_face(self):
+        for polygon in self.polygons:
+            if polygon.part=="bottom":
+                return polygon
+        assert 1==0, "could not get bottom face"
         return
 
     def apply_on_points(self, func, *args, **kwargs):
@@ -2201,6 +2262,7 @@ class Building(OrientedPolyhedron):
         """   
         new_polygon=polygon
         new_points=polygon.points.copy()
+        #compute the vertical projection of each point on the ground
         for i, point in enumerate(polygon.points):
             point_below_ground=point.copy()
             point_below_ground[-1]=-10000
@@ -2210,6 +2272,44 @@ class Building(OrientedPolyhedron):
         new_polygon.points=new_points
         return Building.by_polygon_and_height(new_polygon, height, make_ccw=True, keep_ground=True,flat_roof=True)
 
+
+    def rebuild_building(polygon,grounds,height):
+        """
+        Rebuilds a building such that it lies on the ground.
+        If the polygon does not intersect any of the grounds, a single building is created
+        If the polygon intersects multiple grounds, it is split into non-overlapping portions and a building
+        is created for each portion on the corresponding ground.
+
+        :param polygon: the `OrientedPolygon` object that represents the building's footprint
+        :type polygon: OrientedPolygon
+        :param grounds: the list of `OrientedPolygon` objects that represent the ground surfaces of the place
+        :type grounds: List[OrientedPolygon]
+        :param height: the height of the building
+        :type height: float
+        :return: a list of `Building` objects that represent the reconstructed building(s)
+        :rtype: List[Building]
+        """
+        if not isinstance(grounds,list):
+            return [Building.building_on_slope(polygon,grounds,height)]
+        conflicting_grounds=[]
+        for ground in grounds:
+            truth_array=ground.points_contained(polygon)
+            if truth_array.any():
+                if truth_array.all():
+                    return [Building.building_on_slope(polygon,ground,height)]
+                else:#split polygon
+                    conflicting_grounds.append(ground)
+                            
+        buildings=[]
+        splits=polygon.split(conflicting_grounds)
+        for i in range(0,len(splits)):
+            buildings.append(Building.building_on_slope(splits[i],conflicting_grounds[i], height))           
+        return buildings
+            
+                    
+
+    
+    
 class Cube(OrientedPolyhedron):
     """
     A cube is an oriented polyhedron that can be fully described by its center and one of its 6 faces.
@@ -2427,7 +2527,7 @@ class OrientedPlace(OrientedGeometry):
 
 
 
-
+    #ONLY WORKS IF THERE IS A SINGLE GROUND...
     def add_tree(self,tree_size,how_close_to_buildings=2):
         """
         Adds a tree at a random spot in the place.
@@ -2570,8 +2670,8 @@ def preprocess_geojson(filename,drop_missing_heights=False):
     # Only keeping polygon (sometimes points are given)
     gdf = gdf[[isinstance(g, shPolygon) for g in gdf['geometry']]]
 
-    minHeight=25
-    maxHeight=40
+    minHeight=10
+    maxHeight=25
     height=np.round(np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)),1)
     if not 'height' in gdf.columns:
         print(f"Missing ALL height data, adding random heights between {minHeight} m and {maxHeight} m")

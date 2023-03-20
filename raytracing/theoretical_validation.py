@@ -88,7 +88,7 @@ def two_rays_fields(L,ztx,zrx,slope=None):
     if slope is None:
         dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx= two_rays_geometry(L,ztx,zrx)
     else:
-        dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx= two_rays_geometry_sloped(L,ztx,zrx,pi/9)
+        dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx= two_rays_geometry_sloped(L,ztx,zrx,np.radians(slope))
     
     #csts
     epsilon_eff_2=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=='concrete']["epsilon_eff"].values[0]
@@ -242,6 +242,7 @@ def compare_models():
 
 def compare_two_rays_and_simu(npoints):
     place,tx,geometry=place_utils.create_two_rays_place(npoints,plot=True)
+    place_utils.plot_place(place, tx)
     problem = RayTracingProblem(tx, place)
     problem.solve(max_order=2,receivers_indexs=None)
     problem.plot_all_rays()

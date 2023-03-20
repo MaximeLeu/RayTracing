@@ -15,15 +15,14 @@ from matplotlib.widgets import Slider
 # Angle Increment
 theta = np.linspace(0, pi, 100)
 phi = np.linspace(0, 2*pi, 100)
-
+THETA,PHI=np.meshgrid(theta,phi)
 
 #Define the pattern function f here
 def f(theta,phi):
     alpha=10
-    f = abs(np.cos(theta/2)**(2*alpha))
-   # f=abs(np.sin(theta)**2) #DIPOLE ANTENNA
+    f = 10*abs(np.cos(theta/2)**(2*alpha))
+   #f=abs(np.sin(theta)**2) #DIPOLE ANTENNA
     return f
-
 
 def spherical_to_cartesian(r, theta, phi):
     x = r * np.cos(phi) * np.sin(theta)
@@ -35,9 +34,8 @@ def spherical_to_cartesian(r, theta, phi):
 #3D radiation pattern plot.
 def plot_radiation_pattern():
     #Compute pattern and normalize
-    THETA,PHI=np.meshgrid(theta,phi)
     r=f(THETA,PHI)
-    ratio=np.max(np.max(r))
+    ratio=np.max(r)
     X,Y,Z=spherical_to_cartesian(r/ratio,THETA,PHI)
 
     #Plot 3D pattern
@@ -120,15 +118,22 @@ def find_interval(value, array):
     return (low_idx, high_idx)
 
 def half_power_beamwidth():
-    r = f(theta,phi)
-    half_power = max(r) / 2
+    """
+    Return the elevation half power beamwidth for the radiation pattern defined 
+    in the "f" function above.
+    """
+    r=f(THETA,PHI)
+    half_power = np.max(r) / 2
     #Find the indices of the theta values where the radiation pattern is closest to the half power level
     idx1,idx2=find_interval(half_power, r)
     theta1,theta2=theta[idx1], theta[idx2]
+    phi1,phi2=phi[idx1], phi[idx2]
     # Compute the half power beamwidth as the mean of the two theta values closest to the half power level
-    hpbw=(theta2+theta1)/2
-    print(f"Half power beamwidth: {hpbw:.2f} radians ({np.degrees(hpbw):.2f} degrees)")
-    return
+    el_hpbw=(theta2+theta1)/2
+    az_hpbw=(phi1+phi2)/2
+    print(f"elevation Half power beamwidth: {el_hpbw:.2f} radians ({np.degrees(el_hpbw):.2f} degrees)")
+    print(f"azimuth Half power beamwidth: {az_hpbw:.2f} radians ({np.degrees(az_hpbw):.2f} degrees)")
+    return el_hpbw,az_hpbw
 
 if __name__=='__main__':
     plt.close("all")

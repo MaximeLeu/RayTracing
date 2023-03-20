@@ -29,6 +29,7 @@ if __name__ == '__main__':
     #place,tx,geometry=place_utils.create_small_place()
     #place,tx,geometry=place_utils.create_levant_place()
     place,tx,geometry=place_utils.create_slanted_place(10)
+    place_utils.plot_place(place, tx)
     ORDER=2
     multithread=False #if true restart kernel before launching.
     
