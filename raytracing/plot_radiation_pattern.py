@@ -59,7 +59,7 @@ def plot_radiation_pattern():
     ax.set_box_aspect([1,1,1])
     ax.view_init(20, -135)
     plt.show()
-    plt.savefig(f"../plots/3Dradiation_pattern.eps", format='eps', dpi=1000,bbox_inches='tight')
+    plt.savefig(f"../results/plots/3Dradiation_pattern.eps", format='eps', dpi=1000,bbox_inches='tight')
     return
 
 
@@ -102,7 +102,7 @@ def plot_2D_radiation_pattern():
     plt.yticks(fontsize=20)
     
     plt.show()
-    plt.savefig("../plots/2Dradiation_pattern.eps", format='eps', dpi=1000,bbox_inches='tight')
+    plt.savefig("../results/plots/2Dradiation_pattern.eps", format='eps', dpi=1000,bbox_inches='tight')
 
 def find_interval(value, array):
     """

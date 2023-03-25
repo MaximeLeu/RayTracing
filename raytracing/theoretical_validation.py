@@ -237,7 +237,7 @@ def compare_models():
     ax.set_ylabel(r'Received power ($p_{rx}/p_{tx}$)[dB]')
     ax.legend()
     plt.show()
-    plt.savefig("../plots/comparison_theory2rays_PL_ez2rays.eps", format='eps', dpi=1000,bbox_inches='tight')
+    plt.savefig("../results/plots/comparison_theory2rays_PL_ez2rays.eps", format='eps', dpi=1000,bbox_inches='tight')
     return ax
 
 def compare_two_rays_and_simu(npoints):
@@ -277,7 +277,7 @@ def compare_two_rays_and_simu(npoints):
     ax.set_ylabel(r'Received power ($p_{rx}/p_{tx}$)[dB]')
     ax.legend()
     plt.show()
-    plt.savefig("../plots/comparison_two_rays_simu.eps", format='eps', dpi=1000,bbox_inches='tight')
+    plt.savefig("../results/plots/comparison_two_rays_simu.eps", format='eps', dpi=1000,bbox_inches='tight')
     print(f'TXgain*RXgain={np.sqrt(TX_GAIN*RX_GAIN):.2f}')
     return
 
@@ -358,7 +358,7 @@ def compare_sloped_flat():
     ax.set_ylabel(r'Received power ($p_{rx}/p_{tx}$)[dB]')
     ax.legend()
     plt.show()
-    plt.savefig("../plots/comparison_theory2rays_PL_ez2rays.eps", format='eps', dpi=1000,bbox_inches='tight')
+    plt.savefig("../results/plots/comparison_theory2rays_PL_ez2rays.eps", format='eps', dpi=1000,bbox_inches='tight')
     return ax
 
 

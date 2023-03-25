@@ -16,7 +16,6 @@ import time
 from raytracing import file_utils
 from electromagnetism import to_db,path_loss
 import place_utils
-import raytracing.geometry as geom
 
 from multithread_solve import multithread_solve_place
 from materials_properties import FREQUENCY
@@ -111,16 +110,16 @@ def plot_measures_simu_comparison(df,tx):
     ax.set_ylabel('Received power [dB]',fontsize=20)
     ax.legend(fontsize=20)
     plt.show()
-    plt.savefig("../plots/levant_validation.eps", format='eps', dpi=1000,bbox_inches='tight')
+    plt.savefig("../results/plots/levant_validation.eps", format='eps', dpi=1000,bbox_inches='tight')
     return
 
 
 
 def levant_vs_measures(npoints=15,order=2):
-    # place,tx,_=place_utils.create_flat_levant(npoints)
-    # name='flat_levant_simu'
-    place,tx,_=place_utils.create_slanted_levant(npoints=npoints)
-    name='slanted_levant_simu_tx_x'
+    place,tx,_=place_utils.create_flat_levant(npoints)
+    name='flat_levant_simu'
+    # place,tx,_=place_utils.create_slanted_levant(npoints=npoints)
+    # name='slanted_levant_simu'
     place_utils.plot_place(place, tx)
     solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name=name,order=order)
     df=file_utils.load_df(solved_em_path)
@@ -130,7 +129,7 @@ def levant_vs_measures(npoints=15,order=2):
     
 
 
-
+#TODO: recompute
 def slanted_vs_flat():
     """
     plots a comparison of the simulation of the levant street on flat and slanted ground
@@ -167,10 +166,11 @@ def slanted_vs_flat():
     ax.set_ylabel('Received power [dB]',fontsize=20)
     ax.legend(fontsize=20)
     plt.show()
-    plt.savefig("../plots/flat_vs_slanted.eps", format='eps', dpi=1000,bbox_inches='tight')
+    plt.savefig("../results/plots/flat_vs_slanted.eps", format='eps', dpi=1000,bbox_inches='tight')
     
     
     
+#TODO FIX TX movement and recompute
 def slanted_vs_tx_moved():
     
     slanted_solved_em_name="slanted_levant_simu"
@@ -198,7 +198,7 @@ def slanted_vs_tx_moved():
     ax.set_ylabel('Received power [dB]',fontsize=20)
     ax.legend(fontsize=20)
     plt.show()
-    plt.savefig("../plots/flat_vs_slanted.eps", format='eps', dpi=1000,bbox_inches='tight')
+    plt.savefig("../results/plots/flat_vs_slanted.eps", format='eps', dpi=1000,bbox_inches='tight')
     
     
 def small_vs_path_loss(npoints=15,order=2):
@@ -233,7 +233,7 @@ def small_vs_path_loss(npoints=15,order=2):
     ax.set_ylabel('Received power [dB]',fontsize=20)
     ax.legend(fontsize=20)
     plt.show()
-    #plt.savefig("../plots/small_place_vs_pathLoss.eps", format='eps', dpi=1000,bbox_inches='tight')
+    #plt.savefig("../results/plots/small_place_vs_pathLoss.eps", format='eps', dpi=1000,bbox_inches='tight')
     return
     
 
@@ -255,7 +255,7 @@ def plot_measures_only():
     ax.set_xlim(30,90)
     ax.set_ylim(-60,-35)
     ax.legend(loc='lower left')
-    plt.savefig("../plots/claude_125.eps", dpi=150,bbox_inches='tight')
+    plt.savefig("../results/validation_measures/claude_125.eps", dpi=150,bbox_inches='tight')
     
     x,y=read_csv("claude_30_feb.csv")
     x1,y1=read_csv("claude_30_oct.csv")
@@ -270,7 +270,7 @@ def plot_measures_only():
     ax2.set_xlim(30,90)
     ax2.set_ylim(-60,-35)
     ax2.legend(loc='lower left')
-    plt.savefig("../plots/claude_30.eps", dpi=150,bbox_inches='tight')
+    plt.savefig("../results/validation_measures/claude_30.eps", dpi=150,bbox_inches='tight')
     plt.show()
     return
 
@@ -288,13 +288,9 @@ if __name__ == '__main__':
     #small_vs_path_loss(npoints=16*3,order=2)
     
     start_time = time.time()
-    levant_vs_measures(npoints=15*5,order=2)
+    levant_vs_measures(npoints=15*1,order=2)
     end_time = time.time()
     print_elapsed_time(start_time,end_time)
-    
-    x,y=get_corresponding_measures('october')
-    print(x)
-    print(y)
     
     #slanted_vs_flat()
     

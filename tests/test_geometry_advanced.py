@@ -111,6 +111,11 @@ def test_add_tree():
 
 
 def test_generate_place_from_rooftops_file():
+    geometry_filename='../data/small.geojson'
+    preprocessed_name=geom.preprocess_geojson(geometry_filename)
+    place = geom.generate_place_from_rooftops_file(preprocessed_name)
+    
+    
     pass
 
 def preprocess_geojson():

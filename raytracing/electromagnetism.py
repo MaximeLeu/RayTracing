@@ -889,7 +889,7 @@ def EM_fields_plots(df_path,order=3,name="notnamed"):
         ax2.set_ylabel('Received power [dB]')
         ax2.legend()
         ax2.grid()
-        plt.savefig(f"../plots/EM_plots_{name}'.pdf", dpi=300,bbox_inches='tight')
+        plt.savefig(f"../results/plots/EM_plots_{name}'.pdf", dpi=300,bbox_inches='tight')
         #plt.show()
 
     return fig

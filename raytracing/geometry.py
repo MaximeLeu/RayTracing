@@ -1107,16 +1107,14 @@ class OrientedGeometry(object):
     """
 
     def __init__(self, **attributes):
-        the_id= attributes.pop('id', None)
-        self.id=None
-        if the_id is None:
-            the_id=uuid.uuid4()   
-        elif type(the_id)==str:
-            the_id=uuid.UUID(the_id)
-        elif isinstance(the_id,uuid.UUID):
-            the_id=the_id
-        
-        self.id=the_id
+        self.id=attributes.pop('id', uuid.uuid4()) #if no id=... found in attributes dict create the id
+        if self.id is None:
+            #if the id given in attributes dict is id=None,create the id
+            self.id=uuid.uuid4()
+        if isinstance(self.id, str):
+            self.id=uuid.UUID(self.id)
+        assert isinstance(self.id,uuid.UUID),f'id is of type {type(self.id)} but should be uuid.UUID, the id: {self.id}'
+    
         self.domain = None
         self.centroid = None
         self.visibility_matrix = None
@@ -1581,7 +1579,7 @@ class OrientedPolygon(OrientedGeometry):
         self.matrix = None
         self.shapely = None
         self.properties=None #set at posteriori
-        self.building_id= None #set at posteriori
+        self.building_id= None #set at posteriori: the id of the polyhedron/surface the polygon belongs to
         self.part="side"  #changed when top or bottom
         
         
@@ -1597,14 +1595,13 @@ class OrientedPolygon(OrientedGeometry):
             return False
         if not super().__eq__(other):
             return False
-        
         if not np.array_equal(self.points, other.points):
             return False
-        if self.building_id!=other.building_id:
+        if not self.building_id==other.building_id:
             return False
-        if self.part!=other.part:
+        if not self.part==other.part:
             return False
-        if self.properties!=other.properties:
+        if not self.properties==other.properties:
             return False
         return True
     
@@ -1989,6 +1986,7 @@ class OrientedSurface(OrientedGeometry):
             for polygon in self.polygons:
                 polygon.properties=set_properties(self.building_type)
                 polygon.part="ground"
+                polygon.building_id=self.id
 
         elif isinstance(polygons[0], OrientedPolygon):
             self.polygons = polygons
@@ -2000,14 +1998,12 @@ class OrientedSurface(OrientedGeometry):
 
     def __eq__(self,other):
         if not isinstance(other, OrientedSurface):
-            return False
-        
+            return False    
         if not super().__eq__(other):
             return False
-        
-        if self.building_type!=other.building_type:
+        if not self.building_type==other.building_type:
             return False
-        if len(self.polygons) != len(other.polygons):
+        if not len(self.polygons) == len(other.polygons):
             return False
         for polygon1, polygon2 in zip(self.polygons, other.polygons):
             if not polygon1 == polygon2:
@@ -2091,48 +2087,36 @@ class OrientedPolyhedron(OrientedGeometry):
     :param attributes: attributes that will be stored with geometry
     :type attributes: any
     """
-    BUILDING_ID=0
     def __init__(self, polygons, **attributes):
         super().__init__(**attributes)
         self.aux_surface = OrientedSurface(polygons)
         self.polygons = self.aux_surface.polygons
         self.building_type = attributes.pop('building_type', None)
-        self.building_id = attributes.pop('building_id', None)
-        if self.building_id is None:
-            self.building_id = OrientedPolyhedron.BUILDING_ID
-            OrientedPolyhedron.BUILDING_ID+=1            
-
         for polygon in self.polygons:
-            polygon.building_id=self.building_id
+            polygon.building_id=self.id #the id of the polyhedron the polygon belongs to.
             
     def __len__(self):
         return len(self.polygons)
 
     def __str__(self):
-        return (f'Polyhedron({len(self)} polygons) '
-                f'building_id {self.building_id},'
+        printed=(f'Polyhedron({len(self)} polygons) '
+                f'id {self.id} type id {type(self.id)}, '
                 f'building_type {self.building_type}, '
-                f'id {self.id} type id {type(self.id)}')
+                )
+        return printed
            
-
-
     def __eq__(self, other):
         if not isinstance(other, OrientedPolyhedron):
             return False
-        
         if not super().__eq__(other):
             return False
-        
-        if self.building_type != other.building_type:
+        if not self.building_type == other.building_type:
             return False
-        if self.building_id != other.building_id:
-            return False
-        if len(self.polygons)!=len(other.polygons):
+        if not len(self.polygons)==len(other.polygons):
             #quick check before trying every polygon
             return False
-
         for self_polygon, other_polygon in zip(self.polygons, other.polygons):
-            if self_polygon != other_polygon:
+            if not self_polygon == other_polygon:
                 return False            
         return True
         
@@ -2162,7 +2146,6 @@ class OrientedPolyhedron(OrientedGeometry):
             super().to_json(),
             geotype='polyhedron',
             building_type =self.building_type,
-            building_id=self.building_id,
             polygons=[
                 polygon.to_json() for polygon in self.polygons
             ]
@@ -2223,7 +2206,7 @@ class OrientedPolyhedron(OrientedGeometry):
         #create extended polyhedron from top_face
         ext_points=np.array(shapely.geometry.mapping(ext_top)["coordinates"])[0]
         ext_points=np.c_[ext_points, np.zeros(len(ext_points))] #add some z coordinate
-        extended_polyhedron=Building.by_polygon_and_height(polygon=ext_points,height=10) #height don't matter
+        extended_polyhedron=Building.by_polygon_and_height(polygon=ext_points,height=10,id=self.id) #height don't matter
         return extended_polyhedron
 
     def apply_properties_to_polygons(self):
@@ -2276,7 +2259,7 @@ class Building(OrientedPolyhedron):
     """
 
     @staticmethod
-    def by_polygon_and_height(polygon, height, make_ccw=True, keep_ground=True,flat_roof=True):
+    def by_polygon_and_height(polygon, height, id=None,make_ccw=True, keep_ground=True,flat_roof=True):
         """
         Constructs a building from a 3D polygon on the ground.
 
@@ -2348,12 +2331,10 @@ class Building(OrientedPolyhedron):
 
             polygon = OrientedPolygon(face_points)
             polygons.append(polygon)
-
-        #return Building(polygons)
-        return OrientedPolyhedron(polygons)
+        return OrientedPolyhedron(polygons,id=id)
 
     @staticmethod
-    def by_polygon2d_and_height(polygon, height, make_ccw=True, keep_ground=False,flat_roof=True):
+    def by_polygon2d_and_height(polygon, height, id=None, make_ccw=True, keep_ground=False,flat_roof=True):
         """
         Constructs a building from a 2D polygon.
 
@@ -2385,10 +2366,10 @@ class Building(OrientedPolyhedron):
 
         polygon = OrientedPolygon(bottom_points)
 
-        return Building.by_polygon_and_height(polygon, height, make_ccw=make_ccw, keep_ground=keep_ground,flat_roof=flat_roof)
+        return Building.by_polygon_and_height(polygon, height,id, make_ccw=make_ccw, keep_ground=keep_ground,flat_roof=flat_roof)
 
     @staticmethod
-    def building_on_slope(polygon,ground,height):
+    def building_on_slope(polygon,ground,height,id=None):
         """
         Constructs a building on a sloped ground
         polygon: polygon describing the outline of the building
@@ -2405,7 +2386,7 @@ class Building(OrientedPolyhedron):
             point_on_ground=polygon_line_intersection(ground,line)
             new_points[i]=point_on_ground
         new_polygon.points=new_points
-        return Building.by_polygon_and_height(new_polygon, height, make_ccw=True, keep_ground=True,flat_roof=True)
+        return Building.by_polygon_and_height(new_polygon, height,id, make_ccw=True, keep_ground=True,flat_roof=True)
 
     @staticmethod
     def rebuild_building(polygon,grounds,height):
@@ -2483,6 +2464,7 @@ class Cube(OrientedPolyhedron):
 
         building = Building.by_polygon_and_height(polygon, side_length)#TESTING
 
+        #TODO: return orientedPOlyhedron and not cube
         return Cube(building.polygons)
 
 
@@ -2764,6 +2746,25 @@ class OrientedPlace(OrientedGeometry):
 
 
 
+
+def center_gdf(geodataframe):
+    #center InPlace.
+    bounds = geodataframe.total_bounds
+    x = (bounds[0] + bounds[2]) / 2
+    y = (bounds[1] + bounds[3]) / 2
+    geodataframe['geometry'] = geodataframe['geometry'].translate(-x, -y)
+    return
+
+
+def get_bounds(geodataframe):
+    bounds = geodataframe.total_bounds.reshape(2, 2)
+    points = np.zeros((4, 3))
+    points[0::3, 0] = bounds[0, 0]
+    points[1:3, 0] = bounds[1, 0]
+    points[:2, 1] = bounds[0, 1]
+    points[2:, 1] = bounds[1, 1]
+    return points
+
 def generate_place_from_rooftops_file(roof_top_file, center=True,
                                       drop_missing_heights=True,
                                       default_height=10):
@@ -2782,35 +2783,25 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     :rtype: OrientedPlace
     """
     gdf = gpd.read_file(roof_top_file)
-
     if center:
-        bounds = gdf.total_bounds
-        x = (bounds[0] + bounds[2]) / 2
-        y = (bounds[1] + bounds[3]) / 2
-
-        gdf['geometry'] = gdf['geometry'].translate(-x, -y)
+        center_gdf(gdf)
 
     def func(series: gpd.GeoSeries):
-        return Building.by_polygon2d_and_height(series['geometry'], series['height'], keep_ground=False, flat_roof=True)
+        building=Building.by_polygon2d_and_height(polygon=series['geometry'], height=series['height'],id=series['id'], keep_ground=False, flat_roof=True)
+        return building
 
     polyhedra = gdf.apply(func, axis=1).values.tolist()
-    bounds = gdf.total_bounds.reshape(2, 2)
-
-    points = np.zeros((4, 3))
-    points[0::3, 0] = bounds[0, 0]
-    points[1:3, 0] = bounds[1, 0]
-    points[:2, 1] = bounds[0, 1]
-    points[2:, 1] = bounds[1, 1]
+    points=get_bounds(gdf)
     ground_surface = OrientedSurface(points,building_type='ground')
 
     place = OrientedPlace(ground_surface)
     place.polyhedra = polyhedra
 
-    #from building id set building types:
+    #set building types and properties:
     for polyhedron in place.polyhedra:
-        the_id=polyhedron.building_id
-        #find the line of gdf where building_id= the id, and extract the building type from that line
-        the_type=gdf.loc[gdf["building_id"]==the_id]["building_type"].values[0]
+        the_id=polyhedron.id
+        #find the line of gdf where id==the id, and extract the building type from that line
+        the_type=gdf.loc[gdf["id"]==str(the_id)]["building_type"].values[0]
         polyhedron.building_type=the_type
         polyhedron.apply_properties_to_polygons() #from building type set properties
     return place
@@ -2823,20 +2814,18 @@ def preprocess_geojson(filename,drop_missing_heights=False):
 
     add random data about the polygons (mu,epsilon,sigma)
     add random building types amongst "office","appartments","garage"
-    add building ids
+    add ids
 
     save and load the new .geojson
     :param filename: the filepath
     :type filename: str
     """
     gdf = gpd.read_file(filename)
-
-    #TODO: causes problem when creating multiple places
     # Only keeping polygon (sometimes points are given)
     gdf = gdf[[isinstance(g, shPolygon) for g in gdf['geometry']]]
 
-    minHeight=10
-    maxHeight=25
+    minHeight=8
+    maxHeight=15
     height=np.round(np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)),1)
     if not 'height' in gdf.columns:
         print(f"Missing ALL height data, adding random heights between {minHeight} m and {maxHeight} m")
@@ -2860,12 +2849,14 @@ def preprocess_geojson(filename,drop_missing_heights=False):
             names[i]=types[rand]
         gdf['building_type']=names
 
-
-    ids=np.arange(0,len(gdf),1)
-    gdf['building_id']=ids
+    #drop useless data
+    #columns_to_drop=["@id", "id", "addr:housenumber","addr:street","building"]
+    #gdf = gdf.drop(columns=columns_to_drop, errors="ignore") #ignore error if the column is not present
+    
+    gdf['id'] = [str(uuid.uuid4()) for _ in range(len(gdf))]#generate uuids for each building
     gdf.to_crs(epsg=3035, inplace=True)  # To make buildings look more realistic, there may be a better choice :)
     p=Path(filename)
-    preprocessed_name=p.stem+"_preprocessed"+p.suffix
+    preprocessed_name=str(p.parent / (p.stem+"_preprocessed"+p.suffix))
     gdf.to_file(preprocessed_name, driver="GeoJSON")
     return preprocessed_name
 
