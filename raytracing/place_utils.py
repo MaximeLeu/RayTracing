@@ -36,7 +36,7 @@ def plot_place(place,tx,show_normals=False):
     plt.legend()
     plt.show(block=False)
     plt.pause(0.001)
-    #plt.savefig(f"../plots/thePlace.png", format='png', dpi=1000,bbox_inches='tight')
+    #plt.savefig(f"../results/plots/thePlace.png", format='png', dpi=1000,bbox_inches='tight')
     return
 
 def create_small_place(npoints=3):
@@ -168,7 +168,7 @@ def find_crucial_coordinates(filename="../data/place_levant.geojson"):
     maxwell_point=gdf.loc[gdf['id']=="node/2368705254"]["geometry"].values[0]
     maxwell_entrance=np.array([maxwell_point.x,maxwell_point.y,0])
     
-    levant_bottom=maxwell_entrance+np.array([-90,0,0])
+    levant_bottom=maxwell_entrance+np.array([-94,0,0])
     
     stevin_entrance_point=gdf.loc[gdf['id']=="node/8804430834"]["geometry"].values[0]
     stevin_entrance=np.array([stevin_entrance_point.x,stevin_entrance_point.y,0])
@@ -186,7 +186,6 @@ def find_crucial_coordinates(filename="../data/place_levant.geojson"):
     entrances=[maxwell_entrance,stevin_entrance,reaumur_entrance]
     tree_spots=[vinci_tree_spot,maxwell_tree_spot,stevin_tree_spot]
     bound_points=geom.get_bounds(gdf)
-    print(f"points {bound_points}")
     return entrances,levant_bottom,bound_points,tree_spots
     
 
@@ -206,9 +205,9 @@ def create_flat_levant(npoints=15):
         RX_HEIGHT = 1.2
         TX_HEIGHT = 1.2
         MAXWELL_HEIGHT=8.24
-        tx = maxwell + np.array([0, 0, MAXWELL_HEIGHT + TX_HEIGHT])
+        tx = maxwell + np.array([1, 0, MAXWELL_HEIGHT + TX_HEIGHT])
         tx = tx.reshape(-1, 3)
-        rx0 = maxwell + np.array([-30, 0, RX_HEIGHT])
+        rx0 = maxwell + np.array([-34, 0, RX_HEIGHT])
         step = np.linalg.norm(levant_bottom - rx0) / npoints
         for receiver in range(npoints):
             rx = rx0 + np.array([-step * receiver, 0, 0])    
@@ -311,9 +310,9 @@ def create_slanted_levant(npoints=15):
         RX_HEIGHT = 1.2
         TX_HEIGHT = 1.2
         MAXWELL_HEIGHT=8.24
-        tx = maxwell_entrance + np.array([0, 0, MAXWELL_HEIGHT + TX_HEIGHT])
+        tx = maxwell_entrance + np.array([1, 0, MAXWELL_HEIGHT + TX_HEIGHT])
         tx = tx.reshape(-1, 3)
-        rx0 = maxwell_entrance + np.array([-30, 0, RX_HEIGHT])
+        rx0 = maxwell_entrance + np.array([-34, 0, RX_HEIGHT])
         step = np.linalg.norm(levant_bottom - rx0) / npoints
         for receiver in range(npoints):
             rx = rx0 + np.array([-step * receiver, 0, 0])    

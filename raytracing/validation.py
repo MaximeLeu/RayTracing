@@ -10,7 +10,6 @@ Code to validate the program
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
-import time
 
 #self written imports
 from raytracing import file_utils
@@ -118,8 +117,8 @@ def plot_measures_simu_comparison(df,tx):
 def levant_vs_measures(npoints=15,order=2):
     place,tx,_=place_utils.create_flat_levant(npoints)
     name='flat_levant_simu'
-    # place,tx,_=place_utils.create_slanted_levant(npoints=npoints)
-    # name='slanted_levant_simu'
+    place,tx,_=place_utils.create_slanted_levant(npoints=npoints)
+    name='slanted_levant_simu'
     place_utils.plot_place(place, tx)
     solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name=name,order=order)
     df=file_utils.load_df(solved_em_path)
@@ -274,23 +273,14 @@ def plot_measures_only():
     plt.show()
     return
 
-def print_elapsed_time(start_time,end_time):
-    elapsed_time = end_time - start_time
-    minutes = int(elapsed_time // 60)
-    seconds = int(elapsed_time % 60)
-    print("")
-    print(f"Elapsed time: {minutes} minutes {seconds} seconds")
+
 
 #ALWAYS RESTART KERNEL BEFORE LAUNCH
 if __name__ == '__main__':
     plt.close('all')
     #plot_claude_only()
     #small_vs_path_loss(npoints=16*3,order=2)
-    
-    start_time = time.time()
-    levant_vs_measures(npoints=15*1,order=2)
-    end_time = time.time()
-    print_elapsed_time(start_time,end_time)
+    levant_vs_measures(npoints=15*10,order=2)
     
     #slanted_vs_flat()
     

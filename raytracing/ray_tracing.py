@@ -476,7 +476,8 @@ class RayTracingProblem:
                 ax = fig.add_subplot(nrows, ncols, i+1, projection = '3d') #total rows,total columns, index
                 ax = self.plot3d(ax=ax,receivers_indexs=[i],ret=True)
                 ax.set_title('RX'+str(i))
-               
+            
+            #plt.show()
             plt.show(block=False)
             plt.pause(0.001) 
         

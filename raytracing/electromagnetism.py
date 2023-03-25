@@ -504,7 +504,9 @@ class ElectromagneticField:
                 assert 0<=phi_d<=n*pi, f"phi_d {phi_d*180/pi}\u00b0 cannot be inside the wedge, alpha={(2-n)*pi*180/pi}\u00b0"
             except AssertionError:
                 print("ERROR: some diffracted rays may be inside the geometry, the receiver may be inside a building.")
-                fig2 = plt.figure(f"ERROR: Rays reaching RX{receiver} inside geometry",figsize=(8,5))
+                print(f'the problem is with diff surfaces {diff_surfaces_ids}')
+                print(f'Problematic diff path: {diff_path}')
+                fig2 = plt.figure(f"ERROR: Rays reaching RX{receiver} are inside geometry",figsize=(8,5))
                 fig2.set_dpi(300)
                 ax = fig2.add_subplot(1, 1, 1, projection = '3d')
                 rtp.plot3d(ax=ax,receivers_indexs=[receiver],legend=True,show_refl=False)
@@ -848,11 +850,15 @@ def my_field_computation(rtp,save_name="problem_fields"):
 
 
 
-def EM_fields_plots(df_path,order=3,name="notnamed"):
+def EM_fields_plots(df_path,order=3,name="unnamed_plot"):
     df=file_utils.load_df(df_path)
     nreceivers=len(df['rx_id'].unique())
     nrows=nreceivers
     ncols=2
+
+    if nreceivers>16*6:
+        print("Too many receivers; can't display EM field plots")
+        return
 
     fig = plt.figure("EM fields data",figsize=(16,5*nrows))
     fig.set_dpi(150)

@@ -19,6 +19,14 @@ from raytracing.electromagnetism import my_field_computation,EM_fields_plots
 import raytracing.place_utils as place_utils
 
 
+def print_elapsed_time(start_time,end_time):
+    elapsed_time = end_time - start_time
+    minutes = int(elapsed_time // 60)
+    seconds = int(elapsed_time % 60)
+    print(f"Elapsed time: {minutes} minutes {seconds} seconds\n")
+    return
+
+
 def compute_single_receiver(arg):
     """
     Solves the problem for the specified receiver index
@@ -52,6 +60,8 @@ def multithread_solve_place(place,tx,save_name,N_CPU=16,order=3):
     Saves the plots and dataframe in the results folder.
     place: place with all the receivers added
     """
+    print("Starting solving of the ray tracing problems")
+    start_time_rt = time.time()
     #distribute the problems
     pool = Pool(N_CPU)
     pool.restart()
@@ -65,14 +75,30 @@ def multithread_solve_place(place,tx,save_name,N_CPU=16,order=3):
     #merge the solved_problems into one full_problem
     full_problem = RayTracingProblem(tx, place)
     solved_rays_path=merge_solved_problems(full_problem, solved_problems, save_name)
+    end_time_rt = time.time()
+    print("Finished solving the ray tracing problems")
+    print_elapsed_time(start_time_rt,end_time_rt)
     full_problem.plot_all_rays()
 
+    print("Starting EM solving")
+    start_time_em = time.time()
     #compute fields
     solved_em_path=f'../results/{save_name}_em_solved.csv'
     my_field_computation(full_problem,solved_em_path)
+    end_time_em = time.time()
+    print("Finished EM solving")
+    print_elapsed_time(start_time_em,end_time_em)
 
+    print("Plotting EM plots:")
+    start_time_plt = time.time()
     #plot full problem
     EM_fields_plots(solved_em_path,order=order,name=save_name)
+    end_time_plt = time.time()
+    print("Finished EM plotting")
+    print_elapsed_time(start_time_plt,end_time_plt)
+    
+    print("TOTAL TIME: ")
+    print_elapsed_time(start_time_rt,end_time_plt)
     return solved_em_path,solved_rays_path
 
 
@@ -106,13 +132,7 @@ def multithread_solve_place(place,tx,save_name,N_CPU=16,order=3):
 #     EM_fields_plots(solved_em_path,order=order,name=save_name)
 #     return solved_em_path,solved_rays_path
         
-    
-def print_elapsed_time(start_time,end_time):
-    elapsed_time = end_time - start_time
-    minutes = int(elapsed_time // 60)
-    seconds = int(elapsed_time % 60)
-    print("")
-    print(f"Elapsed time: {minutes} minutes {seconds} seconds")   
+
     
 
 if __name__ == "__main__":
@@ -120,11 +140,7 @@ if __name__ == "__main__":
     plt.close('all')
     place,tx,geometry=place_utils.create_small_place(npoints=15)
     #place,tx,geometry=place_utils.create_levant_place(npoints=15)
-
-    start_time = time.time()
     multithread_solve_place(place, tx,"multithread_place_test")
-    end_time = time.time()
-    print_elapsed_time(start_time,end_time)
     
     
     
