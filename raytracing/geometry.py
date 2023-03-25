@@ -24,8 +24,6 @@ from pathlib import Path
 import random
 
 from raytracing import plot_utils,file_utils,container_utils
-
-
 from raytracing.materials_properties import set_properties, MIN_TREE_HEIGHT,MAX_TREE_HEIGHT
 
 
@@ -272,9 +270,7 @@ def project_points(points, matrix, around_point=None):
     :return: the projected points
     :rtype: numpy.ndarray *shape=(N, 3)*
     """
-
     # TODO: improve this so it takes advantage of array contiguity
-
     if not (isinstance(around_point, Omitted) or isinstance(around_point, NoneType)):
         @numba.njit(float64[:, :](float64[:, :], float64[:, :], float64[:, :]))
         def __impl__(points, matrix, around_point):
@@ -288,6 +284,10 @@ def project_points(points, matrix, around_point=None):
             p = np.atleast_2d(points)
             return __project__(p, matrix)
         return __impl__
+    
+    
+
+
 
 
 def project_points_on_spherical_coordinates(points, r_axis=2):
@@ -429,8 +429,7 @@ def projection_matrix_from_vector(vector):
     # return np.row_stack([x, y, z]).T
     return matrix
 
-#commented to TEST PARALLELIZATION
-@numba.njit(numba.float64[:, :](numba.float64[:, :]), cache=True)#,parallel = True)
+@numba.njit(numba.float64[:, :](numba.float64[:, :]), cache=True)
 def projection_matrix_from_line_path(points):
     """
     Returns an orthogonal matrix which can be used to project any set of points in a coordinates system aligned with
@@ -1108,17 +1107,39 @@ class OrientedGeometry(object):
     """
 
     def __init__(self, **attributes):
-        self.id = attributes.pop('id', None)
-        if self.id is None:
-            self.id = uuid.uuid4()
-        self.attributes = attributes
+        the_id= attributes.pop('id', None)
+        self.id=None
+        if the_id is None:
+            the_id=uuid.uuid4()   
+        elif type(the_id)==str:
+            the_id=uuid.UUID(the_id)
+        elif isinstance(the_id,uuid.UUID):
+            the_id=the_id
+        
+        self.id=the_id
         self.domain = None
         self.centroid = None
         self.visibility_matrix = None
         self.sharp_edges = None
+        self.attributes = attributes
+
+    def __str__(self):
+        class_name = self.__class__.__name__
+        return (
+            f'Object: {class_name} '
+            f'id: {self.id} '
+            f'visibility_matrix: {self.visibility_matrix } '
+            f'centroid: {self.centroid} '
+            f'domain: {self.domain} '
+            f'sharp_edges: {self.sharp_edges} '
+              )
 
     def __eq__(self, other):
-        return self.id == other.id
+        if not self.id==other.id:
+            return False
+        if not self.sharp_edges==other.sharp_edges:
+            return False
+        return True
 
     def __getitem__(self, item):
         return self.attributes[item]
@@ -1163,7 +1184,21 @@ class OrientedGeometry(object):
         :return: the geometry
         :rtype: OrientedGeometry
         """
-        raise NotImplementedError
+        data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
+        geometry=OrientedGeometry(**data)
+        
+        # geometry.domain = np.array(data.pop('domain')) if 'domain' in data else None
+        # geometry.centroid = np.array(data.pop('centroid')) if 'centroid' in data else None
+        # geometry.visibility_matrix = np.array(data.pop('visibility_matrix')) if 'visibility_matrix' in data else None
+        sharp_edges_data=data.pop('sharp_edges')
+        if sharp_edges_data is not None:
+            sharp_edges_dict = json.loads(sharp_edges_data)
+            geometry.sharp_edges = container_utils.ManyToOneDict.from_json(data=sharp_edges_dict)
+        else:
+            geometry.sharp_edges=None
+        return geometry
+        
+        
 
     def to_json(self, filename=None):
         """
@@ -1174,8 +1209,14 @@ class OrientedGeometry(object):
         :return: the geometry in a json format
         :rtype: dict
         """
+        
+        saved_sharp_edges= self.sharp_edges.to_json() if self.sharp_edges is not None else None        
         data = dict(
             id=self.id,
+            # domain=self.domain,
+            # centroid=self.centroid,
+            # visibility_matrix=self.visibility_matrix,
+            sharp_edges=saved_sharp_edges,
             **self.attributes
         )
 
@@ -1183,6 +1224,7 @@ class OrientedGeometry(object):
             file_utils.json_save(filename, data, cls=OrientedGeometryEncoder)
 
         return data
+    
 
     def get_polygons_iter(self):
         """
@@ -1542,32 +1584,51 @@ class OrientedPolygon(OrientedGeometry):
         self.building_id= None #set at posteriori
         self.part="side"  #changed when top or bottom
         
+        
+        
     def __len__(self):
         return self.points.shape[0]
 
     def __str__(self):
-        return f'Polygon({len(self)} points)'
+        return f'Polygon({len(self)} points) part {self.part}, building id: {self.building_id}, properties==None?:{self.properties==None}'
 
     def __eq__(self, other):
-        if isinstance(other, OrientedPolygon):
-            return np.array_equal(self.points, other.points)
-        return False
+        if not isinstance(other, OrientedPolygon):
+            return False
+        if not super().__eq__(other):
+            return False
+        
+        if not np.array_equal(self.points, other.points):
+            return False
+        if self.building_id!=other.building_id:
+            return False
+        if self.part!=other.part:
+            return False
+        if self.properties!=other.properties:
+            return False
+        return True
     
-    @staticmethod
-    def from_json(data=None, filename=None):
+    @classmethod
+    def from_json(cls,data=None, filename=None):
         data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
         geotype = data.pop('geotype')
         if geotype != 'polygon':
             raise ValueError(f'Cannot cast geotype {geotype} to polygon.')
+            
+        oriented_geometry=super().from_json(data=data)
+        
         points = np.array(data.pop('points'))
-        loaded_polygon=OrientedPolygon(points, **data)
-
-        loaded_polygon.part = data.pop('part') #TESTING
-        loaded_polygon.properties = data.pop('properties') #TESTING
+        loaded_polygon=cls(points, **data)
+        loaded_polygon.part = data.pop('part')
+        loaded_polygon.properties = data.pop('properties')
         loaded_polygon.building_id = data.pop('building_id')
-
-
-        return loaded_polygon #todo TEST
+        loaded_polygon.get_parametric()
+        
+        loaded_polygon.sharp_edges=oriented_geometry.sharp_edges
+        loaded_polygon.centroid=oriented_geometry.centroid
+        loaded_polygon.domain=oriented_geometry.domain
+        loaded_polygon.visibility_matrix=oriented_geometry.visibility_matrix
+        return loaded_polygon
 
 
     def to_json(self, filename=None):
@@ -1897,7 +1958,8 @@ class Square(OrientedPolygon):
             square=shapely.affinity.rotate(square.get_shapely(), angle, origin='center', use_radians=False)
             square=np.array(shapely.geometry.mapping(square)["coordinates"][0])
             square=np.c_[square, np.ones(len(square))] #add some z coordinate
-        return Square(square)
+            square=Square(square)
+        return square
 
 
 
@@ -1910,10 +1972,14 @@ class OrientedSurface(OrientedGeometry):
     :param attributes: attributes that will be stored with geometry
     :type attributes: any
     """
-
-    def __init__(self, polygons, building_type="road", **attributes):
+    
+    def __init__(self, polygons, **attributes):
         super().__init__(**attributes)
 
+        self.building_type = attributes.pop('building_type', None)
+        if self.building_type is None:
+            self.building_type="ground"
+            
         if type(polygons) != list:
             polygons = [polygons]
 
@@ -1921,7 +1987,7 @@ class OrientedSurface(OrientedGeometry):
             self.polygons = [OrientedPolygon(points=polygon)
                              for polygon in polygons]
             for polygon in self.polygons:
-                polygon.properties=set_properties(building_type)
+                polygon.properties=set_properties(self.building_type)
                 polygon.part="ground"
 
         elif isinstance(polygons[0], OrientedPolygon):
@@ -1932,17 +1998,44 @@ class OrientedSurface(OrientedGeometry):
     def __len__(self):
         return len(self.polygons)
 
-    def __str__(self):
-        return f'Surface({len(self)} polygons)'
+    def __eq__(self,other):
+        if not isinstance(other, OrientedSurface):
+            return False
+        
+        if not super().__eq__(other):
+            return False
+        
+        if self.building_type!=other.building_type:
+            return False
+        if len(self.polygons) != len(other.polygons):
+            return False
+        for polygon1, polygon2 in zip(self.polygons, other.polygons):
+            if not polygon1 == polygon2:
+                return False   
+        return True
 
-    @staticmethod
-    def from_json(data=None, filename=None):
+    def __str__(self):
+        return f'Surface({len(self)} polygons) type: {self.building_type}'
+
+    @classmethod
+    def from_json(cls,data=None, filename=None):
         data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
         geotype = data.pop('geotype')
         if geotype != 'surface':
             raise ValueError(f'Cannot cast geotype {geotype} to surface.')
+        
+        oriented_geometry=super().from_json(data=data)
+        
         polygons = [OrientedPolygon.from_json(data=poly_data) for poly_data in data.pop('polygons')]
-        return OrientedSurface(polygons, **data)
+        surface=cls(polygons, **data)
+
+        surface.sharp_edges=oriented_geometry.sharp_edges
+        surface.centroid=oriented_geometry.centroid
+        surface.domain=oriented_geometry.domain
+        surface.visibility_matrix=oriented_geometry.visibility_matrix
+    
+        return surface
+
 
     def to_json(self, filename=None):
         data = dict(
@@ -1999,35 +2092,70 @@ class OrientedPolyhedron(OrientedGeometry):
     :type attributes: any
     """
     BUILDING_ID=0
-
-    def __init__(self, polygons,building_type=None, **attributes):
+    def __init__(self, polygons, **attributes):
         super().__init__(**attributes)
         self.aux_surface = OrientedSurface(polygons)
         self.polygons = self.aux_surface.polygons
-        self.building_type = building_type
-        self.building_id=OrientedPolyhedron.BUILDING_ID
-        OrientedPolyhedron.BUILDING_ID=OrientedPolyhedron.BUILDING_ID+1
+        self.building_type = attributes.pop('building_type', None)
+        self.building_id = attributes.pop('building_id', None)
+        if self.building_id is None:
+            self.building_id = OrientedPolyhedron.BUILDING_ID
+            OrientedPolyhedron.BUILDING_ID+=1            
+
         for polygon in self.polygons:
             polygon.building_id=self.building_id
+            
     def __len__(self):
         return len(self.polygons)
 
     def __str__(self):
-        return f'Polyhedron({len(self)} polygons) id {self.building_id}, building_type {self.building_type}'
+        return (f'Polyhedron({len(self)} polygons) '
+                f'building_id {self.building_id},'
+                f'building_type {self.building_type}, '
+                f'id {self.id} type id {type(self.id)}')
+           
 
-    def equals(self,polyhedron):
-        #Two oriented polyhedrons are considered equal if their footprint match
-        return self.get_top_face().get_shapely().equals(polyhedron.get_top_face().get_shapely())
 
-    @staticmethod
-    def from_json(data=None, filename=None):
+    def __eq__(self, other):
+        if not isinstance(other, OrientedPolyhedron):
+            return False
+        
+        if not super().__eq__(other):
+            return False
+        
+        if self.building_type != other.building_type:
+            return False
+        if self.building_id != other.building_id:
+            return False
+        if len(self.polygons)!=len(other.polygons):
+            #quick check before trying every polygon
+            return False
+
+        for self_polygon, other_polygon in zip(self.polygons, other.polygons):
+            if self_polygon != other_polygon:
+                return False            
+        return True
+        
+    @classmethod
+    def from_json(cls,data=None, filename=None):
         data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
         geotype = data.pop('geotype')
         if geotype != 'polyhedron':
             raise ValueError(f'Cannot cast geotype {geotype} to polyhedron.')
-        building_type =data.pop("building_type") #TESTING
+        
+        oriented_geometry=super().from_json(data=data)
+        
         polygons = [OrientedPolygon.from_json(data=poly_data) for poly_data in data.pop('polygons')]
-        return OrientedPolyhedron(polygons,building_type, **data)
+        polyhedron=cls(polygons, **data)
+        
+        polyhedron.sharp_edges=oriented_geometry.sharp_edges
+        polyhedron.centroid=oriented_geometry.centroid
+        polyhedron.domain=oriented_geometry.domain
+        polyhedron.visibility_matrix=oriented_geometry.visibility_matrix
+        
+        
+        return polyhedron
+
 
     def to_json(self, filename=None):
         data = dict(
@@ -2042,7 +2170,6 @@ class OrientedPolyhedron(OrientedGeometry):
 
         if filename is not None:
             file_utils.json_save(filename, data, cls=OrientedGeometryEncoder)
-
         return data
 
     def get_polygons_iter(self):
@@ -2052,14 +2179,14 @@ class OrientedPolyhedron(OrientedGeometry):
         for polygon in self.polygons:
             if polygon.part=="top":
                 return polygon
-        assert 1==0, "could not get top face"
+        assert False, f"could not get top face of {self}"
         return
     
     def get_bottom_face(self):
         for polygon in self.polygons:
             if polygon.part=="bottom":
                 return polygon
-        assert 1==0, "could not get bottom face"
+        assert False, f"could not get bottom face of {self}"
         return
 
     def apply_on_points(self, func, *args, **kwargs):
@@ -2099,7 +2226,14 @@ class OrientedPolyhedron(OrientedGeometry):
         extended_polyhedron=Building.by_polygon_and_height(polygon=ext_points,height=10) #height don't matter
         return extended_polyhedron
 
-
+    def apply_properties_to_polygons(self):
+        building_type=self.building_type
+        if building_type is None:
+            assert False,f"building type for polyhedron {self} is not set"
+        for polygon in self.polygons:
+            polygon.properties=set_properties(building_type)
+        return
+    
 class Pyramid(OrientedPolyhedron):
     """
     A pyramid is an oriented polyhedron described by a base polygon and an isolated point.
@@ -2215,7 +2349,8 @@ class Building(OrientedPolyhedron):
             polygon = OrientedPolygon(face_points)
             polygons.append(polygon)
 
-        return Building(polygons)
+        #return Building(polygons)
+        return OrientedPolyhedron(polygons)
 
     @staticmethod
     def by_polygon2d_and_height(polygon, height, make_ccw=True, keep_ground=False,flat_roof=True):
@@ -2252,7 +2387,7 @@ class Building(OrientedPolyhedron):
 
         return Building.by_polygon_and_height(polygon, height, make_ccw=make_ccw, keep_ground=keep_ground,flat_roof=flat_roof)
 
-
+    @staticmethod
     def building_on_slope(polygon,ground,height):
         """
         Constructs a building on a sloped ground
@@ -2272,7 +2407,7 @@ class Building(OrientedPolyhedron):
         new_polygon.points=new_points
         return Building.by_polygon_and_height(new_polygon, height, make_ccw=True, keep_ground=True,flat_roof=True)
 
-
+    @staticmethod
     def rebuild_building(polygon,grounds,height):
         """
         Rebuilds a building such that it lies on the ground.
@@ -2306,7 +2441,16 @@ class Building(OrientedPolyhedron):
             buildings.append(Building.building_on_slope(splits[i],conflicting_grounds[i], height))           
         return buildings
             
-                    
+    
+    @staticmethod
+    def create_tree(tree_spot,tree_size,tree_height,rotate):
+        if tree_height is None:
+            tree_height=random.uniform(MIN_TREE_HEIGHT, MAX_TREE_HEIGHT)
+        tree_top=Square.by_center_and_side(tree_spot,tree_size,rotate=rotate).get_points()
+        tree=Building.by_polygon_and_height(tree_top, tree_height)
+        tree.building_type="tree"
+        tree.apply_properties_to_polygons()
+        return tree
 
     
     
@@ -2382,21 +2526,55 @@ class OrientedPlace(OrientedGeometry):
             if set_of_points.shape[1] == 3:
                 self.set_of_points = set_of_points
         else:
-            raise ValueError('OrientedPlace has an invalid set_of_points as input')
+            raise ValueError(f'OrientedPlace has an invalid set_of_points as input: {set_of_points}, type {type(set_of_points)}')
+
+
+    def __eq__(self,other):
+        if not isinstance(other, OrientedPlace):
+           return False
+       
+        if not super().__eq__(other):
+            return False 
+       
+        if not np.array_equal(self.set_of_points,other.set_of_points):
+            return False
+        
+        if self.surface!=other.surface:
+            return False
+        
+        for self_polyhedron, other_polyhedron in zip(self.polyhedra, other.polyhedra):
+            if self_polyhedron != other_polyhedron:
+                return False   
+        return True
 
     def __str__(self):
-        return f'Place({len(self.polyhedra)} polyhedra, {self.set_of_points.shape[0]} points)'
+        return (f'Place({len(self.polyhedra)} polyhedra, '
+                f'{self.set_of_points.shape[0]} points)'
+                )
 
-    @staticmethod
-    def from_json(data=None, filename=None):
+    @classmethod
+    def from_json(cls,data=None, filename=None):
         data = data.copy() if data is not None else file_utils.json_load(filename, cls=OrientedGeometryDecoder)
         geotype = data.pop('geotype')
         if geotype != 'place':
             raise ValueError(f'Cannot cast geotype {geotype} to place.')
+            
+        oriented_geometry=super().from_json(data=data)
+        
+
         surface = OrientedSurface.from_json(data=data.pop('surface'))
         polyhedra = [OrientedPolyhedron.from_json(data=poly_data) for poly_data in data.pop('polyhedra')]
-        points = np.array(data.pop('points'))
-        return OrientedPlace(surface, polyhedra, points, **data)
+        set_of_points=np.array(data.pop('set_of_points'))
+        place=cls(surface, polyhedra, set_of_points, **data)
+        place.set_of_points=set_of_points
+        
+        place.sharp_edges=oriented_geometry.sharp_edges
+        place.centroid=oriented_geometry.centroid
+        place.domain=oriented_geometry.domain
+        place.visibility_matrix=oriented_geometry.visibility_matrix
+        
+        return place
+    
 
 
     def to_json(self, filename=None):
@@ -2407,7 +2585,7 @@ class OrientedPlace(OrientedGeometry):
             polyhedra=[
                 polyhedron.to_json() for polyhedron in self.polyhedra
             ],
-            points=self.set_of_points
+            set_of_points=self.set_of_points
         )
 
         if filename is not None:
@@ -2517,7 +2695,6 @@ class OrientedPlace(OrientedGeometry):
         return False
 
     def add_polyhedron(self, polyhedron, allow_overlap=False):
-
         #adds a polyhedron to the polyhedra list
         assert isinstance(polyhedron, OrientedPolyhedron), "given polyhedron is not of type OrientedPolyhedron"
         if allow_overlap==False:
@@ -2525,7 +2702,7 @@ class OrientedPlace(OrientedGeometry):
         self.polyhedra.append(polyhedron)
         return
 
-
+    
 
     #ONLY WORKS IF THERE IS A SINGLE GROUND...
     def add_tree(self,tree_size,how_close_to_buildings=2):
@@ -2540,13 +2717,6 @@ class OrientedPlace(OrientedGeometry):
         -------
         None.
         """
-        def create_tree(tree_spot,tree_size):
-            tree_height=random.uniform(MIN_TREE_HEIGHT, MAX_TREE_HEIGHT)
-            tree_top=Square.by_center_and_side(tree_spot,tree_size,rotate=True).get_points()
-            tree=Building.by_polygon_and_height(tree_top, tree_height)
-            tree.building_type="tree"
-            return tree
-
         def random_point_inside_polygon(number, polygon):
             #Only works on 2D shapely polygons
             points = []
@@ -2567,7 +2737,7 @@ class OrientedPlace(OrientedGeometry):
 
         tree_spot=random_point_inside_polygon(1, zone)[0]
         tree_spot=np.array([tree_spot.x,tree_spot.y,0])
-        tree=create_tree(tree_spot,tree_size)
+        tree=Building.create_tree(tree_spot,tree_size,tree_height=None,rotate=True)
         self.add_polyhedron(tree)
 
         # VISUALISATION
@@ -2631,24 +2801,18 @@ def generate_place_from_rooftops_file(roof_top_file, center=True,
     points[1:3, 0] = bounds[1, 0]
     points[:2, 1] = bounds[0, 1]
     points[2:, 1] = bounds[1, 1]
-    ground_surface = OrientedSurface(points,"road")
+    ground_surface = OrientedSurface(points,building_type='ground')
 
     place = OrientedPlace(ground_surface)
     place.polyhedra = polyhedra
 
-
     #from building id set building types:
     for polyhedron in place.polyhedra:
-        the_id=polyhedron.polygons[0].building_id
+        the_id=polyhedron.building_id
         #find the line of gdf where building_id= the id, and extract the building type from that line
         the_type=gdf.loc[gdf["building_id"]==the_id]["building_type"].values[0]
         polyhedron.building_type=the_type
-        #from building types set polygon properties
-        for polygon in polyhedron.polygons:
-            polygon.properties=set_properties(the_type)
-
-    #to check everything is well set:
-    #place.to_json("../data/the_generated_place.json")
+        polyhedron.apply_properties_to_polygons() #from building type set properties
     return place
 
 
@@ -2667,6 +2831,7 @@ def preprocess_geojson(filename,drop_missing_heights=False):
     """
     gdf = gpd.read_file(filename)
 
+    #TODO: causes problem when creating multiple places
     # Only keeping polygon (sometimes points are given)
     gdf = gdf[[isinstance(g, shPolygon) for g in gdf['geometry']]]
 
@@ -2699,9 +2864,10 @@ def preprocess_geojson(filename,drop_missing_heights=False):
     ids=np.arange(0,len(gdf),1)
     gdf['building_id']=ids
     gdf.to_crs(epsg=3035, inplace=True)  # To make buildings look more realistic, there may be a better choice :)
-
-    with open('dataframe.geojson' , 'w') as file:
-        gdf.to_file(filename, driver="GeoJSON")
+    p=Path(filename)
+    preprocessed_name=p.stem+"_preprocessed"+p.suffix
+    gdf.to_file(preprocessed_name, driver="GeoJSON")
+    return preprocessed_name
 
 
 def sample_geojson(filename,nBuildings):
@@ -2723,6 +2889,5 @@ def sample_geojson(filename,nBuildings):
 
     p=Path(filename)
     sampled_name=p.stem+"_sampled"+p.suffix
-    with open('dataframe.geojson' , 'w') as file:
-        gdf.to_file(sampled_name, driver="GeoJSON")
+    gdf.to_file(sampled_name, driver="GeoJSON")
     return sampled_name

@@ -1,3 +1,5 @@
+import json
+import numpy as np
 class ManyToOneDict(dict):
     """
     Subclass of dict providing multiple keys access to identical values.
@@ -44,3 +46,80 @@ class ManyToOneDict(dict):
             return ret
         else:
             return item, super().__getitem__(item)
+        
+        
+    def __eq__(self, other):
+        if not isinstance(other, ManyToOneDict):
+            return False
+
+        if len(self) != len(other):
+            return False
+
+        for key, value in self.items():
+            if key not in other:
+                return False
+            other_value = super(ManyToOneDict, other).__getitem__(key)
+            if isinstance(value, np.ndarray) and isinstance(other_value, np.ndarray):
+                if not np.array_equal(value, other_value):
+                    return False
+            elif value != other_value:
+                return False
+
+        return True
+    
+    
+    
+    def to_json(self, filename=None):
+        """
+        Serialize the ManyToOneDict object to a JSON file.
+        :param filename: The path to the JSON file where the object will be serialized.
+        """
+        serialized_data = {}
+        for key, value in self.items():
+            key_str = str(tuple([int(k) for k in key]))
+            if isinstance(value, np.ndarray):
+                value = value.tolist()
+            serialized_data[key_str] = value
+        
+        if filename is not None:
+            with open(filename, 'w') as json_file:
+                json.dump(serialized_data, json_file)
+        return json.dumps(serialized_data)
+        
+    @classmethod
+    def from_json(cls, data=None, filename=None):
+        """
+        Deserialize a JSON file to a ManyToOneDict object.
+        :param file_path: The path to the JSON file containing the serialized ManyToOneDict object.
+        :return: A ManyToOneDict object containing the data from the JSON file.
+        """
+        if data is None and filename is not None:
+            with open(filename, 'r') as json_file:
+                data = json.load(json_file)
+
+        if data is None:
+            raise ValueError("Either data or filename must be provided")
+        
+        instance = cls()
+        for key, value in data.items():
+            # Convert string representation of tuples back to tuples
+            key_tuple = tuple(int(x) for x in filter(None, key.strip("()").split(",")))
+            if isinstance(value, list):
+                value = np.array(value)
+            instance[key_tuple] = value
+
+        return instance
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

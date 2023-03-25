@@ -4,7 +4,7 @@
 """
 Created on Sun Oct  2 12:47:11 2022
 
-@author: maxime
+@author: Maxime Leurquin
 
 Properties of various materials
 """
@@ -117,8 +117,10 @@ def set_properties(building_type):
             properties=create_dict("brick")
         case "garage":
             properties=create_dict("concrete")
-        case "road":
+        case "ground":
             properties=create_dict("concrete")
+        case "tree":
+            properties=create_dict("concrete")    
         case _:
             #if its none of the above
             print(f"Properties for the type {building_type} have not been specified, using concrete")

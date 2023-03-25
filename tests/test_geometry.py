@@ -1,5 +1,11 @@
-import raytracing.geometry as geom
+#pylint: disable=invalid-name,line-too-long
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+@author: Jerome Eertmans
+"""
 import numpy as np
+import raytracing.geometry as geom
 
 
 def ok_normalize_path(points):
@@ -43,12 +49,13 @@ def ok_parse_3d_axis(axis):
 
 
 class TestGeometry(np.testing.TestCase):
+    
+    
+    
 
     def test_normalize_path(self):
-
         my_func = geom.normalize_path
         ok_func = ok_normalize_path
-
         args = [
             np.random.rand(10, 3)
         ]
@@ -57,29 +64,24 @@ class TestGeometry(np.testing.TestCase):
             with self.subTest(i=i):
                 got_path, got_n = my_func(arg)
                 expected_path, expected_n = ok_func(arg)
-
                 np.testing.assert_almost_equal(got_path, expected_path)
                 np.testing.assert_almost_equal(got_n, expected_n)
 
     def test_intersection_of_2d_lines(self):
         my_func = geom.intersection_of_2d_lines
         ok_func = ok_intersection_of_2d_lines
-
         args = [
             (np.random.rand(2, 2), np.random.rand(2, 2))
         ]
-
         for i, arg in enumerate(args):
             with self.subTest(i=i):
                 got = my_func(*arg)
                 expected = ok_func(*arg)
-
                 np.testing.assert_almost_equal(got, expected)
 
     def test__gamma__(self):
         my_func = geom.__gamma__
         ok_func = ok__gamma__
-
         args = [
             np.random.rand(10, 3)
         ]
@@ -88,13 +90,11 @@ class TestGeometry(np.testing.TestCase):
             with self.subTest(i=i):
                 got = my_func(arg)
                 expected = ok_func(arg)
-
                 np.testing.assert_almost_equal(got, expected)
 
     def test_parse_3d_axis(self):
         my_func = geom.parse_3d_axis
         ok_func = ok_parse_3d_axis
-
         args = [
             'x',
             'y',
@@ -109,13 +109,15 @@ class TestGeometry(np.testing.TestCase):
             -1,
             1000
         ]
-
         for i, arg in enumerate(args):
             with self.subTest(i=i):
                 got = my_func(arg)
                 expected = ok_func(arg)
-
                 self.assertEqual(got, expected)
+
+
+
+
 
 
 if __name__ == '__main__':

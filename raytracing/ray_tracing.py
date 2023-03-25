@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from tqdm import tqdm
-import json
 
 from raytracing import geometry as geom
 from raytracing import plot_utils
@@ -62,6 +61,142 @@ class RayTracingProblem:
         }
         if self.place is not None:
             self.precompute()
+            
+            
+    def to_json(self, filename): 
+        data = {
+            'place': self.place.to_json(),
+            'receivers':self.receivers,
+            'solved_receivers':self.solved_receivers,
+            'emitter': self.emitter,
+            'n_screens':self.n_screens,
+            'los': self.los,
+            'reflections': self.reflections,
+            'diffractions': self.diffractions
+        }
+        filename=filename if ".json" in filename else f'{filename}.json'
+        file_utils.json_save(filename, data, cls=geom.OrientedGeometryEncoder)   
+        return
+            
+    
+    @staticmethod
+    def from_json(filename):  
+        data=file_utils.json_load(filename, cls=geom.OrientedGeometryDecoder)
+        place=geom.OrientedPlace.from_json(data=data["place"])
+        emitter=np.array(data.pop("emitter"))            
+        n_screens=data.pop("n_screens")
+        problem=RayTracingProblem(emitter=emitter,place=place,n_screens=n_screens)
+        
+        solved_receivers=(np.array(data.pop("solved_receivers"))).tolist()
+        for i in range(len(solved_receivers)):
+            solved_receivers[i]=np.array(solved_receivers[i])
+        problem.solved_receivers=solved_receivers           
+        
+        def load_reflections():
+            reflections=data.pop('reflections')
+            processed_reflections = {
+                int(r): defaultdict(list)
+                for r in reflections
+            }
+            for r in reflections:
+               for k in reflections[r]:
+                   for item in reflections[r][k]:
+                       points, indices = item
+                       points_array = np.array(points)
+                       processed_reflections[int(r)][int(k)].append((points_array, indices))
+                       
+            reflections = processed_reflections
+            return reflections
+            
+        def load_diffractions():
+            diffractions = data.pop('diffractions')
+            processed_diffractions = {
+                int(r): defaultdict(list)
+                for r in diffractions
+            }
+            for r in diffractions:
+                for k in diffractions[r]:
+                    for item in diffractions[r][k]:
+                        points, empty_list, indices, edge_points = item
+                        points_array = np.array(points)
+                        edge_points_array = np.array(edge_points)
+                        processed_diffractions[int(r)][int(k)].append((points_array, empty_list, tuple(indices), edge_points_array))
+            
+            diffractions=processed_diffractions
+            return diffractions
+        
+        #los is set when precomputing when the object is created
+        problem.reflections=load_reflections()
+        problem.diffractions=load_diffractions()
+        return problem
+
+    def __str__(self):
+        return(
+            f"RayTracingProblem object containing: "
+            f'{self.place}, ' 
+            f'emitter: {self.emitter}, '
+            f'number of solved_receivers: {len(self.solved_receivers)}, '
+            )
+    #TODO: pretty print LOS, reflections, Diffraction
+            # f'LOS: {self.los} '
+            # f'Reflections: {self.reflections} '
+            # f'Diffractions: {self.diffractions}'
+            # )
+    
+
+    def __eq__(self, other):
+        if not isinstance(other, RayTracingProblem):
+            return False
+    
+        if not np.array_equal(self.emitter, other.emitter):
+            return False
+        
+        if self.n_screens != other.n_screens:
+            return False
+
+        # if not self.place == other.place:
+        #     return False
+        
+        # for polygon1, polygon2 in zip(self.polygons, other.polygons):
+        #     if not polygon1 == polygon2:
+        #         return False   
+
+        
+        # print(np.setdiff1d(self.visibility_matrix, other.visibility_matrix))
+        # print(np.setdiff1d(other.visibility_matrix, self.visibility_matrix))
+        # if not np.array_equal(self.visibility_matrix, other.visibility_matrix):
+        #     return False
+        
+        #works fails fails works non stop
+        if not np.array_equal(self.emitter_visibility,other.emitter_visibility):
+            return False
+
+        if not np.array_equal(self.receivers, other.receivers):
+            return False
+
+        if not np.array_equal(self.solved_receivers, other.solved_receivers):
+            return False
+
+        if self.distance_to_screen != other.distance_to_screen:
+            return False
+
+        if not self.sharp_edges == other.sharp_edges:
+            return False
+                
+        los_equal = all(a == b for a, b in zip(self.los, other.los)) 
+        if not los_equal:
+            return False
+        
+        ref_equal = all(a == b for a, b in zip(self.reflections, other.reflections)) 
+        if not ref_equal:
+            return False
+        
+        diff_equal = all(a == b for a, b in zip(self.diffractions, other.diffractions)) 
+        if not diff_equal:
+            return False
+        
+
+        return True
 
     def precompute(self):
         """
@@ -242,66 +377,7 @@ class RayTracingProblem:
             
         self.solved_receivers=receivers    
 
-    def save(self, filename): 
-        data = {
-            'place': self.place.to_json(),
-            'solved_receivers':self.solved_receivers,
-            'emitter': self.emitter,
-            'los': self.los,
-            'reflections': self.reflections,
-            'diffractions': self.diffractions
-        }
-        #save in a readable json, loadable.
-        filename=filename if ".json" in filename else f'{filename}.json'
-        file_utils.json_save(filename, data, cls=geom.OrientedGeometryEncoder)   
-        return
-            
-    def load(self,filename):  
-        assert 1==2,"loading a problem from a json is not working"
-        #TODO load correctly, this does not work.
-        reader=open(filename,"r")
-        dictionnary=json.load(reader)         
-        reader.close()
-        #dictionnary=file_utils.json_load(filename)
-        self.solved_receivers=np.array(dictionnary["solved_receivers"])
-        self.emitter=np.array(dictionnary["emitter"])
-        place=geom.OrientedPlace.from_json(data=dictionnary["place"])
-        self.place=place
-         
-        #convert indices from strings to ints
-        los={int(key):dictionnary['los'][key] for key in dictionnary['los']}
-        #convert lists to ndarrays
-        for receiver in range(0,len(los)):
-            if los[receiver]!=[]:
-                los[receiver][0]=np.array(los[receiver][0])
-        self.los=los
-        
-        reflections={int(key):dictionnary['reflections'][key] for key in dictionnary['reflections']}
-        for receiver in range(0,len(reflections)):
-            reflections[receiver]={int(key):reflections[receiver][key] for key in reflections[receiver]}
-            reflections[receiver]=defaultdict(list,reflections[receiver])
-            for order in range(1,len(reflections[receiver])+1):
-                for ref in range(0,len(reflections[receiver][order])):
-                    reflections[receiver][order][ref]=(np.array(reflections[receiver][order][ref][0]),reflections[receiver][order][ref][1])
-
-        self.reflections=reflections
-        diffractions={int(key):dictionnary['diffractions'][key] for key in dictionnary['diffractions']}
-        for receiver in range(0,len(diffractions)):
-            diffractions[receiver]={int(key):diffractions[receiver][key] for key in diffractions[receiver]}
-            diffractions[receiver]=defaultdict(list,diffractions[receiver])
-            for order in range(1,len(diffractions[receiver])+1):
-                for diff in range(0,len(diffractions[receiver][order])):
-                    diffractions[receiver][order][diff]=(np.array(diffractions[receiver][order][diff][0]),
-                                                          diffractions[receiver][order][diff][1],
-                                                          tuple(diffractions[receiver][order][diff][2]),
-                                                          np.array(diffractions[receiver][order][diff][3])
-                                                          )
-        self.diffractions=diffractions
-        self.polygons = np.array(place.get_polygons_list(),dtype=object)
-        self.n_screens=6 #TODO load correctly 
-        #self.precompute() #compute the other arguments (visibility matrix etc)
-        
-        return self
+    
         
         
         

@@ -1,6 +1,6 @@
 #pylint: disable=invalid-name,line-too-long
 """
-@author: max
+@author: Maxime Leurquin
 """
 #packages
 import numpy as np
@@ -38,7 +38,7 @@ ALPHA=10#increase alpha to make the antenna more directive.
 #TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians
 #RX_GAIN=4*pi*1/((pi/9)**2) #20 degree beamwidth  approx 103
 #RX_GAIN=RX_GAIN*30 #*170 at 30GHz and *30 at 12.5GHz
-TX_GAIN=350
+TX_GAIN=300
 RX_GAIN=300
 
 def vv_normalize(vv):
@@ -596,15 +596,15 @@ class SolvedField:
     class to store the data about the field computed at the end of a path
     """
     def __init__(self,path):
-        self.rx=path[-1]
+        self.rx=path[-1] #1x3 numpy.ndarray
         self.tx=path[0]
         self.world_path=path #in world coordinates
         self.path_len=geom.path_length(path)
-        self.time=self.path_len/c
+        self.time=self.path_len/c #float
 
 
-        self.path_type=None
-        self.rx_id=None
+        self.path_type=None #string
+        self.rx_id=None #int
         self.field=0
 
         self.antenna_path=None
@@ -617,7 +617,7 @@ class SolvedField:
         self.rx_el=None
         self.rx_az=None
 
-        self.power=0
+        self.power=0 #float
 
 
     def __str__(self):

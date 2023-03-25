@@ -4,23 +4,25 @@
 Created on Thu Sep 29 18:33:28 2022
 
 Code driver
-@author: maxime
+@author: Maxime Leurquin
 """
 #packages
 import matplotlib.pyplot as plt
+import numpy as np
 
 #self written imports
 from ray_tracing import RayTracingProblem
-from electromagnetism import my_field_computation,EM_fields_plots
-from multithread_solve import multithread_solve_place
-import file_utils
-import place_utils
+from raytracing.electromagnetism import my_field_computation,EM_fields_plots
+from raytracing.multithread_solve import multithread_solve_place
+from raytracing.file_utils import chdir_to_file_dir, load_df
+
+import raytracing.place_utils as place_utils
 import raytracing.geometry as geom
-import numpy as np
+
 
 if __name__ == '__main__':
     plt.close('all') #close all previous plots
-    file_utils.chdir_to_file_dir(__file__)
+    chdir_to_file_dir(__file__)
 
     #choose geometry:
     #place,tx,geometry=place_utils.create_two_rays_place()
@@ -52,5 +54,5 @@ if __name__ == '__main__':
     #multithreaded driver code
     if multithread:
         solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='{geometry}',order=ORDER)
-        df=file_utils.load_df(solved_em_path)
+        df=load_df(solved_em_path)
         

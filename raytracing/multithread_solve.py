@@ -6,18 +6,17 @@ Created on Mon Nov 14 20:56:31 2022
 @author: Maxime Leurquin
 
 USAGE:
-MAKE SURE TO RESTART KERNEL BEFORE EVERY RUN, OTHERWISE IT CRASHES!
+MAKE SURE TO RESTART KERNEL BEFORE EVERY RUN, OTHERWISE IT CRASHES DUE TO PICKLING ISSUES!
 """
-#packages
+import time
 from pathos.multiprocessing import ProcessingPool as Pool
 import matplotlib.pyplot as plt
 
 
 #self written imports
-from ray_tracing import RayTracingProblem
-from electromagnetism import my_field_computation,EM_fields_plots
-import place_utils
-
+from raytracing.ray_tracing import RayTracingProblem
+from raytracing.electromagnetism import my_field_computation,EM_fields_plots
+import raytracing.place_utils as place_utils
 
 
 def compute_single_receiver(arg):
@@ -44,7 +43,7 @@ def merge_solved_problems(full_problem,solved_problems,save_name):
         full_problem.diffractions[index]=problem.diffractions[index]
     full_problem.solved_receivers=full_problem.place.set_of_points
     save_path=f"../results/{save_name}_ray_solved.json"
-    full_problem.save(save_path)
+    full_problem.to_json(save_path)
     return save_path
 
 def multithread_solve_place(place,tx,save_name,N_CPU=16,order=3):
@@ -77,10 +76,57 @@ def multithread_solve_place(place,tx,save_name,N_CPU=16,order=3):
     return solved_em_path,solved_rays_path
 
 
+
+
+# #works consecutively but 4 times slower...
+#from concurrent.futures import ThreadPoolExecutor
+# def multithread_solve_place(place, tx, save_name, N_CPU=16, order=3):
+#     """
+#     Solves the place, using one CPU for each receiver.
+#     Saves the plots and dataframe in the results folder.
+#     place: place with all the receivers added
+#     """
+#     # distribute the problems
+#     args = []
+#     for i in range(len(place.set_of_points)):
+#         args.append([i, order, tx, place])
+#     # Create a ThreadPoolExecutor to handle the parallel tasks
+#     with ThreadPoolExecutor(max_workers=N_CPU) as executor:
+#         # Use the executor.map function to apply 'compute_single_receiver' on each set of arguments
+#         solved_problems = list(executor.map(compute_single_receiver, args))
+#     # merge the solved_problems into one full_problem
+#     full_problem = RayTracingProblem(tx, place)
+#     solved_rays_path = merge_solved_problems(full_problem, solved_problems, save_name)
+#     full_problem.plot_all_rays()
+#     #compute fields
+#     solved_em_path=f'../results/{save_name}_em_solved.csv'
+#     my_field_computation(full_problem,solved_em_path)
+
+#     #plot full problem
+#     EM_fields_plots(solved_em_path,order=order,name=save_name)
+#     return solved_em_path,solved_rays_path
+        
+    
+def print_elapsed_time(start_time,end_time):
+    elapsed_time = end_time - start_time
+    minutes = int(elapsed_time // 60)
+    seconds = int(elapsed_time % 60)
+    print("")
+    print(f"Elapsed time: {minutes} minutes {seconds} seconds")   
+    
+
 if __name__ == "__main__":
     #To test if it works
     plt.close('all')
     place,tx,geometry=place_utils.create_small_place(npoints=15)
     #place,tx,geometry=place_utils.create_levant_place(npoints=15)
 
+    start_time = time.time()
     multithread_solve_place(place, tx,"multithread_place_test")
+    end_time = time.time()
+    print_elapsed_time(start_time,end_time)
+    
+    
+    
+    
+    
