@@ -10,6 +10,8 @@ import raytracing.geometry as geom
 from raytracing.place_utils import create_small_place
 from raytracing.ray_tracing import RayTracingProblem
 
+import raytracing.file_utils as file_utils
+file_utils.chdir_to_file_dir(__file__)
 
 def test_all_save_load():
     

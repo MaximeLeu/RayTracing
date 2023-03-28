@@ -15,8 +15,12 @@ import matplotlib.pyplot as plt
 
 #self written imports
 from raytracing.ray_tracing import RayTracingProblem
-from raytracing.electromagnetism import my_field_computation,EM_fields_plots
+from raytracing.electromagnetism import my_field_computation
+from raytracing.electromagnetism_plots import EM_fields_plots
+
 import raytracing.place_utils as place_utils
+import raytracing.file_utils as file_utils
+file_utils.chdir_to_file_dir(__file__)
 
 
 def print_elapsed_time(start_time,end_time):

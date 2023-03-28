@@ -13,8 +13,6 @@ from raytracing.file_utils import string_arr_to_ndarray, string_complex_arr_to_n
 
 
 
-
-
 def test_string_arr_to_ndarray():
     # Test the string_arr_to_ndarray function
     input_strings = ['[1, 2, 3]', '[4.5, 6.7, 8.9]', '[-1, 0, 1]']

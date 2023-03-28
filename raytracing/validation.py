@@ -12,15 +12,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #self written imports
-from raytracing import file_utils
-from electromagnetism import to_db,path_loss
-import place_utils
+from raytracing.electromagnetism_utils import to_db,path_loss
+from raytracing.multithread_solve import multithread_solve_place
+from raytracing.materials_properties import FREQUENCY
+from raytracing.theoretical_validation import two_rays_fields
 
-from multithread_solve import multithread_solve_place
-from materials_properties import FREQUENCY
-
-from theoretical_validation import two_rays_fields
-
+import raytracing.place_utils as place_utils
+import raytracing.file_utils as file_utils
+file_utils.chdir_to_file_dir(__file__)
 
 def read_csv(file):
     """
@@ -117,8 +116,8 @@ def plot_measures_simu_comparison(df,tx):
 def levant_vs_measures(npoints=15,order=2):
     place,tx,_=place_utils.create_flat_levant(npoints)
     name='flat_levant_simu'
-    place,tx,_=place_utils.create_slanted_levant(npoints=npoints)
-    name='slanted_levant_simu'
+    # place,tx,_=place_utils.create_slanted_levant(npoints=npoints)
+    # name='slanted_levant_simu'
     place_utils.plot_place(place, tx)
     solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name=name,order=order)
     df=file_utils.load_df(solved_em_path)
@@ -280,7 +279,7 @@ if __name__ == '__main__':
     plt.close('all')
     #plot_claude_only()
     #small_vs_path_loss(npoints=16*3,order=2)
-    levant_vs_measures(npoints=15*10,order=2)
+    levant_vs_measures(npoints=15*1,order=2)
     
     #slanted_vs_flat()
     

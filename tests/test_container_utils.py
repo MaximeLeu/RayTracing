@@ -5,9 +5,12 @@ Created on Fri Mar 24 18:42:43 2023
 
 @author: Maxime Leurquin
 """
-from raytracing.container_utils import ManyToOneDict
 import numpy as np
+import pickle
 
+from raytracing.container_utils import ManyToOneDict
+import raytracing.file_utils as file_utils
+file_utils.chdir_to_file_dir(__file__)
 
 def create_dict():
     
@@ -55,7 +58,15 @@ def test_save_load():
     print("test save_load success")
 
     
+def test_pickling():
+    d1,d2,d3=create_dict()
+    
+    pickled_data = pickle.dumps(d1)
+    unpickled_dict = pickle.loads(pickled_data)
+    assert d1==unpickled_dict
+    print("pickling success")
     
 if __name__ == '__main__':
     test_equals()
     test_save_load()
+    test_pickling()

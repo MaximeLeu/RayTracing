@@ -3,7 +3,7 @@
 import numpy as np
 from numpy.linalg import norm
 from scipy.optimize import root
-from raytracing import array_utils
+
 import numba
 from numba.types import UniTuple, float64, int64, string, boolean, Omitted, optional, NoneType
 
@@ -23,9 +23,12 @@ import json
 from pathlib import Path
 import random
 
-from raytracing import plot_utils,file_utils,container_utils
-from raytracing.materials_properties import set_properties, MIN_TREE_HEIGHT,MAX_TREE_HEIGHT
 
+from raytracing.materials_properties import set_properties, MIN_TREE_HEIGHT,MAX_TREE_HEIGHT
+import raytracing.array_utils as array_utils
+import raytracing.plot_utils as plot_utils
+import raytracing.file_utils as file_utils
+import raytracing.container_utils as container_utils
 
 
 #midpoint between 2 points

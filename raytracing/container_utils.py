@@ -109,6 +109,15 @@ class ManyToOneDict(dict):
             instance[key_tuple] = value
 
         return instance
+    
+    
+    # def __getstate__(self):
+    #     return self.to_json()
+
+    # def __setstate__(self, state):
+    #     data = json.loads(state)
+    #     instance = ManyToOneDict.from_json(data)
+    #     self.update(instance)
 
     
     

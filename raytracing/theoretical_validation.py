@@ -14,13 +14,16 @@ import numpy as np
 from scipy.constants import pi
 import matplotlib.pyplot as plt
 
-from ray_tracing import RayTracingProblem
-import place_utils
-import plot_utils
+from raytracing.ray_tracing import RayTracingProblem
+from raytracing.electromagnetism import my_field_computation,ElectromagneticField,Antenna
+from raytracing.electromagnetism_utils import vv_normalize, to_db, path_loss, radiation_pattern
 
-from electromagnetism import my_field_computation,ElectromagneticField,\
-     TX_GAIN,RX_GAIN, P_IN,Antenna,vv_normalize, to_db, path_loss
-from materials_properties import FREQUENCY,DF_PROPERTIES,LAMBDA,K,Z_0
+from raytracing.materials_properties import FREQUENCY,DF_PROPERTIES,LAMBDA,K,Z_0,TX_GAIN,RX_GAIN, P_IN
+import raytracing.place_utils as place_utils
+import raytracing.plot_utils as plot_utils
+
+import raytracing.file_utils as file_utils
+file_utils.chdir_to_file_dir(__file__)
 
 def simplified_two_rays(L,ztx,zrx):
     """
@@ -28,7 +31,7 @@ def simplified_two_rays(L,ztx,zrx):
     """
     #http://www.wirelesscommunication.nl/reference/chaptr03/pel/tworay.htm
     #ans  = RX_GAIN*TX_GAIN*((LAMBDA/(4*np.pi*L))**2)*(2*np.sin(K*zrx*ztx/L))**2
-    ans = RX_GAIN*TX_GAIN*Antenna.radiation_pattern(theta=0,phi=0)**2*(LAMBDA**2)/(4*pi)*1/(Z_0)* ((2/L)*np.sin(K*zrx*ztx/L))**2 *30 
+    ans = RX_GAIN*TX_GAIN*radiation_pattern(theta=0,phi=0)**2*(LAMBDA**2)/(4*pi)*1/(Z_0)* ((2/L)*np.sin(K*zrx*ztx/L))**2 *30 
     ans =10*np.log10(ans)
     return ans
 
@@ -171,12 +174,12 @@ def two_rays_fields(L,ztx,zrx,slope=None):
 
 
     E0=-1j*tx_y/(4*pi)*138
-    Elos=E0*Antenna.radiation_pattern(0)*np.exp(-1j*K*dlos)/dlos
+    Elos=E0*radiation_pattern(0)*np.exp(-1j*K*dlos)/dlos
     
     per_vv=vv_normalize(np.cross(d1_vv,d2_vv))
     par_vv=vv_normalize(np.cross(per_vv,d1_vv))
     
-    E0ref=E0*Antenna.radiation_pattern(theta_tx)
+    E0ref=E0*radiation_pattern(theta_tx)
     Eref=E0ref*np.exp(-1j*K*(d1+d2))/(d1+d2)*(gamma_par*np.dot(tx_y,par_vv)*par_vv \
                                            +gamma_per*np.dot(tx_y,per_vv)*per_vv)
 

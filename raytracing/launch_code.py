@@ -14,15 +14,14 @@ import numpy as np
 from ray_tracing import RayTracingProblem
 from raytracing.electromagnetism import my_field_computation,EM_fields_plots
 from raytracing.multithread_solve import multithread_solve_place
-from raytracing.file_utils import chdir_to_file_dir, load_df
+
 
 import raytracing.place_utils as place_utils
-import raytracing.geometry as geom
-
+import raytracing.file_utils as file_utils
+file_utils.chdir_to_file_dir(__file__)
 
 if __name__ == '__main__':
     plt.close('all') #close all previous plots
-    chdir_to_file_dir(__file__)
 
     #choose geometry:
     #place,tx,geometry=place_utils.create_two_rays_place()
@@ -54,5 +53,5 @@ if __name__ == '__main__':
     #multithreaded driver code
     if multithread:
         solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='{geometry}',order=ORDER)
-        df=load_df(solved_em_path)
+        df=file_utils.load_df(solved_em_path)
         

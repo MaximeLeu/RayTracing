@@ -28,6 +28,21 @@ LAMBDA=c/FREQUENCY
 K=2*pi/LAMBDA
 Z_0=120*pi
 
+
+P_IN=1
+RADIATION_EFFICIENCY=1
+RADIATION_POWER=RADIATION_EFFICIENCY*P_IN
+
+ALPHA=10#increase alpha to make the antenna more directive.
+#TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians
+#RX_GAIN=4*pi*1/((pi/9)**2) #20 degree beamwidth  approx 103
+#RX_GAIN=RX_GAIN*30 #*170 at 30GHz and *30 at 12.5GHz
+TX_GAIN=300
+RX_GAIN=300
+
+
+
+
 ITU="ITU-R P.2040-2"
 
 

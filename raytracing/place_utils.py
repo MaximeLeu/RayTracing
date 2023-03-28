@@ -10,14 +10,16 @@ File containing the functions used to create the places.
 #packages
 import numpy as np
 import matplotlib.pyplot as plt
+import geopandas as gpd
 
 #self written imports
 import raytracing.geometry as geom
-import raytracing.plot_utils as plot_utils
 from raytracing.materials_properties import set_properties, LAMBDA
 
-import geopandas as gpd
 
+import raytracing.plot_utils as plot_utils
+import raytracing.file_utils as file_utils
+file_utils.chdir_to_file_dir(__file__)
 
 def plot_place(place,tx,show_normals=False):
     fig = plt.figure("the place")

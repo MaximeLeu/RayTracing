@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 from tqdm import tqdm
 
-from raytracing import geometry as geom
-from raytracing import plot_utils
-from raytracing import file_utils
+import raytracing.geometry as geom
+import raytracing.plot_utils as plot_utils
+import raytracing.file_utils as file_utils
 
 
 class RayTracingProblem:

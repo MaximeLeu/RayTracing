@@ -10,13 +10,26 @@ import scipy as sc
 from scipy.constants import c, mu_0, epsilon_0, pi
 
 #self written imports
-from raytracing import array_utils
-from raytracing import geometry as geom
-from materials_properties import DF_PROPERTIES,N_TREES,TREE_SIZE
-from materials_properties import FREQUENCY,LAMBDA,K,Z_0
+import raytracing.geometry as geom
+from raytracing.materials_properties import P_IN,\
+                                RADIATION_EFFICIENCY,\
+                                RADIATION_POWER,\
+                                ALPHA,\
+                                TX_GAIN,\
+                                RX_GAIN,\
+                                FREQUENCY,\
+                                LAMBDA,\
+                                K,\
+                                Z_0,\
+                                DF_PROPERTIES,\
+                                N_TREES,\
+                                TREE_SIZE
 
-import file_utils
-import plot_utils
+from raytracing.electromagnetism_utils import vv_normalize,radiation_pattern
+import raytracing.array_utils as array_utils
+import raytracing.plot_utils as plot_utils
+import raytracing.file_utils as file_utils
+file_utils.chdir_to_file_dir(__file__)
 
 
 pd.set_option('display.max_columns', 10)
@@ -29,45 +42,6 @@ sigma_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["sigma"].values[0]
 epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[0]*epsilon_0
 
 
-
-P_IN=1
-RADIATION_EFFICIENCY=1
-RADIATION_POWER=RADIATION_EFFICIENCY*P_IN
-
-ALPHA=10#increase alpha to make the antenna more directive.
-#TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians
-#RX_GAIN=4*pi*1/((pi/9)**2) #20 degree beamwidth  approx 103
-#RX_GAIN=RX_GAIN*30 #*170 at 30GHz and *30 at 12.5GHz
-TX_GAIN=300
-RX_GAIN=300
-
-def vv_normalize(vv):
-    norm=np.linalg.norm(vv)
-    if norm == 0:#avoid dividing by 0
-        return np.array([0,0,0])
-    return vv/norm
-
-def to_db(field_power):
-    """
-    converts given field power in watts to dB (normalised to INPUT_POWER)
-    """
-    #avoid computing log(0)
-    P=np.atleast_1d(field_power)
-    ind=np.where(P!=0)
-    db=np.ones(len(P))*np.NINF
-    for i in ind:
-        db[i]=10*np.log10(P[i]/P_IN)
-    return db[0] if np.isscalar(field_power) else db
-
-
-
-def path_loss(d):
-    """
-    Given the distance between TX and RX antennas compute the path loss in dB
-    """
-    pr_pt=((LAMBDA/(4*pi*d))**2) *RX_GAIN*TX_GAIN*Antenna.radiation_pattern(theta=0,phi=0)**2
-    pl=10*np.log10(pr_pt)
-    return pl
 
 
 #TODO conversion from TX to world and from RX to world as well!
@@ -240,15 +214,8 @@ class Antenna:
         return
 
     @staticmethod
-    def radiation_pattern(theta,phi=0):
-        F = np.cos(theta/2)**(2*ALPHA)
-        norm=pi*np.power(2,(1-2*ALPHA),dtype=float)*sc.special.factorial(2*ALPHA)/(sc.special.factorial(ALPHA)**2)
-        #print(f"theta {theta*180/pi:.2f}\u00b0 rad pattern={F:.2f}")
-        return F#/norm
-
-    @staticmethod
     def compute_Ae(theta_rx,phi_rx=0):
-        Ae=(LAMBDA**2/(4*pi))*RX_GAIN*Antenna.radiation_pattern(theta_rx,phi_rx)
+        Ae=(LAMBDA**2/(4*pi))*RX_GAIN*radiation_pattern(theta_rx,phi_rx)
         return Ae
 
 class ElectromagneticField:
@@ -258,7 +225,6 @@ class ElectromagneticField:
         self.f = f
         self.v = v
         self.w = 2 * pi * f
-
 
     @staticmethod
     def compute_E0(path,tx_antenna):
@@ -273,7 +239,7 @@ class ElectromagneticField:
         #field in antenna's coordinates
         #E0=-1j*Z_0*np.exp(-1j*K*1)/(4*pi)
         E0=-1j*1/(4*pi)*138
-        Einits=E0*Antenna.radiation_pattern(theta, phi)*np.exp(-1j*K*r)/r
+        Einits=E0*radiation_pattern(theta, phi)*np.exp(-1j*K*r)/r
         Einit=Einits*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_W2A(tx_antenna.polarisation)),r_vv))
         #tx_antenna.antenna_tests(path)
         Einit=tx_antenna.vv_A2W(Einit) #return to world coordinates
@@ -656,7 +622,16 @@ class SolvedField:
 
 
     def add_to_df(self,df):
-        df.loc[len(df.index)] = [self.rx_id,self.rx,self.path_type,self.time,self.field,self.power]
+        tx_angles=np.degrees([self.tx_el,self.tx_az])
+        rx_angles=np.degrees([self.rx_el,self.rx_az])
+        df.loc[len(df.index)] = [self.rx_id,
+                                 self.rx,
+                                 self.path_type,
+                                 tx_angles,
+                                 rx_angles,
+                                 self.time,
+                                 self.field,
+                                 self.power]
         return
 
 
@@ -719,7 +694,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
             sol.path_type="LOS"
             sol.tx_antenna=tx_antenna
             sol.antenna_path=tx_antenna.path_W2A(sol.world_path)
-
+            sol.compute_tx_angles()
             E_los=ElectromagneticField.from_path(sol.world_path,sol.tx_antenna)
             E_los=ElectromagneticField.account_for_trees(E_los,sol.world_path,rtp.place)
             sol.field=E_los.E
@@ -812,7 +787,14 @@ def my_field_computation(rtp,save_name="problem_fields"):
 
     #compute everything
     solution=[]
-    df=pd.DataFrame(columns=['rx_id','receiver','path_type','time_to_receiver','field_strength','path_power'])
+    df=pd.DataFrame(columns=['rx_id',
+                             'receiver',
+                             'path_type',
+                             'RX angles',
+                             'TX angles',
+                             'time_to_receiver',
+                             'field_strength',
+                             'path_power'])
     for receiver in range(0,len(rtp.solved_receivers)):
         print(" ")
         print(f"EM SOLVING RECEIVER {receiver}")
@@ -848,57 +830,6 @@ def my_field_computation(rtp,save_name="problem_fields"):
     return df
 
 
-
-
-def EM_fields_plots(df_path,order=3,name="unnamed_plot"):
-    df=file_utils.load_df(df_path)
-    nreceivers=len(df['rx_id'].unique())
-    nrows=nreceivers
-    ncols=2
-
-    if nreceivers>16*6:
-        print("Too many receivers; can't display EM field plots")
-        return
-
-    fig = plt.figure("EM fields data",figsize=(16,5*nrows))
-    fig.set_dpi(150)
-    fig.subplots_adjust(hspace=.5)
-
-    i=1
-    for receiver in range(0,nreceivers):
-        rx_df=df.loc[df['rx_id'] == receiver]
-        path_types=rx_df['path_type'].unique()
-        ax1 = fig.add_subplot(nrows, ncols,i)
-        ax2 = fig.add_subplot(nrows, ncols,i+1)
-        i+=2
-        width = 0.35
-        for path_type in path_types:
-            data_for_type=rx_df.loc[rx_df['path_type'] == path_type]
-            color_for_type,position,ticks=plot_utils.set_color_for_type(path_type,order)
-            #total power from each source
-            power=to_db(np.sum(data_for_type["path_power"].values))
-            ax1.bar(x=position, height=power,width=width,color=color_for_type,label=path_type)
-            #power delay profile
-            nelem=len(data_for_type['field_strength'])
-            individual_powers=np.zeros(nelem)
-            for j in range(nelem):
-                individual_powers[j]=to_db(data_for_type['path_power'].values[j])
-            ax2.stem(data_for_type['time_to_receiver'].values*(1e9), individual_powers,linefmt=color_for_type,label=path_type,basefmt=" ")
-
-        ax1.set_title(f'Total power from sources RX{receiver}')
-        ax1.set_xticks(range(0,len(ticks)), ticks)
-        ax1.set_ylabel('Received power [dB]')
-        ax1.grid()
-
-        ax2.set_title(f'Power delay Profile RX{receiver}')
-        ax2.set_xlabel('time to reach receiver (ns)')
-        ax2.set_ylabel('Received power [dB]')
-        ax2.legend()
-        ax2.grid()
-        plt.savefig(f"../results/plots/EM_plots_{name}'.pdf", dpi=300,bbox_inches='tight')
-        #plt.show()
-
-    return fig
 
 
 
