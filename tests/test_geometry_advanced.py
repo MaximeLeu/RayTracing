@@ -75,6 +75,26 @@ def test_all_save_load():
     return
 
 
+def test_normalize_path():
+    points=np.array([[0,0,0],
+                    [1,1,1],
+                    [3,3,3]])
+    si,Si,sr,Sr=geom.normalize_path(points)
+    assert np.all(si==np.array([1,1,1])/np.sqrt(3))
+    assert np.all(sr==np.array([2,2,2])/np.sqrt(12))
+    assert Si==np.sqrt(3) and Sr==np.sqrt(12)
+    
+    
+    points=np.array([[1,2,3],
+                    [4,4,4],
+                    [10,11,12]])
+    si,Si,sr,Sr=geom.normalize_path(points)
+    assert np.all(si==np.array([3,2,1])/np.sqrt(14))
+    assert np.all(sr==np.array([6,7,8])/np.sqrt(36+49+64))
+    assert Si==np.sqrt(14) and Sr==np.sqrt(36+49+64)
+    print("normalize_path test success")
+    return
+
 
 def test_contains_point():
     #test OrientedPolygon.contains_point
@@ -148,7 +168,8 @@ if __name__ == '__main__':
     
     # assert(solved_place_sharp_edges==loaded_place_sharp_edges)
     
-    test_all_save_load()
+    #test_all_save_load()
+    test_normalize_path()
     
     
    

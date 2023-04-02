@@ -73,17 +73,20 @@ def cartesian_to_spherical(points):
 
 def normalize_path(points):
     """
-    Returns the normalized vectors from a path of points, as well the norm of each vector.
-
-    :param points: the points
+    Returns the normalized vectors from a path of 3 points, as well the norm of each vector.
     :type points: numpy.ndarray *shape=(N, M)*
     :return: the normalized vectors and the length of each vector before normalization
-    :rtype: Tuple[numpy.ndarray *shape(N-1, M)*, numpy.ndarray *shape(N-1, M)*]
+    :rtype: Tuple[numpy.ndarray *shape(3,)*, float, numpy.ndarray *shape(3,)*,float]
     """
-    vectors = np.diff(points, axis=0)
-    n = norm(vectors, axis=1)
-    return vectors / n.reshape(-1, 1), n
-
+    assert(len(points)==3)
+    vectors=np.diff(points,axis=0)
+    norms=np.linalg.norm(vectors,axis=1)
+    
+    si=vectors[0]/norms[0]
+    sr=vectors[1]/norms[1]
+    Si=norms[0]
+    Sr=norms[1] 
+    return si,Si,sr,Sr
 
 def polygon_line_intersection(polygon,points):
     #returns the point that is the intersection between the polygon and the line defined by a list of two points
@@ -1755,7 +1758,10 @@ class OrientedPolygon(OrientedGeometry):
         :return: the normal vector
         :rtype: np.ndarray *shape=(3)*
         """
-        return self.get_parametric()[:3]
+        #TODO remove the assert statement
+        normal=self.get_parametric()[:3]
+       # assert np.isclose(np.linalg.norm(normal),1),f"expected 1 got {np.linalg.norm(normal)}"
+        return normal
 
     def contains_point(self, point, check_in_plane=False, plane_tol=1e-8):
         """

@@ -12,13 +12,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #self written imports
-from raytracing.electromagnetism_utils import to_db,path_loss
+from raytracing.electromagnetism_utils import to_db
 from raytracing.multithread_solve import multithread_solve_place
 from raytracing.materials_properties import FREQUENCY
 from raytracing.theoretical_validation import two_rays_fields
 
+from raytracing.electromagnetism import ElectromagneticField
+
 import raytracing.place_utils as place_utils
 import raytracing.file_utils as file_utils
+import raytracing.electromagnetism_utils as electromagnetism_utils
 file_utils.chdir_to_file_dir(__file__)
 
 def read_csv(file):
@@ -68,31 +71,41 @@ def read_simu(df,tx):
     return simu_x, simu_y
 
 
-
-
 def get_path_loss(df,tx):
     nreceivers=len(df['rx_id'].unique())
     pl=np.zeros(nreceivers)
     for receiver in range(nreceivers):
         rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]
         d=np.linalg.norm(tx-rx_coord)
-        pl[receiver]=path_loss(d)
+        pl[receiver]=ElectromagneticField.path_loss(d)
     return pl
     
 
+def run_levant_simu(npoints=16,order=2,flat=False):
+    place,tx,geometry=place_utils.create_flat_levant(npoints) if flat else place_utils.create_slanted_levant(npoints)
+    place_utils.plot_place(place, tx)
+    solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,geometry=geometry,order=order)
+    return tx,solved_em_path,solved_rays_path
+    
+def run_small_simu(npoints=16,order=2):
+    place,tx,geometry=place_utils.create_small_place(npoints)
+    place_utils.plot_place(place, tx)
+    solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,geometry=geometry,order=order)
+    return tx,solved_em_path,solved_rays_path
+    
 
-def plot_measures_simu_comparison(df,tx):
-    """
-    df: dataframe of the solved problem
-    """
-    #path loss
+def plot_levant_vs_measures(tx,solved_em_path):
+    df=electromagnetism_utils.load_df(solved_em_path)
+    geometry=solved_em_path.split("/")[2]
+    geometry=geometry.split("_")
+    geometry="_".join(geometry[:3])
+    print(f"PLotting {geometry} vs measures")
+    
     pl=get_path_loss(df,tx)
-    #measures
     x,y=get_corresponding_measures("february")
     x1,y1=get_corresponding_measures("october")
-    #simulation
     simu_x,simu_y=read_simu(df,tx)
-
+    
     #plotting
     fig = plt.figure(figsize=(20,8))
     ax = fig.add_subplot(1, 1, 1)
@@ -108,27 +121,11 @@ def plot_measures_simu_comparison(df,tx):
     ax.set_ylabel('Received power [dB]',fontsize=20)
     ax.legend(fontsize=20)
     plt.show()
-    plt.savefig("../results/plots/levant_validation.eps", format='eps', dpi=1000,bbox_inches='tight')
+    plt.savefig(f"../results/plots/{geometry}_validation.eps", format='eps', dpi=1000,bbox_inches='tight')
     return
-
-
-
-def levant_vs_measures(npoints=15,order=2):
-    place,tx,_=place_utils.create_flat_levant(npoints)
-    name='flat_levant_simu'
-    # place,tx,_=place_utils.create_slanted_levant(npoints=npoints)
-    # name='slanted_levant_simu'
-    place_utils.plot_place(place, tx)
-    solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name=name,order=order)
-    df=file_utils.load_df(solved_em_path)
-    plot_measures_simu_comparison(df,tx[0])
-    return
-
     
 
-
-#TODO: recompute
-def slanted_vs_flat():
+def plot_slanted_vs_flat(solved_slanted_path,solved_flat_path):
     """
     plots a comparison of the simulation of the levant street on flat and slanted ground
     the simulations must have been run before with 
@@ -136,14 +133,11 @@ def slanted_vs_flat():
     -save_name='flat_levant_simu'
 
     """
-    slanted_solved_em_name="slanted_levant_simu"
-    slanted_df=file_utils.load_df(f'../results/{slanted_solved_em_name}_em_solved.csv')
-    slanted_tx=np.array([59., -10., 12.44])
+    slanted_df=electromagnetism_utils.load_df(solved_slanted_path)
+    slanted_tx=np.array([46.76, 3.77, 12.44])
     
-    
-    flat_solved_em_name="flat_levant_simu"
-    flat_df=file_utils.load_df(f'../results/{flat_solved_em_name}_em_solved.csv')
-    flat_tx=np.array([59., -10.,9.44])
+    flat_df=electromagnetism_utils.load_df(solved_flat_path)
+    flat_tx=np.array([46.76, 3.77,9.44])
     
     mes_x,mes_y=get_corresponding_measures("february")
     flat_x,flat_y=read_simu(flat_df,flat_tx)
@@ -169,25 +163,25 @@ def slanted_vs_flat():
     
     
 #TODO FIX TX movement and recompute
-def slanted_vs_tx_moved():
+def plot_sensitivity_tx(normal_path,moved_path):
+    """
+    Compares results when the tx antenna was moved slightly
+    """
+    normal_df=electromagnetism_utils.load_df(normal_path)
+    normal_tx=np.array([46.76, 3.77, 12.44])
     
-    slanted_solved_em_name="slanted_levant_simu"
-    slanted_df=file_utils.load_df(f'../results/{slanted_solved_em_name}_em_solved.csv')
-    slanted_tx=np.array([59., -10., 12.44])
-    
-    flat_solved_em_name="flat_levant_simu"
-    flat_df=file_utils.load_df(f'../results/{flat_solved_em_name}_em_solved.csv')
-    flat_tx=np.array([59., -10.,9.44])
+    moved_df=electromagnetism_utils.load_df(moved_path)
+    moved_tx=np.array([46.76, 3.77,9.44])
     
     mes_x,mes_y=get_corresponding_measures("february")
-    flat_x,flat_y=read_simu(flat_df,flat_tx)
-    slanted_x,slanted_y=read_simu(slanted_df,slanted_tx)
+    normal_x,normal_y=read_simu(normal_df,normal_tx)
+    moved_x,moved_y=read_simu(moved_df,moved_tx)
     
     fig = plt.figure(figsize=(20,8))
     ax = fig.add_subplot(1, 1, 1)
-    ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/(1e9)} GHz for flat and slanted ground',fontsize=20)
-    ax.plot(flat_x,flat_y,color="orange",marker='o',label='flat ground')
-    ax.plot(slanted_x,slanted_y,color="blue",marker='o',label='slanted ground')
+    ax.set_title(f'TX sensitivity study at {FREQUENCY/(1e9)} GHz',fontsize=20)
+    ax.plot(normal_x,normal_y,color="orange",marker='o',label='baseline')
+    ax.plot(moved_x,moved_y,color="blue",marker='o',label='moved')
     ax.plot(mes_x,mes_y,color='green', marker='o',label="february measures")
     
     ax.grid()
@@ -196,18 +190,16 @@ def slanted_vs_tx_moved():
     ax.set_ylabel('Received power [dB]',fontsize=20)
     ax.legend(fontsize=20)
     plt.show()
-    plt.savefig("../results/plots/flat_vs_slanted.eps", format='eps', dpi=1000,bbox_inches='tight')
+    plt.savefig("../results/plots/tx_sensitivity.eps", format='eps', dpi=1000,bbox_inches='tight')
     
     
-def small_vs_path_loss(npoints=15,order=2):
+def plot_small_vs_path_loss(tx,solved_em_path):
     """
     comparison of the fields obtained on the small place and path loss.
     """
-    place,tx,_=place_utils.create_small_place(npoints)
-    place_utils.plot_place(place, tx)
-    solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,save_name='small',order=order)
-    df=file_utils.load_df(solved_em_path)
-
+    df=electromagnetism_utils.load_df(solved_em_path)
+    npoints=len(df['rx_id'].unique())
+    
     simu_y=np.zeros(npoints)
     simu_x=np.zeros(npoints)
     pl=np.zeros(npoints)
@@ -215,7 +207,7 @@ def small_vs_path_loss(npoints=15,order=2):
         rx_df=df.loc[df['rx_id'] == receiver]
         rx_coord=rx_df["receiver"].values[0]
         d=np.linalg.norm(tx-rx_coord)
-        pl[receiver]=path_loss(d)
+        pl[receiver]=ElectromagneticField.path_loss(d)
         simu_x[receiver]=d #distance TX-RX
         simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values))
 
@@ -234,8 +226,6 @@ def small_vs_path_loss(npoints=15,order=2):
     #plt.savefig("../results/plots/small_place_vs_pathLoss.eps", format='eps', dpi=1000,bbox_inches='tight')
     return
     
-
-
 
 def plot_measures_only():
     #plt.rcParams.update({'font.size': 22})
@@ -278,8 +268,15 @@ def plot_measures_only():
 if __name__ == '__main__':
     plt.close('all')
     #plot_claude_only()
-    #small_vs_path_loss(npoints=16*3,order=2)
-    levant_vs_measures(npoints=15*1,order=2)
     
-    #slanted_vs_flat()
+    #tx,solved_em_path,solved_rays_path=run_small_simu(npoints=16,order=2)
+    #plot_small_vs_path_loss(tx,solved_em_path)
+    
+    tx,solved_em_path,solved_rays_path=run_levant_simu(npoints=16,order=2,flat=False)
+    plot_levant_vs_measures(tx[0],solved_em_path)
+    
+    #save_name=f'{geometry}_{npoints}p'
+    solved_slanted_path="../results/{save_name}_ray_solved.json"
+    solved_flat_path="../results/{save_name}_ray_solved.json"
+    #plot_slanted_vs_flat()
     

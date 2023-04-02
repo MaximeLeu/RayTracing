@@ -193,7 +193,7 @@ def find_crucial_coordinates(filename="../data/place_levant.geojson"):
 
 
 def create_flat_levant(npoints=15):
-    geometry="levant"
+    geometry="flat_levant"
     #create place
     geometry_filename='../data/place_levant.geojson'
     preprocessed_name=geom.preprocess_geojson(geometry_filename)
@@ -388,7 +388,7 @@ if __name__ == '__main__':
     place,tx,geometry=create_flat_levant()
     #place,tx,geometry=create_slanted_levant(npoints=8)
     #place,tx,geometry=test_place()
-    
+    print(f'tx {tx}')
     
     plot_place(place, tx,show_normals=True)
     

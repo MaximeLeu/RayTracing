@@ -20,6 +20,15 @@ anim = dict(
 
 
 
+
+def ensure_axis_orthonormal(ax):
+    ax.set_box_aspect([1,1,1])
+    ax.set_proj_type('ortho')
+    ax.axis('equal')
+    return ax
+    
+
+
 def set_color_for_type(path_type,order):
     colors=list(mcolors.TABLEAU_COLORS) #10 different colors
     all_types=["LOS","R","D","RR","RD","RRR","RRD","RRRR","RRRD"]
@@ -190,6 +199,9 @@ def add_points_to_3d_ax(ax, points, *args, **kwargs):
     :return: the path collection
     :rtype: mpl_toolkits.mplot3d.art3d.Path3DCollection
     """
+    #to handle the case when a single point is given.
+    if len(points.shape) == 1:
+        points = points.reshape(1, -1)
     return ax.scatter(points[:, 0], points[:, 1], points[:, 2], *args, **kwargs)
 
 

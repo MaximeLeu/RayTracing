@@ -53,24 +53,28 @@ def merge_solved_problems(full_problem,solved_problems,save_name):
                 index=ind
         full_problem.reflections[index]=problem.reflections[index]
         full_problem.diffractions[index]=problem.diffractions[index]
-    full_problem.solved_receivers=full_problem.place.set_of_points
+    full_problem.solved_receivers=full_problem.place.set_of_points  
+    
     save_path=f"../results/{save_name}_ray_solved.json"
     full_problem.to_json(save_path)
     return save_path
 
-def multithread_solve_place(place,tx,save_name,N_CPU=16,order=3):
+def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3):
     """
     Solves the place, using one CPU for each receiver.
     Saves the plots and dataframe in the results folder.
     place: place with all the receivers added
     """
     print("Starting solving of the ray tracing problems")
+    npoints=len(place.set_of_points)
+    save_name=f'{geometry}_{npoints}p'
+    
     start_time_rt = time.time()
     #distribute the problems
     pool = Pool(N_CPU)
     pool.restart()
     args=[]
-    for i in range(len(place.set_of_points)):
+    for i in range(npoints):
         args.append([i,order,tx,place])
     solved_problems=pool.map(compute_single_receiver,args)
     pool.close()
