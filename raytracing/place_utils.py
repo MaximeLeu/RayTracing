@@ -127,9 +127,9 @@ def create_two_rays_place(npoints=20):
     #add ground
     step=10#10*LAMBDA
     ground = geom.Square.by_2_corner_points(np.array([[0, 0, 0], [step*npoints+50, 24, 0]]))
-    #add properties
+    ground=ground.rotate(axis=np.array([0,1,0]), angle_deg=180)
+    
     ground.properties=set_properties("ground")
-    #create place
     place = geom.OrientedPlace(geom.OrientedSurface(ground))
     #add TX and RX
     tx = np.array([5., 12., 30.]).reshape(-1, 3)
@@ -279,10 +279,9 @@ def create_slanted_levant(npoints=15):
             top = polyhedron.get_top_face()
             height = top.points[0][2]
             rebuilded = geom.Building.rebuild_building(top, grounds, height)
-            for building in rebuilded:
-                for rebuilt_polygon in building.polygons:
-                    rebuilt_polygon.building_type = polyhedron.building_type
-                    rebuilt_polygon.properties = set_properties(rebuilt_polygon.building_type)
+            for building in rebuilded: #the building maybe split on multiple grounds
+                building.building_type=polyhedron.building_type
+                building.apply_properties_to_polygons()
                 buildings.append(building)      
         return buildings
     
@@ -328,6 +327,23 @@ def create_slanted_levant(npoints=15):
 
     place, tx=add_tx_rx(place, maxwell_entrance, levant_bottom, npoints)
     place.to_json(filename=f"../data/{geometry}.json")
+    
+    
+    # fig = plt.figure("the test")
+    # fig.set_dpi(300)
+    # ax = fig.add_subplot(projection='3d')
+    # place.center_3d_plot(ax)
+    # for polyhedron in place.polyhedra:
+    #     length=len(polyhedron.aux_surface)
+    #     if length==12 or length==17 or length==5 or length==26:
+    #         #polyhedron.plot3d(ax=ax, normal=True)
+    #         pass
+    #     for polygon in polyhedron.aux_surface.polygons:
+    #         if np.isnan(polygon.get_normal()).all():
+    #             polygon.plot3d(facecolor=(0,1,1,1),ax=ax,alpha=1,normal=True)
+    #             print(polygon)
+    # plt.show()
+    
     return place, tx, geometry
 
     
@@ -381,15 +397,17 @@ def test_place():
 
 if __name__ == '__main__':
     plt.close("all")
-    #place,tx,geometry=create_two_rays_place(npoints=5)
+    
     #place,tx,geometry=create_slanted_dummy(alpha=10)
     #place,tx,geometry=create_dummy_place()
     #place,tx,geometry=create_small_place(npoints=10)
-    place,tx,geometry=create_flat_levant()
-    #place,tx,geometry=create_slanted_levant(npoints=8)
+    #place,tx,geometry=create_flat_levant()
+    
+    place,tx,geometry=create_slanted_levant(npoints=8)
+    
     #place,tx,geometry=test_place()
     print(f'tx {tx}')
-    
+    place,tx,geometry=create_two_rays_place(npoints=5)
     plot_place(place, tx,show_normals=True)
     
     

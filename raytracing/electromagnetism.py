@@ -30,7 +30,6 @@ import raytracing.electromagnetism_utils as electromagnetism_utils
 from raytracing.electromagnetism_utils import vv_normalize,cot
 
 
-import raytracing.array_utils as array_utils
 import raytracing.plot_utils as plot_utils
 import raytracing.file_utils as file_utils
 file_utils.chdir_to_file_dir(__file__)
@@ -46,9 +45,6 @@ sigma_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["sigma"].values[0]
 epsilon_1=DF_PROPERTIES.loc[DF_PROPERTIES["material"]=="air"]["epsilon"].values[0]*epsilon_0
 
 
-
-
-#TODO conversion from TX to world and from RX to world as well!
 class Antenna:
     def __init__(self,position):
         self.position=position   #the position of the antenna
@@ -81,10 +77,7 @@ class Antenna:
         #change between vertical and horizontal polarisations here
         self.polarisation=new_x 
 
-        #create the matrix to change between frames
-        x=np.array([1,0,0])
-        y=np.array([0,1,0])
-        z=np.array([0,0,1])
+        x, y, z = np.eye(3)#world frame
         #matrix to change from the world reference frame to the antenna's
         mat=np.array([
                     [np.dot(new_x,x),np.dot(new_x,y),np.dot(new_x,z)],
@@ -131,26 +124,20 @@ class Antenna:
         from antenna-->world
         """
         origin=self.position
-        new_point=self.mat.T@point
-        new_point= new_point+origin
+        new_point=self.mat.T@point #rotate
+        new_point +=origin #translate
         return new_point
 
-    def vv_W2A(self,vector):
+    def vv_transform(self,vector,direction):
         """
         Change the reference frame of a vector
-        from world-->antenna
+        if direction==A2W: from antenna-->world
+        if direction==W2A: from world-->antenna
         """
-        new_vv=vector@(self.mat.T)
+        assert direction in ["A2W", "W2A"], "direction must be either 'A2W' or 'W2A'"
+        new_vv = vector @ self.mat if direction == 'A2W' else vector@ (self.mat.T)
         return new_vv
-
-    def vv_A2W(self,vector):
-        """
-        Change the reference frame of a vector
-        from antenna-->world
-        """
-        new_vv=vector@(self.mat)
-        return new_vv
-
+    
     def path_W2A(self,path):
         """
         Change the reference frame of a path (list of points)
@@ -183,14 +170,14 @@ class ElectromagneticField:
         assert tx_antenna.basis is not None,"tx antenna is not aligned"
        
         r,theta,phi=tx_antenna.incident_angles(path[1])
-        r_vv=tx_antenna.vv_W2A(path[1]-path[0])
+        r_vv=tx_antenna.vv_transform(path[1]-path[0], "W2A")
         r_vv=vv_normalize(r_vv)
 
         #field in antenna's coordinates
         #E=-1j*K*Z_0/(4*pi)*np.exp(-1j*K*r)/r*ElectromagneticField.radiation_pattern(theta,phi)
         E=-1j*138/(4*pi)*np.exp(-1j*K*r)/r*ElectromagneticField.radiation_pattern(theta,phi)
-        E=E*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_W2A(tx_antenna.polarisation)),r_vv)) 
-        E=tx_antenna.vv_A2W(E)#return to world coordinates
+        E=E*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_transform(tx_antenna.polarisation,"W2A")),r_vv)) 
+        E=tx_antenna.vv_transform(E,"A2W")#return to world coordinates
         return E
 
     @staticmethod
@@ -774,10 +761,11 @@ def my_field_computation(rtp,save_name="problem_fields"):
             sol.rx_antenna=rx_antenna
             sol.compute_rx_angles()
             Ae=Antenna.compute_Ae(sol.rx_el,sol.rx_az)#rx radiation pattern and rx gain taken into account here
-            field_polarisation=vv_normalize(rx_antenna.vv_W2A(sol.field))
-            polarisation_efficiency=np.linalg.norm(np.dot(field_polarisation,rx_antenna.vv_W2A(rx_antenna.polarisation)))**2
+            field_polarisation=vv_normalize(rx_antenna.vv_transform(sol.field,"W2A"))
+            polarisation_efficiency=np.linalg.norm(np.dot(field_polarisation,rx_antenna.vv_transform(rx_antenna.polarisation,"W2A")))**2
             print(f"polarisation_eff {polarisation_efficiency}")
-            sol.power=1/(2*Z_0)*Ae*(np.linalg.norm(np.real(rx_antenna.vv_W2A(sol.field))))**2
+            #sol.power=1/(2*Z_0)*Ae*(np.linalg.norm(np.real(rx_antenna.vv_transform(sol.field,"W2A"))))**2
+            sol.power=1/(2*Z_0)*Ae*(np.linalg.norm((rx_antenna.vv_transform(sol.field,"W2A"))))**2
             sol.power=sol.power*polarisation_efficiency*TX_GAIN #TODO add P_IN here
             #sol.show_antennas_alignement()
             print(f" rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi:.2f}\u00b0 phi {sol.rx_az*180/pi:.2f}\u00b0")

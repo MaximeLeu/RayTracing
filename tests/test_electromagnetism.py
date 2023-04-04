@@ -76,15 +76,15 @@ def test_pp_W2A_and_A2W(antenna, point):
     return
 
     
-def test_vv_W2A_and_A2W(antenna):
+def test_vv_transform(antenna):
     """
     If this test fails either the antenna basis is wrongly set,
     or vector conversion has failed
     """
     #The basis of the antenna's frame is well set:
-    ex_ant=antenna.vv_W2A(antenna.basis[0])
-    ey_ant=antenna.vv_W2A(antenna.basis[1])
-    ez_ant=antenna.vv_W2A(antenna.basis[2])
+    ex_ant=antenna.vv_transform(antenna.basis[0],"W2A")
+    ey_ant=antenna.vv_transform(antenna.basis[1],"W2A")
+    ez_ant=antenna.vv_transform(antenna.basis[2],"W2A")
     assert np.allclose(ex_ant,np.array([1,0,0])),\
         f'vvW2A is {ex_ant} should be 100'
     assert np.allclose(ey_ant,np.array([0,1,0])),\
@@ -93,12 +93,12 @@ def test_vv_W2A_and_A2W(antenna):
         f'vvW2A is {ez_ant} should be 001'
     
     #test vv_A2W by doing it in the other way:  
-    assert np.allclose(antenna.vv_A2W(ex_ant),antenna.basis[0]),\
-        f"vv_A2W is {antenna.vv_A2W(ex_ant)} should be {antenna.basis[0]}"
-    assert np.allclose(antenna.vv_A2W(ey_ant),antenna.basis[1]),\
-        f"vv_A2W is {antenna.vv_A2W(ey_ant)} should be {antenna.basis[1]}"
-    assert np.allclose(antenna.vv_A2W(ez_ant),antenna.basis[2]),\
-        f"vv_A2W is {antenna.vv_A2W(ez_ant)} should be {antenna.basis[2]}"
+    assert np.allclose(antenna.vv_transform(ex_ant,"A2W"),antenna.basis[0]),\
+        f"vv_A2W is {antenna.vv_transform(ex_ant,'A2W')} should be {antenna.basis[0]}"
+    assert np.allclose(antenna.vv_transform(ey_ant,"A2W"),antenna.basis[1]),\
+        f"vv_A2W is {antenna.vv_transform(ey_ant,'A2W')} should be {antenna.basis[1]}"
+    assert np.allclose(antenna.vv_transform(ez_ant,'A2W'),antenna.basis[2]),\
+        f"vv_A2W is {antenna.vv_transform(ez_ant,'A2W')} should be {antenna.basis[2]}"
     return
 
 
@@ -122,8 +122,8 @@ def test_double_conversion(antenna,point):
             f"got {point_in_world} should have {point}"
         
     vv=point
-    vv_in_antenna=antenna.vv_W2A(vv)
-    vv_in_world=antenna.vv_A2W(vv_in_antenna)
+    vv_in_antenna=antenna.vv_transform(vv,"W2A")
+    vv_in_world=antenna.vv_transform(vv_in_antenna,"A2W")
     assert np.allclose(vv,vv_in_world),\
         "vect 2 antenna followed by antenna to world does not yield the original vect:"\
             f"got {vv_in_world} should have {vv}"
@@ -203,7 +203,7 @@ if __name__ == '__main__':
             test_antenna_align_to_point(antenna,point)
             test_basis_orthonormality(antenna)
             test_pp_W2A_and_A2W(antenna,point)
-            test_vv_W2A_and_A2W(antenna)
+            test_vv_transform(antenna)
             test_double_conversion(antenna,point)
             test_incident_angles(antenna)
             print(f'Antenna tests ran with success ({ntimes} times)')

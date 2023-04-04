@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 from raytracing.electromagnetism_utils import to_db
 from raytracing.multithread_solve import multithread_solve_place
 from raytracing.materials_properties import FREQUENCY
-from raytracing.theoretical_validation import two_rays_fields
 
 from raytracing.electromagnetism import ElectromagneticField
 

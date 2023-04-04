@@ -6,9 +6,7 @@ Created on Sun Mar 26 13:33:43 2023
 @author: max
 """
 import numpy as np
-import scipy as sc
 import pandas as pd
-from scipy.constants import pi
 
 
 from raytracing.materials_properties import P_IN,\
@@ -31,7 +29,9 @@ def to_spherical(point):
     if np.all(point==0):
         assert False,"spherical coordinates system not defined for point at the origin."
     if x==0 and y==0:
-        assert False,"spherical coordinates system not defined for points on z axis"
+        print("WARNING: spherical coordinates system not defined for points on z axis, azimutal angle can be anything")
+        return z,0,0
+       
     hxy=np.sqrt(x**2+y**2) #proj of r on plane xy
     r = np.sqrt(hxy**2+z**2)
     el = np.arctan2(hxy, z) #from z to ray

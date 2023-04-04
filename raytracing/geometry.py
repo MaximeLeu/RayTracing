@@ -1745,7 +1745,21 @@ class OrientedPolygon(OrientedGeometry):
             # Plane calculation
             normal = np.cross(self.points[1, :] - self.points[0, :],
                               self.points[2, :] - self.points[1, :])
+            #the_norm=norm(normal)
             normal /= norm(normal)  # Normalize
+            # if the_norm==0:
+            #     print(f"Failed building: {self.building_id}")
+            #     print(f"failed part: {self.part}")
+                # fig = plt.figure("the place")
+                # fig.set_dpi(300)
+                # ax = fig.add_subplot(projection='3d')
+                # ax.set_xlabel('x')
+                # ax.set_ylabel('y')
+                # ax.set_zlabel('z')
+                # plot_utils.add_polygon_to_3d_ax(ax,self.points)
+                # plt.show()
+                #assert False    
+     
             a, b, c = normal
             d = -np.dot(np.array([a, b, c]), self.points[2, :])
             self.parametric = np.array([a, b, c, d])
@@ -1760,6 +1774,7 @@ class OrientedPolygon(OrientedGeometry):
         """
         #TODO remove the assert statement
         normal=self.get_parametric()[:3]
+        
        # assert np.isclose(np.linalg.norm(normal),1),f"expected 1 got {np.linalg.norm(normal)}"
         return normal
 
@@ -2210,6 +2225,7 @@ class OrientedPolyhedron(OrientedGeometry):
 
 
     def extend_polyhedron(self,meters):
+        #TODO: attributes not propagated?
         top=self.get_top_face().get_shapely() #get top face
         ext_top=top.buffer(meters, resolution=2, join_style=2, mitre_limit=1,single_sided=True) #extend top face
         #create extended polyhedron from top_face
@@ -2385,7 +2401,6 @@ class Building(OrientedPolyhedron):
         ground: the oriented surface representing the ground
         height: the height of the building
         """   
-        new_polygon=polygon
         new_points=polygon.points.copy()
         #compute the vertical projection of each point on the ground
         for i, point in enumerate(polygon.points):
@@ -2394,8 +2409,8 @@ class Building(OrientedPolyhedron):
             line=np.array([point_below_ground,point])
             point_on_ground=polygon_line_intersection(ground,line)
             new_points[i]=point_on_ground
-        new_polygon.points=new_points
-        return Building.by_polygon_and_height(new_polygon, height,id, make_ccw=True, keep_ground=True,flat_roof=True)
+        new_polygon=OrientedPolygon(new_points)
+        return Building.by_polygon_and_height(new_polygon, height,id, make_ccw=True, keep_ground=False,flat_roof=True)
 
     @staticmethod
     def rebuild_building(polygon,grounds,height):
@@ -2414,17 +2429,15 @@ class Building(OrientedPolyhedron):
         :return: a list of `Building` objects that represent the reconstructed building(s)
         :rtype: List[Building]
         """
-        if not isinstance(grounds,list):
+        if not isinstance(grounds,list):#only one ground
             return [Building.building_on_slope(polygon,grounds,height)]
         conflicting_grounds=[]
         for ground in grounds:
             truth_array=ground.points_contained(polygon)
-            if truth_array.any():
-                if truth_array.all():
-                    return [Building.building_on_slope(polygon,ground,height)]
-                else:#split polygon
-                    conflicting_grounds.append(ground)
-                            
+            if truth_array.all():#polygon entirely on one ground
+                return [Building.building_on_slope(polygon,ground,height)]
+            elif truth_array.any():#need to split polygon
+                conflicting_grounds.append(ground)
         buildings=[]
         splits=polygon.split(conflicting_grounds)
         for i in range(0,len(splits)):
@@ -2849,12 +2862,15 @@ def preprocess_geojson(filename,drop_missing_heights=False):
         gdf['height'] = np.where(gdf['height'].isna(), np.random.uniform(low=minHeight, high=maxHeight, size=len(gdf)), gdf['height'])
 
     if not 'building_type' in gdf.columns:
-        types=["office","appartments","garage"]
-        #types=["appartments"]
+        #types=["office","appartments","garage"]
+        types=["appartments"]
         print(f"Missing building_type data, randomly adding {types}")
         names = [{}]*len(gdf)
         for i in range(0,len(names)):
-            rand=np.random.randint(0,len(types)-1)
+            if len(types)>1:
+                rand=np.random.randint(0,len(types)-1)
+            else:
+                rand=0
             names[i]=types[rand]
         gdf['building_type']=names
 
