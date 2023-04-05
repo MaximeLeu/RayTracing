@@ -19,7 +19,7 @@ from raytracing.materials_properties import set_properties, LAMBDA
 
 import raytracing.plot_utils as plot_utils
 import raytracing.file_utils as file_utils
-file_utils.chdir_to_file_dir(__file__)
+
 
 def plot_place(place,tx,show_normals=False):
     fig = plt.figure("the place")
@@ -98,7 +98,7 @@ def create_dummy_place():
 def create_two_rays_place(npoints=20):
     geometry="two_rays"
     #add ground
-    step=LAMBDA#10#10*LAMBDA
+    step=1#LAMBDA#10#10*LAMBDA
     ground = geom.Square.by_2_corner_points(np.array([[0, 0, 0], [step*npoints+50, 24, 0]]))
     ground=ground.rotate(axis=np.array([0,1,0]), angle_deg=180)
     
@@ -309,11 +309,12 @@ def create_slanted_levant(npoints=15):
 
 
 if __name__ == '__main__':
+    file_utils.chdir_to_file_dir(__file__)
     plt.close("all")
     #place,tx,geometry=create_small_place(npoints=10)
-    #place,tx,geometry=create_flat_levant()
+    place,tx,geometry=create_flat_levant()
     
-    place,tx,geometry=create_slanted_levant(npoints=8)
+    #place,tx,geometry=create_slanted_levant(npoints=8)
     #place,tx,geometry=test_place()
     #place,tx,geometry=create_two_rays_place(npoints=5)
     

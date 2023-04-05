@@ -12,7 +12,7 @@ import raytracing.electromagnetism_utils as electromagnetism_utils
 import raytracing.file_utils as file_utils
 import raytracing.plot_utils as plot_utils
 
-file_utils.chdir_to_file_dir(__file__)
+
 
 def EM_fields_plots(df_path,order=3,name="unnamed_plot"):
     df=electromagnetism_utils.load_df(df_path)
@@ -22,6 +22,7 @@ def EM_fields_plots(df_path,order=3,name="unnamed_plot"):
 
     if nreceivers>16*6:
         print("Too many receivers; can't display EM field plots")
+        #TODO: split the dataframe in blocs of 50 receivers and plot 50 at a time
         return
 
     fig = plt.figure("EM fields data",figsize=(16,5*nrows))
@@ -59,7 +60,7 @@ def EM_fields_plots(df_path,order=3,name="unnamed_plot"):
         ax2.set_ylabel('Received power [dB]')
         ax2.legend()
         ax2.grid()
-        plt.savefig(f"../results/plots/EM_plots_{name}'.pdf", dpi=300,bbox_inches='tight')
+        plt.savefig(f"../results/plots/EM_plots_{name}'.pdf", dpi=100,bbox_inches='tight')
         #plt.show()
 
     return fig
@@ -105,7 +106,7 @@ def plot_data_on_sphere(ax, data, title):
     power=electromagnetism_utils.to_db(data[:, 2])
     scatter = ax.scatter(x, y, z, c=power, cmap='jet')
     cbar = plt.colorbar(scatter, ax=ax)
-    cbar.set_label('Power', fontsize=12)
+    cbar.set_label('Received power [dB]', fontsize=12)
     ax.set_xlim([-1, 1])
     ax.set_ylim([-1, 1])
     ax.set_zlim([-1, 1])
@@ -144,6 +145,7 @@ def plot_rays_on_sphere(data_tx, data_rx):
 
 
 if __name__=='__main__':
+    file_utils.chdir_to_file_dir(__file__)
     plt.close('all')
     df_path="../results/flat_levant_simu_em_solved.csv"
     df=electromagnetism_utils.load_df(df_path)

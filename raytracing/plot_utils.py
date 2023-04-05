@@ -10,28 +10,17 @@ import matplotlib.colors as mcolors
 # Numerical libraries
 import numpy as np
 
-
-
 anim = dict(
     pause=False,
     speed=1
 )
 
-
-
-
-
-
-
-
 def ensure_axis_orthonormal(ax):
-    ax.set_box_aspect([1,1,1])
+    #ax.set_box_aspect([1,1,1])
     ax.set_proj_type('ortho')
     ax.axis('equal')
     return ax
     
-
-
 def set_color_for_type(path_type,order):
     colors=list(mcolors.TABLEAU_COLORS) #10 different colors
     all_types=["LOS","R","D","RR","RD","RRR","RRD","RRRR","RRRD"]
@@ -41,8 +30,6 @@ def set_color_for_type(path_type,order):
     types=all_types[0:slicer]
     ind=types.index(path_type)
     return colors[ind],ind,types
-
-
 
 def get_subplot_row_columns(amount_of_plots):
     match amount_of_plots:
@@ -69,14 +56,11 @@ def get_subplot_row_columns(amount_of_plots):
             nrows=6
             ncols=6
             print(f"plot_utils.py: Please define adequate subplot settings when there are {amount_of_plots} plots")
-
     return nrows,ncols
-
 
 def plot_vec(ax,vec,color,origin):
     ax.plot([origin[0],origin[0]+vec[0]],[origin[1],origin[1]+vec[1]],[origin[2],origin[2]+vec[2]],color=color)
     return
-
 
 def plot_world_frame(ax,colors):
     world_basis=[np.array([1,0,0]),np.array([0,1,0]),np.array([0,0,1])]

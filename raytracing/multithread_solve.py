@@ -6,7 +6,8 @@ Created on Mon Nov 14 20:56:31 2022
 @author: Maxime Leurquin
 
 USAGE:
-MAKE SURE TO RESTART KERNEL BEFORE EVERY RUN, OTHERWISE IT CRASHES DUE TO PICKLING ISSUES!
+MAKE SURE TO RESTART KERNEL BEFORE EVERY RUN IF USING IPYTHON.
+No problem when running in a command prompt.
 """
 import time
 from pathos.multiprocessing import ProcessingPool as Pool
@@ -20,7 +21,7 @@ from raytracing.electromagnetism_plots import EM_fields_plots
 
 import raytracing.place_utils as place_utils
 import raytracing.file_utils as file_utils
-file_utils.chdir_to_file_dir(__file__)
+
 
 
 def print_elapsed_time(start_time,end_time):
@@ -71,14 +72,14 @@ def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3):
     
     start_time_rt = time.time()
     #distribute the problems
-    pool = Pool(N_CPU)
-    pool.restart()
-    args=[]
-    for i in range(npoints):
-        args.append([i,order,tx,place])
-    solved_problems=pool.map(compute_single_receiver,args)
-    pool.close()
-    pool.join()
+    with Pool(N_CPU) as pool:
+        pool.clear()
+        args=[]
+        for i in range(npoints):
+            args.append([i,order,tx,place])
+        solved_problems=pool.map(compute_single_receiver,args)
+        pool.close()
+        pool.join()
 
     #merge the solved_problems into one full_problem
     full_problem = RayTracingProblem(tx, place)
@@ -107,6 +108,7 @@ def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3):
     
     print("TOTAL TIME: ")
     print_elapsed_time(start_time_rt,end_time_plt)
+    
     return solved_em_path,solved_rays_path
 
 
@@ -144,9 +146,11 @@ def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3):
     
 
 if __name__ == "__main__":
+    file_utils.chdir_to_file_dir(__file__)
     #To test if it works
     plt.close('all')
     place,tx,geometry=place_utils.create_small_place(npoints=15)
+    place,tx,geometry=place_utils.create_slanted_dummy(npoints=15)
     #place,tx,geometry=place_utils.create_levant_place(npoints=15)
     multithread_solve_place(place, tx,"multithread_place_test")
     

@@ -10,7 +10,7 @@ import pickle
 
 from raytracing.container_utils import ManyToOneDict
 import raytracing.file_utils as file_utils
-file_utils.chdir_to_file_dir(__file__)
+
 
 def create_dict():
     
@@ -67,6 +67,7 @@ def test_pickling():
     print("pickling success")
     
 if __name__ == '__main__':
+    file_utils.chdir_to_file_dir(__file__)
     test_equals()
     test_save_load()
     test_pickling()

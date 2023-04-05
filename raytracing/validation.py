@@ -21,7 +21,7 @@ from raytracing.electromagnetism import ElectromagneticField
 import raytracing.place_utils as place_utils
 import raytracing.file_utils as file_utils
 import raytracing.electromagnetism_utils as electromagnetism_utils
-file_utils.chdir_to_file_dir(__file__)
+
 
 def read_csv(file):
     """
@@ -265,13 +265,14 @@ def plot_measures_only():
 
 #ALWAYS RESTART KERNEL BEFORE LAUNCH
 if __name__ == '__main__':
+    file_utils.chdir_to_file_dir(__file__)
     plt.close('all')
     #plot_claude_only()
     
     #tx,solved_em_path,solved_rays_path=run_small_simu(npoints=16,order=2)
     #plot_small_vs_path_loss(tx,solved_em_path)
     
-    tx,solved_em_path,solved_rays_path=run_levant_simu(npoints=16,order=2,flat=False)
+    tx,solved_em_path,solved_rays_path=run_levant_simu(npoints=3,order=2,flat=False)
     plot_levant_vs_measures(tx[0],solved_em_path)
     
     #save_name=f'{geometry}_{npoints}p'

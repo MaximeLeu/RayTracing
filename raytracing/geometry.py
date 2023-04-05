@@ -1749,21 +1749,7 @@ class OrientedPolygon(OrientedGeometry):
             # Plane calculation
             normal = np.cross(self.points[1, :] - self.points[0, :],
                               self.points[2, :] - self.points[1, :])
-            #the_norm=norm(normal)
-            normal /= norm(normal)  # Normalize
-            # if the_norm==0:
-            #     print(f"Failed building: {self.building_id}")
-            #     print(f"failed part: {self.part}")
-                # fig = plt.figure("the place")
-                # fig.set_dpi(300)
-                # ax = fig.add_subplot(projection='3d')
-                # ax.set_xlabel('x')
-                # ax.set_ylabel('y')
-                # ax.set_zlabel('z')
-                # plot_utils.add_polygon_to_3d_ax(ax,self.points)
-                # plt.show()
-                #assert False    
-     
+            normal /= norm(normal)  # Normalize 
             a, b, c = normal
             d = -np.dot(np.array([a, b, c]), self.points[2, :])
             self.parametric = np.array([a, b, c, d])
@@ -2374,24 +2360,19 @@ class Building(OrientedPolyhedron):
         :return: a building
         :rtype: Building
         """
-
-        if isinstance(polygon, OrientedPolygon):
-            x, y = polygon.points[:, :-1].T
-        elif isinstance(polygon, shPolygon):
-            x, y = polygon.exterior.coords.xy
-            x = x[:-1]
-            y = y[:-1]
-        elif isinstance(polygon, np.ndarray):
-            x, y = polygon[:, :-1].T
+        if isinstance(polygon, shPolygon):
+            points_2d = np.array(polygon.exterior.coords)
+        elif isinstance(polygon, np.ndarray) and polygon.shape[1]==2:
+            points_2d=polygon
         else:
             raise ValueError(f'Type {type(polygon)} is not supported for polygon !')
-
-        z0 = np.zeros_like(x, dtype=float)
-        bottom_points = np.column_stack([x, y, z0])
-
-        polygon = OrientedPolygon(bottom_points)
-
-        return Building.by_polygon_and_height(polygon, height,id, make_ccw=make_ccw, keep_ground=keep_ground,flat_roof=flat_roof)
+            
+        #polygons first and last points are sometimes the same in the geojson
+        if np.array_equal(points_2d[0],points_2d[-1]):  
+            points_2d=points_2d[:-1]
+        points_3d = np.hstack((points_2d, np.zeros((len(points_2d), 1))))
+        new_polygon=OrientedPolygon(points_3d)
+        return Building.by_polygon_and_height(new_polygon, height,id, make_ccw=make_ccw, keep_ground=keep_ground,flat_roof=flat_roof)
 
     @staticmethod
     def building_on_slope(polygon,ground,height,id=None):

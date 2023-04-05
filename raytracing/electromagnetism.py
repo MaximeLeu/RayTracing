@@ -32,7 +32,7 @@ from raytracing.electromagnetism_utils import vv_normalize,cot
 
 import raytracing.plot_utils as plot_utils
 import raytracing.file_utils as file_utils
-file_utils.chdir_to_file_dir(__file__)
+
 
 
 pd.set_option('display.max_columns', 10)
@@ -209,7 +209,7 @@ class ElectromagneticField:
         """
         Given the distance between TX and RX antennas compute the path loss in dB
         """
-        pr_pt=((LAMBDA/(4*pi*d))**2) *RX_GAIN*TX_GAIN*ElectromagneticField.radiation_pattern(theta=0,phi=0)**2
+        pr_pt=((LAMBDA/(4*pi*d))**2)*RX_GAIN*TX_GAIN*(ElectromagneticField.radiation_pattern(theta=0,phi=0))**2
         pl=10*np.log10(pr_pt)
         return pl
 
@@ -762,10 +762,9 @@ def my_field_computation(rtp,save_name="problem_fields"):
             sol.compute_rx_angles()
             Ae=Antenna.compute_Ae(sol.rx_el,sol.rx_az)#rx radiation pattern and rx gain taken into account here
             field_polarisation=vv_normalize(rx_antenna.vv_transform(sol.field,"W2A"))
-            polarisation_efficiency=np.linalg.norm(np.dot(field_polarisation,rx_antenna.vv_transform(rx_antenna.polarisation,"W2A")))**2
+            polarisation_efficiency=(np.linalg.norm(np.dot(field_polarisation,rx_antenna.vv_transform(rx_antenna.polarisation,"W2A"))))**2
             print(f"polarisation_eff {polarisation_efficiency}")
-            #sol.power=1/(2*Z_0)*Ae*(np.linalg.norm(np.real(rx_antenna.vv_transform(sol.field,"W2A"))))**2
-            sol.power=1/(2*Z_0)*Ae*(np.linalg.norm((rx_antenna.vv_transform(sol.field,"W2A"))))**2
+            sol.power=1/(2*Z_0)*Ae*(np.linalg.norm(np.real(rx_antenna.vv_transform(sol.field,"W2A"))))**2
             sol.power=sol.power*polarisation_efficiency*TX_GAIN #TODO add P_IN here
             #sol.show_antennas_alignement()
             print(f" rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi:.2f}\u00b0 phi {sol.rx_az*180/pi:.2f}\u00b0")
@@ -780,6 +779,10 @@ def my_field_computation(rtp,save_name="problem_fields"):
     #         if (sol.field>10).any():
     #             print("ERRORRRRR")
     return df
+
+
+if __name__ == "__main__":
+    file_utils.chdir_to_file_dir(__file__)
 
 
 

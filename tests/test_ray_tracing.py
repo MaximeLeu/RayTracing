@@ -10,7 +10,7 @@ from raytracing.ray_tracing import RayTracingProblem
 from raytracing.place_utils import create_small_place,create_flat_levant
 
 import raytracing.file_utils as file_utils
-file_utils.chdir_to_file_dir(__file__)
+
 
 def test_save_load_raytracingProblem():
     place,tx,geometry=create_small_place(npoints=3)
@@ -31,6 +31,7 @@ def test_save_load_raytracingProblem():
     
 
 if __name__ == '__main__':
+    file_utils.chdir_to_file_dir(__file__)
     problem,loaded_problem=test_save_load_raytracingProblem()
     
 

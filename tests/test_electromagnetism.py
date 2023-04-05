@@ -16,7 +16,7 @@ from electromagnetism import ElectromagneticField,Antenna,Reflection,Diffraction
 
 import raytracing.plot_utils as plot_utils
 import raytracing.file_utils as file_utils
-file_utils.chdir_to_file_dir(__file__)
+
 
 
 
@@ -189,6 +189,7 @@ def test_split_reflections_path():
 
 
 if __name__ == '__main__':
+    file_utils.chdir_to_file_dir(__file__)
     plt.close("all") 
     #ANTENNA TESTS---------------------------------------------
     def run_antenna_class_tests(ntimes):

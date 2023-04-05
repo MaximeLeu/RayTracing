@@ -25,7 +25,7 @@ import raytracing.place_utils as place_utils
 import raytracing.plot_utils as plot_utils
 import raytracing.electromagnetism_utils as electromagnetism_utils
 import raytracing.file_utils as file_utils
-file_utils.chdir_to_file_dir(__file__)
+
 
 def simplified_two_rays(L,ztx,zrx):
     """
@@ -33,7 +33,10 @@ def simplified_two_rays(L,ztx,zrx):
     """
     #http://www.wirelesscommunication.nl/reference/chaptr03/pel/tworay.htm
     #ans  = RX_GAIN*TX_GAIN*((LAMBDA/(4*np.pi*L))**2)*(2*np.sin(K*zrx*ztx/L))**2
-    ans = RX_GAIN*TX_GAIN*ElectromagneticField.radiation_pattern(theta=0,phi=0)**2*(LAMBDA**2)/(4*pi)*1/(Z_0)* ((2/L)*np.sin(K*zrx*ztx/L))**2 *30 
+    E0=ElectromagneticField.radiation_pattern(theta=0,phi=0)
+    ans = RX_GAIN*TX_GAIN*(LAMBDA**2)/(4*pi)\
+        *1/(2*Z_0)*((E0/L)*2*np.sin(K*zrx*ztx/L))**2 
+    ans=ans*60 
     ans =10*np.log10(ans)
     return ans
 
@@ -156,6 +159,7 @@ class TwoRaysModel:
         #FIELD COMPUTATION-----------------------------
         #work relative to the world reference frame
         E0=-1j/(4*pi)*138*tx_polarisation
+        #E0=-1j/(4*pi)*(K**2)/Z_0*tx_polarisation
         Elos=E0*ElectromagneticField.radiation_pattern(0)*np.exp(-1j*K*dlos)/dlos
         
         per_vv=vv_normalize(np.cross(d1_vv,d2_vv))
@@ -199,8 +203,6 @@ class TwoRaysModel:
             plot_utils.plot_vec(ax,antenna_basis[i]*5,colors[i],origin=antenna_position)
         fig.show()
         return ax
-
-
 
 
 def compare_models():
@@ -248,9 +250,10 @@ def run_two_rays_simu(npoints,order=2):
     return tx,solved_em_path,solved_rays_path
 
 
-def compare_two_rays_and_simu(npoints):
-    #get the results from the simulator
-    tx,solved_em_path,solved_rays_path=run_two_rays_simu(npoints,order=2)
+def compare_two_rays_and_simu(npoints,solved_em_path=None):
+    if solved_em_path is None:
+        #get the results from the simulator
+        tx,solved_em_path,solved_rays_path=run_two_rays_simu(npoints,order=2)
     df=electromagnetism_utils.load_df(solved_em_path)
     nreceivers=len(df['rx_id'].unique())
     
@@ -367,8 +370,9 @@ def compare_sloped_flat():
 
 
 if __name__=='__main__':
-
+    file_utils.chdir_to_file_dir(__file__)
     plt.close('all')
-    compare_two_rays_and_simu(npoints=10)
+    #compare_models()
+    compare_two_rays_and_simu(npoints=3)
     #compare_models()
     #compare_sloped_flat()
