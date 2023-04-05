@@ -63,11 +63,14 @@ def create_small_place(npoints=3):
     place.to_json(filename=f"../data/{geometry}.json")
     return place,tx,geometry
 
+
 def create_dummy_place():
     geometry="dummy"
     #add ground and buildings
     init_elevation=10
     ground = geom.Square.by_2_corner_points(np.array([[0, 0, init_elevation], [70, 24, init_elevation]]))
+    ground=ground.rotate(axis=np.array([0,1,0]), angle_deg=180)
+    
     square_1 = geom.Square.by_2_corner_points(np.array([[13, 22, init_elevation], [17, 24, init_elevation]]))
     building_1 = geom.Building.by_polygon_and_height(polygon=square_1, height=10)
     square_2 = geom.Square.by_2_corner_points(np.array([[33, 0, init_elevation], [37, 2, init_elevation]]))
@@ -78,8 +81,8 @@ def create_dummy_place():
     ground.properties=set_properties("ground")
     buildings=[building_1, building_2, building_3]
     for building in buildings:
-        for polygon in building.polygons:
-            polygon.properties=set_properties("appartments")
+        building.building_type="appartments"
+        building.apply_properties_to_polygons()
     #create place
     place = geom.OrientedPlace(geom.OrientedSurface(ground),buildings)
     #add TX and RX
@@ -90,42 +93,12 @@ def create_dummy_place():
     place.to_json(filename=f"../data/{geometry}.json")
     return place, tx, geometry
 
-def create_slanted_dummy(alpha):
-    geometry="slanted_dummy"
-    #add ground and buildings
-    init_elevation=10
-    ground = geom.Square.by_2_corner_points(np.array([[0, 0, init_elevation], [70, 24, init_elevation]]))
-    ground=ground.rotate(axis=np.array([0, 1, 0]), angle_deg=alpha)
-    ground=ground.rotate(axis=np.array([1, 0, 0]), angle_deg=180) #othewise the normal is wrongly oriented
-
-    square_1 = geom.Square.by_2_corner_points(np.array([[13, 22, init_elevation], [17, 24, init_elevation]]))
-    building_1 = geom.Building.building_on_slope(square_1, ground,10)
-    square_2 = geom.Square.by_2_corner_points(np.array([[33, 0, init_elevation], [37, 2, init_elevation]]))
-    building_2 = geom.Building.building_on_slope(square_2, ground,10)
-    square_3 = geom.Square.by_2_corner_points(np.array([[53, 22, init_elevation], [57, 24, init_elevation]]))
-    building_3 = geom.Building.building_on_slope(square_3, ground,10)
-    
-    #add properties
-    ground.properties=set_properties("ground")
-    buildings=[building_1, building_2, building_3]
-    for building in buildings:
-        for polygon in building.polygons:
-            polygon.properties=set_properties("appartments")
-    #create place
-    place = geom.OrientedPlace(geom.OrientedSurface(ground),buildings)
-    #add TX and RX
-    tx = np.array([5., 12., init_elevation+10]).reshape(-1, 3)
-    rx = np.array([65., 12.,init_elevation+ 10.]).reshape(-1, 3)
-    place.add_set_of_points(rx)
-    #save
-    place.to_json(filename=f"../data/{geometry}.json")
-    return place, tx, geometry
 
 
 def create_two_rays_place(npoints=20):
     geometry="two_rays"
     #add ground
-    step=10#10*LAMBDA
+    step=LAMBDA#10#10*LAMBDA
     ground = geom.Square.by_2_corner_points(np.array([[0, 0, 0], [step*npoints+50, 24, 0]]))
     ground=ground.rotate(axis=np.array([0,1,0]), angle_deg=180)
     
@@ -305,7 +278,7 @@ def create_slanted_levant(npoints=15):
     
     #rebuild the place
     place=geom.OrientedPlace(geom.OrientedSurface(grounds),buildings)
-    #place.surface=place.surface.translate(np.array([0,0,100])) #to check if normals are well set
+    #place.surface=place.surface.translate(np.array([0,0,100])) #to check if ground normals are well set
 
     def add_tx_rx(place, maxwell_entrance, levant_bottom, npoints):
         RX_HEIGHT = 1.2
@@ -328,86 +301,23 @@ def create_slanted_levant(npoints=15):
     place, tx=add_tx_rx(place, maxwell_entrance, levant_bottom, npoints)
     place.to_json(filename=f"../data/{geometry}.json")
     
-    
-    # fig = plt.figure("the test")
-    # fig.set_dpi(300)
-    # ax = fig.add_subplot(projection='3d')
-    # place.center_3d_plot(ax)
-    # for polyhedron in place.polyhedra:
-    #     length=len(polyhedron.aux_surface)
-    #     if length==12 or length==17 or length==5 or length==26:
-    #         #polyhedron.plot3d(ax=ax, normal=True)
-    #         pass
-    #     for polygon in polyhedron.aux_surface.polygons:
-    #         if np.isnan(polygon.get_normal()).all():
-    #             polygon.plot3d(facecolor=(0,1,1,1),ax=ax,alpha=1,normal=True)
-    #             print(polygon)
-    # plt.show()
-    
     return place, tx, geometry
 
     
-def test_place():
-    geometry="test_place"
-    # ground1 = geom.Square.by_2_corner_points(np.array([[0, 0, 10], [70, 24, 20]]))
-    # ground1.properties=set_properties("ground")
-    # ground2 = geom.Square.by_2_corner_points(np.array([[70, 24, 20], [90, 0, 20]]))
-    # ground2.properties=set_properties("ground")
-    # grounds=[ground1,ground2]
-    
-    barb=np.array([-100, -90, 0])
-    vinci=np.array([-25,90,0])
-    stevin=np.array([20,-90,10])
-    maxwell=np.array([125,90,10])
-    ground1=geom.Square.by_2_corner_points(np.array([barb,vinci])) #flat ground between stevin and maxwell
-    ground1=ground1.rotate(axis=np.array([0,1,0]), angle_deg=180)
-    ground2=geom.Square.by_2_corner_points(np.array([vinci,stevin])) #slanted ground between vinci and stevin
-    ground3=geom.Square.by_2_corner_points(np.array([stevin,maxwell])) #flat ground between stevin and maxwell
-    ground3=ground3.rotate(axis=np.array([0,1,0]), angle_deg=180)
-    ground1.properties=set_properties("ground")
-    ground2.properties=set_properties("ground")
-    ground3.properties=set_properties("ground")
-    grounds=[ground1,ground2,ground3]
 
-    square_1 = geom.Square.by_2_corner_points(np.array([[13, 22, 5], [30, 24, 5]]))
-    building_1 = geom.Building.building_on_slope(square_1, ground1,10)
-    buildings=[building_1]
-    for building in buildings:
-        for polygon in building.polygons:
-            polygon.properties=set_properties("appartments")
-    #create place
-    place = geom.OrientedPlace(grounds,buildings)
-    tx = np.array([5., 12., 20]).reshape(-1, 3)
-    place.to_json(filename=f"../data/{geometry}.json")
-    plot_place(place,tx)
-    #split the building
-    top=place.polyhedra[0].get_top_face()
-    
-    splits=top.split([ground2,ground3])
-    buildings=[]
-    buildings.extend(geom.Building.rebuild_building(top,grounds,20))
-    
-    # for split in splits:
-    #     buildings.append(geom.Building.by_polygon_and_height(split, 20, make_ccw=True, keep_ground=True,flat_roof=True))
-        
-    place = geom.OrientedPlace(grounds,buildings)   
-    return place, tx, geometry
     
 
 
 if __name__ == '__main__':
     plt.close("all")
-    
-    #place,tx,geometry=create_slanted_dummy(alpha=10)
-    #place,tx,geometry=create_dummy_place()
     #place,tx,geometry=create_small_place(npoints=10)
     #place,tx,geometry=create_flat_levant()
     
     place,tx,geometry=create_slanted_levant(npoints=8)
-    
     #place,tx,geometry=test_place()
-    print(f'tx {tx}')
-    place,tx,geometry=create_two_rays_place(npoints=5)
+    #place,tx,geometry=create_two_rays_place(npoints=5)
+    
+    #place,tx,geometry=create_dummy_place()
     plot_place(place, tx,show_normals=True)
     
     

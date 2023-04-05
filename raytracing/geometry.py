@@ -96,6 +96,7 @@ def polygon_line_intersection(polygon,points):
     planePoint=polygon.points[1, :]
 
     rayDirection = points[1]-points[0]
+    rayDirection=rayDirection/np.linalg.norm(rayDirection)
     rayPoint = points[0]
     ndotu = np.dot(rayDirection,normal)
     if abs(ndotu) < epsilon:
@@ -1677,6 +1678,9 @@ class OrientedPolygon(OrientedGeometry):
     @staticmethod
     def shapely_to_oriented_polygon(shapely_polygon):
         points_2d = np.array(shapely_polygon.exterior.coords)
+        if np.array_equal(points_2d[0],points_2d[-1]):
+            #shapely polygons first and last points are usually the same
+            points_2d=points_2d[:-1]
         points_3d = np.hstack((points_2d, np.zeros((len(points_2d), 1))))
         return OrientedPolygon(points_3d)
         
@@ -1772,10 +1776,8 @@ class OrientedPolygon(OrientedGeometry):
         :return: the normal vector
         :rtype: np.ndarray *shape=(3)*
         """
-        #TODO remove the assert statement
         normal=self.get_parametric()[:3]
         
-       # assert np.isclose(np.linalg.norm(normal),1),f"expected 1 got {np.linalg.norm(normal)}"
         return normal
 
     def contains_point(self, point, check_in_plane=False, plane_tol=1e-8):
@@ -1930,17 +1932,15 @@ class OrientedPolygon(OrientedGeometry):
        :return: a list of `OrientedPolygon` objects that are the non-overlapping portions of this polygon
        :rtype: List[OrientedPolygon]
        """
-        shapely_splitted=[]
-        selfShapely=self.get_shapely()
-        for polygon in conflicting_polygons:
-            diff=selfShapely
-            for conflict in conflicting_polygons:
-                if conflict!=polygon:
-                    diff=diff.difference(conflict.get_shapely())
-            shapely_splitted.append(diff)  #list of shapely polygons     
         splitted=[]
-        for shapely_polygon in shapely_splitted:
-            splitted.append(OrientedPolygon.shapely_to_oriented_polygon(shapely_polygon))
+        for polygon in conflicting_polygons:
+            diff=self.get_shapely()    
+            for conflict in conflicting_polygons:
+                 if conflict!=polygon:
+                     diff=diff.difference(conflict.get_shapely())
+            diff=diff.simplify(0) #remove points on same line
+            poly=OrientedPolygon.shapely_to_oriented_polygon(diff)
+            splitted.append(poly)
         return splitted
 
 class Square(OrientedPolygon):
@@ -2409,8 +2409,9 @@ class Building(OrientedPolyhedron):
             line=np.array([point_below_ground,point])
             point_on_ground=polygon_line_intersection(ground,line)
             new_points[i]=point_on_ground
+            
         new_polygon=OrientedPolygon(new_points)
-        return Building.by_polygon_and_height(new_polygon, height,id, make_ccw=True, keep_ground=False,flat_roof=True)
+        return Building.by_polygon_and_height(new_polygon, height,id, make_ccw=True, keep_ground=True,flat_roof=True)
 
     @staticmethod
     def rebuild_building(polygon,grounds,height):
