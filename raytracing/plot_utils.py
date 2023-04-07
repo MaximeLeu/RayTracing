@@ -26,7 +26,7 @@ def set_color_for_type(path_type,order):
     all_types=["LOS","R","D","RR","RD","RRR","RRD","RRRR","RRRD"]
     slicer=2*order+1
     if(slicer>len(all_types) or slicer >len(colors)):
-        print(f"PLOTTING ERROR: {path_type} not enumerated or not enough colors")
+        print(f"PLOTTING ERROR: {path_type} not enumerated or not enough colors for order {order}")
     types=all_types[0:slicer]
     ind=types.index(path_type)
     return colors[ind],ind,types

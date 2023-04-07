@@ -29,11 +29,11 @@ if __name__ == '__main__':
     #place,tx,geometry=place_utils.create_two_rays_place()
     #place,tx,geometry=place_utils.create_dummy_place()
     #place,tx,geometry=place_utils.create_my_geometry() # random geometry
-    #place,tx,geometry=place_utils.create_small_place(npoints=5)
-    place,tx,geometry=place_utils.create_flat_levant(npoints=3)
+    place,tx,geometry=place_utils.create_small_place(npoints=5)
+    #place,tx,geometry=place_utils.create_flat_levant(npoints=3)
     #place,tx,geometry=place_utils.create_slanted_levant(10)
     place_utils.plot_place(place, tx)
-    ORDER=2
+    ORDER=4
     
     #if multithreading run the script outside spyder/Ipython, in a command prompt. 
     multithread=True 
@@ -58,6 +58,10 @@ if __name__ == '__main__':
     #multithreaded driver code
     if multithread:
         solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,order=ORDER,geometry=geometry)
+        
         df=electromagnetism_utils.load_df(solved_em_path)
+        npoints=len(df['rx_id'].unique())
+        save_name=f'{geometry}_{npoints}p'
+        electromagnetism_plots.EM_fields_plots(solved_em_path,order=ORDER,name=save_name)
         
         

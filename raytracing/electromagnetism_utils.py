@@ -21,6 +21,77 @@ from raytracing.materials_properties import P_IN,\
                                 Z_0\
 
 
+def generate_path_types_of_order(order):
+    """
+    Generates the possible path types for the given order
+    """
+    if order == 0:
+        return ["LOS"]
+    ref="R"*order
+    diff="R"*(order-1)+"D"
+    return [ref,diff]
+
+def generate_path_types_up_to_order(order):
+    """
+    Generates the possible path types up to the given order
+    """
+    array=[]
+    for i in range(0,order+1):
+        array.extend(generate_path_types_of_order(i))
+    return array
+
+def find_df_order(df):
+    """
+    Finds what is the highest order path in the dataframe
+    """
+    for i in range(1,20):
+       possible_paths=generate_path_types_of_order(i)
+       if not df['path_type'].isin(possible_paths).any():
+           return i-1
+    assert False
+        
+def get_data_up_to_order(df,order):
+    """
+    return a dataframe truncated to only contain data up until order
+    ex: get_data_up_to_order(2) will return all LOS,R,RR,RD
+    get_data_up_to_order(0) will return LOS
+    """  
+    all_types=generate_path_types_up_to_order(order)
+    selected_types=all_types[:(3+(order-1)*2)]
+    df_filtered = df[df['path_type'].isin(selected_types)]
+    return df_filtered
+
+
+def get_power_db_each_receiver(df):
+    """
+    Compute the total power at each receiver by summing
+    all the individual power contributions, then converting to dB
+    """
+    receivers=df['rx_id'].unique()
+    power_db=np.zeros(len(receivers))
+    for i,receiver in enumerate(receivers):
+        rx_df=df.loc[df['rx_id'] == receiver]
+        power_db[i]=to_db(np.sum(rx_df["path_power"]))
+    return power_db
+
+
+def split_df(df,df_list=[]):
+    """
+    Split the df containing information about the fields transmitted to each receiver
+    to a list of dataframes containing data about 50 receivers each.
+    """
+    nreceivers=len(df['rx_id'].unique())
+    if nreceivers>50:
+        first_50_receivers = df['rx_id'].unique()[:50]
+        first_50_df = pd.concat([df.loc[df['rx_id'] == receiver] for receiver in first_50_receivers])
+        rest_df = df.loc[~df['rx_id'].isin(first_50_receivers)]
+        df_list.append(first_50_df)
+        split_df(rest_df,df_list)
+    else:
+        df_list.append(df)
+    return df_list
+
+
 def to_spherical(point):
     """
     transform the given point into spherical coordinates

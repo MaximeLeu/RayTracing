@@ -7,38 +7,21 @@ Code to validate the program
 @author: Maxime Leurquin
 """
 #packages
-import csv
 import numpy as np
 import matplotlib.pyplot as plt
 
 #self written imports
-from raytracing.electromagnetism_utils import to_db
 from raytracing.multithread_solve import multithread_solve_place
 from raytracing.materials_properties import FREQUENCY
 
 from raytracing.electromagnetism import ElectromagneticField
+from electromagnetism_plots import read_csv
 
+import raytracing.electromagnetism_plots as electromagnetism_plots
 import raytracing.place_utils as place_utils
 import raytracing.file_utils as file_utils
 import raytracing.electromagnetism_utils as electromagnetism_utils
 
-
-def read_csv(file):
-    """
-    Measures from C. Oestges and D. Vanhoenacker-Janvier,
-    Experimental validation and system applications of ray-tracing model in built-up areas,
-    Electronics Letters, vol. 36, no. 5, p. 461, 2000.
-    were extracted and stored in csv using https://apps.automeris.io/wpd/
-    this reads the measures from the csv
-    """
-    x = []
-    y = []
-    with open(f'../results/validation_measures/{file}','r') as csvfile:
-        lines = csv.reader(csvfile, delimiter=',')
-        for row in lines:
-            x.append(round(float(row[0])))
-            y.append(float(row[1]))
-    return x,y
 
 
 def get_corresponding_measures(month):
@@ -63,7 +46,7 @@ def read_simu(df,tx):
     simu_x=np.zeros(nreceivers)
     for receiver in range(nreceivers):
         rx_df=df.loc[df['rx_id'] == receiver]#all data for this rx
-        simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values))
+        simu_y[receiver]=electromagnetism_utils.to_db(np.sum(rx_df["path_power"].values))
         rx_coord=rx_df["receiver"].values[0]
         #assuming tx is on the border of the maxwell building, neglecting slope
         simu_x[receiver]=np.linalg.norm(tx[:-1] - rx_coord[:-1])#dist maxwell base-rx
@@ -208,7 +191,7 @@ def plot_small_vs_path_loss(tx,solved_em_path):
         d=np.linalg.norm(tx-rx_coord)
         pl[receiver]=ElectromagneticField.path_loss(d)
         simu_x[receiver]=d #distance TX-RX
-        simu_y[receiver]=to_db(np.sum(rx_df["path_power"].values))
+        simu_y[receiver]=electromagnetism_utils.to_db(np.sum(rx_df["path_power"].values))
 
     #plots
     fig = plt.figure(figsize=(20,20))
@@ -226,40 +209,7 @@ def plot_small_vs_path_loss(tx,solved_em_path):
     return
     
 
-def plot_measures_only():
-    #plt.rcParams.update({'font.size': 22})
-    x,y=read_csv("claude_12_feb.csv")
-    x1,y1=read_csv("claude_12_oct.csv")
-    
-    fig = plt.figure(figsize=(20,8))
-    ax = fig.add_subplot(1, 1, 1)
-    ax.set_title('Measurements at 12.5 GHz')
-    ax.plot(x,y,color='green', marker='o',label="february")
-    ax.plot(x1,y1,color='red', marker='o',label="october")
-    ax.grid()
-    ax.set_xlabel('distance from Maxwell building [m]')
-    ax.set_ylabel('Received power [dB]')
-    ax.set_xlim(30,90)
-    ax.set_ylim(-60,-35)
-    ax.legend(loc='lower left')
-    plt.savefig("../results/validation_measures/claude_125.eps", dpi=150,bbox_inches='tight')
-    
-    x,y=read_csv("claude_30_feb.csv")
-    x1,y1=read_csv("claude_30_oct.csv")
-    fig2 = plt.figure(figsize=(20,8))
-    ax2 = fig2.add_subplot(1, 1, 1)
-    ax2.set_title('Measurements at 30 GHz')
-    ax2.plot(x,y,color='green', marker='o',label="february")
-    ax2.plot(x1,y1,color='red', marker='o',label="october")
-    ax2.grid()
-    ax2.set_xlabel('distance from Maxwell building [m]')
-    ax2.set_ylabel('Received power [dB]')
-    ax2.set_xlim(30,90)
-    ax2.set_ylim(-60,-35)
-    ax2.legend(loc='lower left')
-    plt.savefig("../results/validation_measures/claude_30.eps", dpi=150,bbox_inches='tight')
-    plt.show()
-    return
+
 
 
 
@@ -272,9 +222,9 @@ if __name__ == '__main__':
     #tx,solved_em_path,solved_rays_path=run_small_simu(npoints=16,order=2)
     #plot_small_vs_path_loss(tx,solved_em_path)
     
-    tx,solved_em_path,solved_rays_path=run_levant_simu(npoints=3,order=2,flat=False)
+    tx,solved_em_path,solved_rays_path=run_levant_simu(npoints=16*10,order=2,flat=False)
     plot_levant_vs_measures(tx[0],solved_em_path)
-    
+    electromagnetism_plots.plot_order_importance(solved_em_path)
     #save_name=f'{geometry}_{npoints}p'
     solved_slanted_path="../results/{save_name}_ray_solved.json"
     solved_flat_path="../results/{save_name}_ray_solved.json"

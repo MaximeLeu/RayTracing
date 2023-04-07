@@ -457,8 +457,8 @@ class RayTracingProblem:
         plot the ray paths for each receivers in a different subplot
         """
         MAXPLOTS=1
-        fig = plt.figure("Ray traced places",figsize=(8,5))
-        fig.set_dpi(300)
+        fig = plt.figure("Ray traced places",figsize=(16,16))
+        fig.set_dpi(100)
         nplots=len(self.solved_receivers)
         if nplots>MAXPLOTS:
             print(f"won't plot {nplots}: it will be unreadable, plotting {MAXPLOTS} firsts instead")
