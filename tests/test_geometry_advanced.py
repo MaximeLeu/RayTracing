@@ -7,9 +7,13 @@ Testing of functions defined in the geometry file.
 """
 import numpy as np
 import matplotlib.pyplot as plt
+import shapely
 from shapely.geometry import Polygon as shPolygon
-import raytracing.geometry as geom
+
+import raytracing.ray_tracing as ray_tracing
 from raytracing.ray_tracing import RayTracingProblem
+
+import raytracing.geometry as geom
 from raytracing.materials_properties import set_properties
 
 import raytracing.file_utils as file_utils
@@ -126,9 +130,29 @@ def test_overlap_place():
     pass
 
 
-def test_add_tree():
+def test_add_tree(place):
     #test OrientedPlace.add_tree
-    pass
+    zone=place.add_tree(tree_size=1,how_close_to_buildings=2)
+    
+    extended_place=geom.OrientedPlace(geom.OrientedSurface(place.surface.polygons))
+    if(isinstance(zone,shapely.geometry.MultiPolygon)):
+        zones=list(zone.geoms)
+        for zone in zones:
+            zone_points=np.array(shapely.geometry.mapping(zone)["coordinates"])[0]
+            zone_points=np.c_[zone_points, np.zeros(len(zone_points))] #add some z coordinate
+            zone=geom.Building.by_polygon_and_height(polygon=zone_points,height=25) #height doesn't matter
+            extended_place.add_polyhedron(zone,allow_overlap=True)
+    else:
+        zone_points=np.array(shapely.geometry.mapping(zone)["coordinates"])[0]
+        zone_points=np.c_[zone_points, np.zeros(len(zone_points))] #add some z coordinate
+        zone=geom.Building.by_polygon_and_height(polygon=zone_points,height=25) #height don't matter
+        extended_place.add_polyhedron(zone,allow_overlap=True)
+
+    fig = plt.figure("extended_place",dpi=300)
+    ax = fig.add_subplot(projection='3d')
+    extended_place.center_3d_plot(ax)
+    ax = extended_place.plot3d(ax=ax)
+    return
 
 
 def test_generate_place_from_rooftops_file():
@@ -137,9 +161,6 @@ def test_generate_place_from_rooftops_file():
     place = geom.generate_place_from_rooftops_file(preprocessed_name)
     pass
 
-def test_preprocess_geojson():
-    
-    pass
 
 
 def test_by_polygon2d_and_height():
@@ -267,13 +288,26 @@ def test_split():
     place_utils.plot_place(place,tx,show_normals=True)
     return
    
+    
+def plot_building_faces(place,id):
+    fig = plt.figure("splitted rectangles")
+    fig.set_dpi(300)
+    ax = fig.add_subplot(projection='3d')
+    ax=plot_utils.ensure_axis_orthonormal(ax)
+    for polyhedron in place.polyhedra:
+        if str(polyhedron.id)==id:
+            #print(polyhedron.get_top_face().points)
+            for polygon in polyhedron.polygons:
+                polygon.plot3d(facecolor=(0,1,1,1),ax=ax,alpha=1,normal=True)
+                plt.pause(1)
+    fig.show()
 
 
 
 
 if __name__ == '__main__':
     file_utils.chdir_to_file_dir(__file__)
-    # place,tx,geometry=place_utils.create_small_place(npoints=3)
+    place,tx,geometry=place_utils.create_small_place(npoints=3)
     # problem=RayTracingProblem(tx, place)
     # idx=np.array(range(len(place.set_of_points)))
     # problem.solve(max_order=2,receivers_indexs=idx)
@@ -290,12 +324,34 @@ if __name__ == '__main__':
     # assert(solved_place_sharp_edges==loaded_place_sharp_edges)
     
     #test_all_save_load()
-    test_normalize_path()
-    test_by_polygon2d_and_height()
+    # test_normalize_path()
+    # test_by_polygon2d_and_height()
     
-    plt.close("all")
-    place,tx,geometry=test_building_on_slope()
-    test_split()
+    # plt.close("all")
+    # place,tx,geometry=test_building_on_slope()
+    # test_split()
+    
+    test_add_tree(place)
+    
+    
+    
+    # ray_path="../results/slanted_levant_16p_ray_solved.json"
+    # problem=ray_tracing.RayTracingProblem.from_json(ray_path)
+      #problem.plot_specific_receiver(3)
+    
+    # path=np.array([[-70.28115859,-20.73938781,11.25273424],
+    #   [-70.28092978,-20.73931573,11.25272222],
+    #   [-26.09197126,3.77709834,1.2]])
+    
+    ray_path="../results/slanted_levant_80p_ray_solved.json"
+    problem=ray_tracing.RayTracingProblem.from_json(ray_path)
+    
+    path=np.array([[ 9.18821835,  7.9115677,   6.21041359],
+     [ 9.1882188,   7.91156768,  6.21041348],
+     [-7.3955208,   3.77709834,  2.79002359]])
+    
+    problem.plot_specific_path(path=path)
+    
     
    
     

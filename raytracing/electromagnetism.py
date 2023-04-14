@@ -50,7 +50,6 @@ class Antenna:
         self.position=position   #the position of the antenna
         self.basis=None      #the basis of the antenna. Z is the direction the antenna points towards.
         self.radiation_efficiency=1
-        self.E0=None         #the field radiated 1m away from the antenna #TODO useless atm
         self.polarisation=None
         self.mat=None #change of basis matrix
 
@@ -58,8 +57,7 @@ class Antenna:
         string=f'Antenna: position: {self.position} '\
                 f'orientation: {self.basis} '\
                 f'polarisation: {self.polarisation} '\
-                f'efficiency: {self.radiation_efficiency} '\
-                f'E0: {self.E0}'
+                f'efficiency: {self.radiation_efficiency}'
         return string
                 
    
@@ -93,7 +91,7 @@ class Antenna:
         given a point in world coordinates
         returns elevation and azimuth angles of incident point relative to the antenna
         """
-        new_point=self.pp_W2A(point)
+        new_point=self.pp_transform(point,"W2A")
         r,el,az=electromagnetism_utils.to_spherical(new_point)
         return r,el,az
     
@@ -108,29 +106,25 @@ class Antenna:
             plot_utils.plot_vec(ax,antenna_basis[i],colors[i],origin=origin)
         return ax
 
-    def pp_W2A(self,point):
+    def pp_transform(self, point, direction):
         """
-        Change the reference frame of a point
-        from world-->antenna
+        Change the reference frame of a point based on the given direction.
+        if direction==A2W: from antenna-->world
+        if direction==W2A: from world-->antenna
         """
-        origin=self.position
-        tr_point=point-origin #translate
-        new_point=tr_point@(self.mat.T) #rotate
-        return new_point
-
-    def pp_A2W(self,point):
-        """
-        Change the reference frame of a point
-        from antenna-->world
-        """
-        origin=self.position
-        new_point=self.mat.T@point #rotate
-        new_point +=origin #translate
+        assert direction in ['A2W', 'W2A'], "direction must be either 'A2W' or 'W2A'"
+        origin = self.position
+        if direction == 'A2W':
+            new_point=self.mat.T@point #rotate
+            new_point +=origin #translate
+        else:
+            tr_point=point-origin #translate
+            new_point=tr_point@(self.mat.T) #rotate
         return new_point
 
     def vv_transform(self,vector,direction):
         """
-        Change the reference frame of a vector
+        Change the reference frame of a vector based on the given direction.
         if direction==A2W: from antenna-->world
         if direction==W2A: from world-->antenna
         """
@@ -143,7 +137,7 @@ class Antenna:
         Change the reference frame of a path (list of points)
         from world-->antenna
         """
-        return [self.pp_W2A(point) for point in path]
+        return [self.pp_transform(point,"W2A") for point in path]
 
     @staticmethod
     def compute_Ae(theta_rx,phi_rx=0):
@@ -242,6 +236,17 @@ class Reflection:
         return paths
 
     @staticmethod
+    def rayleigh_criterion(theta_i,roughness):
+        cosi=np.cos(theta_i)
+        rayleigh_criterion= (roughness > LAMBDA/(8*cosi))
+        if rayleigh_criterion:
+            print("applying scattering attenuation factor")
+            chi=np.exp(-2*(K**2)*(roughness**2)*(cosi)**2)
+        else:
+            chi=1
+        return chi
+
+    @staticmethod
     def fresnel_coeffs(theta_i,polygon):
         """
         Computes the fresnel coefficients and applies the rayleigh roughness criterion
@@ -265,12 +270,9 @@ class Reflection:
         r_per=np.linalg.norm(r_per)
         assert r_par<=1 and r_per<=1, f"fresnel coeffs are greater than 1: r_par {r_par} r_per {r_per}"
 
-        rayleigh_criterion= (roughness > LAMBDA/(8*cosi))
-        if rayleigh_criterion:
-            print("applying scattering attenuation factor")
-            chi=np.exp(-2*(K**2)*(roughness**2)*(cosi)**2)
-            r_par=r_par*chi
-            r_per=r_per*chi
+        chi=Reflection.rayleigh_criterion(theta_i,roughness)
+        r_par*=chi
+        r_per*=chi
         return r_par,r_per
 
     @staticmethod
@@ -279,7 +281,7 @@ class Reflection:
         Computes the dyadic reflection coefficient of the path
             
         :param path: the points describing the path of the reflection
-        :type path: #TODO
+        :type path: np.array([TX,R,RX])
         :param reflection_polygon: the polygon on which the reflection occurs.
         :type reflection_polygon: OrientedPolygon
         
@@ -292,7 +294,7 @@ class Reflection:
         si,_,sr,_=geom.normalize_path(path) #normalized incident and reflected vectors
         surface_normal=reflection_polygon.get_normal()#always points outwards
         theta_i=np.arccos(np.dot(surface_normal,-si)) #incident angle
-        assert(0<theta_i<pi/2),f'incident angle should be in 0,90\u00b0 but is: theta_i={theta_i*180/pi}\u00b0'
+        assert(0<theta_i<pi/2),f'incident angle should be in 0,90\u00b0 but is: theta_i={theta_i*180/pi}\u00b0. Path is {path}, reflection polygon={reflection_polygon}'
         r_par,r_per=Reflection.fresnel_coeffs(theta_i,reflection_polygon)
 
         #dyadic reflection coeff McNamara 3.3, 3.4, 3.5, 3.6
@@ -307,8 +309,8 @@ class Reflection:
     
     @staticmethod
     def spread_factor(Si,Sr):
-        #spread_factor=1
-        spread_factor=Si/(Si+Sr)
+        #spread_factor=1 #for plane wave incidence
+        spread_factor=Si/(Si+Sr) #for spherical wave incidence
         return spread_factor
 
     @staticmethod
@@ -370,14 +372,19 @@ class Diffraction:
     @staticmethod
     def distance_factor(Si,Sd,beta_0):
         #L is a distance parameter depending on the type of illumination.
-        #For spherical wave incidence :
+        #For spherical wave incidence:
         L=((np.sin(beta_0))**2)*Si*Sd/(Si+Sd) #McNamara 6.26
+        #For plane wave incidence: 
+        #L=Si*(np.sin(beta_0))**2
         return L
     
     @staticmethod
     def spread_factor(Si,Sd):
-        #for spherical wave incidence on a straight edge:
-        return np.sqrt(Si/(Sd*(Sd+Si)))
+        #for spherical wave incidence on a straight edge: 
+        A=np.sqrt(Si/(Sd*(Sd+Si)))
+        #for plane wave incidence:
+        #A=1/np.sqrt(Sd)
+        return A
     
     @staticmethod
     def A(x,n,sign):
@@ -426,6 +433,7 @@ class Diffraction:
             assert 0<=phi_d<=n*pi, f"phi_d {phi_d*180/pi}\u00b0 cannot be inside the wedge, alpha={(2-n)*pi*180/pi}\u00b0"
         except AssertionError as e:
             raise e
+        
         #components of the diffraction coefficients:
         common_factor=-np.exp(-1j*pi/4)/(2*n*np.sqrt(2*pi*K)*np.sin(beta_0)) #scalar
         L=Diffraction.distance_factor(Si,Sd,beta_0)
@@ -521,7 +529,6 @@ class SolvedField:
         self.path_type=None #string
         self.rx_id=None #int
         self.field=0 #stored in world coordinates, the field incident at the RX antenna.
-        #TODO: RX antenna Ae not taken into account. Give back the field in rx antenna coordinates
         
         self.rx_antenna=None
         self.tx_antenna=None
@@ -655,12 +662,12 @@ def my_field_computation(rtp,save_name="problem_fields"):
             E_los=ElectromagneticField.account_for_trees(E_los,sol.world_path,rtp.place)
             sol.field=E_los
             if (sol.field>10).any():
-                print("----POTENTIAL ERROR-----")
-                print(f"field:{sol.field}")
-                print(f"path {sol.world_path}")
-                print(f"tx antenna: {sol.tx_antenna.position}")
-                print(f"len {sol.path_len:.2f}")
-                print("----END ERROR REPORT----")
+                print("----POTENTIAL ERROR-----\n"
+                      f"field: {sol.field}\n"
+                      f"path {sol.world_path}\n"
+                      f"tx antenna: {sol.tx_antenna.position}\n"
+                      f"len {sol.path_len:.2f}\n"
+                      "----END ERROR REPORT----")
             solved_list.append(sol)
         else:
             print(f'NO LOS for RX{receiver}')
@@ -735,7 +742,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
         return
 
 
-    #Add trees
+    #Add trees foliage
     for _ in range(0,N_TREES):
         rtp.place.add_tree(tree_size=TREE_SIZE)
 
@@ -744,8 +751,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
     df=SolvedField.create_sol_df()
     
     for receiver in range(0,len(rtp.solved_receivers)):
-        print(" ")
-        print(f"EM SOLVING RECEIVER {receiver}")
+        print(f"\n EM SOLVING RECEIVER {receiver}")
         tx_antenna=Antenna(tx)
         rx_antenna=Antenna(rtp.receivers[receiver])
 
@@ -765,19 +771,13 @@ def my_field_computation(rtp,save_name="problem_fields"):
             polarisation_efficiency=(np.linalg.norm(np.dot(field_polarisation,rx_antenna.vv_transform(rx_antenna.polarisation,"W2A"))))**2
             print(f"polarisation_eff {polarisation_efficiency}")
             sol.power=1/(2*Z_0)*Ae*(np.linalg.norm(np.real(rx_antenna.vv_transform(sol.field,"W2A"))))**2
-            sol.power=sol.power*polarisation_efficiency*TX_GAIN #TODO add P_IN here
+            sol.power=sol.power*polarisation_efficiency*TX_GAIN 
             #sol.show_antennas_alignement()
-            print(f" rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi:.2f}\u00b0 phi {sol.rx_az*180/pi:.2f}\u00b0")
+            print(f"rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi:.2f}\u00b0 phi {sol.rx_az*180/pi:.2f}\u00b0")
             df=sol.add_to_df(df)
 
-        solution.append(this_solved_list) #TODO: list of all the solutions, useless
+        solution.append(this_solved_list) #list of all the solutions, useless
     electromagnetism_utils.save_df(df,save_name)#saves into the result folder
-
-
-    # for this_rx_sols in solution:
-    #     for sol in this_rx_sols:
-    #         if (sol.field>10).any():
-    #             print("ERRORRRRR")
     return df
 
 

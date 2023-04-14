@@ -16,6 +16,8 @@ import raytracing.electromagnetism_utils as electromagnetism_utils
 import raytracing.file_utils as file_utils
 import raytracing.plot_utils as plot_utils
 
+#plt.rcParams.update({'font.size': 20})
+
 def read_csv(file):
     """
     Measures from C. Oestges and D. Vanhoenacker-Janvier,
@@ -24,8 +26,7 @@ def read_csv(file):
     were extracted and stored in csv using https://apps.automeris.io/wpd/
     this reads the measures from the csv
     """
-    x = []
-    y = []
+    x,y = [],[]
     with open(f'../results/validation_measures/{file}','r') as csvfile:
         lines = csv.reader(csvfile, delimiter=',')
         for row in lines:
@@ -39,8 +40,7 @@ def plot_measures_only():
     x,y=read_csv("claude_12_feb.csv")
     x1,y1=read_csv("claude_12_oct.csv")
     
-    fig = plt.figure(figsize=(20,8))
-    ax = fig.add_subplot(1, 1, 1)
+    fig, ax = plt.subplots(figsize=(20, 8))
     ax.plot(x,y,color='green', marker='o',label="february")
     ax.plot(x1,y1,color='red', marker='o',label="october")
     ax.set(title='Measurements at 12.5 GHz',
@@ -48,33 +48,35 @@ def plot_measures_only():
        xlim=(30, 90),ylim=(-60, -35))
     ax.grid()
     ax.legend(loc='lower left')
-    plt.savefig("../results/validation_measures/claude_125.eps", dpi=150,bbox_inches='tight')
+    plt.savefig("../results/validation_measures/claude_125.eps", dpi=300,bbox_inches='tight')
+    plt.close(fig)
     
     x,y=read_csv("claude_30_feb.csv")
     x1,y1=read_csv("claude_30_oct.csv")
-    fig2 = plt.figure(figsize=(20,8))
-    ax2 = fig2.add_subplot(1, 1, 1)
-    ax2.plot(x,y,color='green', marker='o',label="february")
-    ax2.plot(x1,y1,color='red', marker='o',label="october")
-    ax2.set(title='Measurements at 30 GHz',
+    fig, ax = plt.subplots(figsize=(20, 8))
+    ax.plot(x,y,color='green', marker='o',label="february")
+    ax.plot(x1,y1,color='red', marker='o',label="october")
+    ax.set(title='Measurements at 30 GHz',
         xlabel='distance from Maxwell building [m]',ylabel='Received power [dB]',
         xlim=(30, 90),ylim=(-60, -35))
-    ax2.grid()
-    ax2.legend(loc='lower left')
-    fig.savefig("../results/validation_measures/claude_30.eps", dpi=150,bbox_inches='tight')
-    plt.show()
+    ax.grid()
+    ax.legend(loc='lower left')
+    fig.savefig("../results/validation_measures/claude_30.eps", dpi=300,bbox_inches='tight')
+    plt.close(fig)
+    print("saved figures in /results/validation_measures")
     return
 
 
 
 
-def EM_fields_plots(df_path, order=3, name="unnamed_plot"):
+def EM_fields_plots(df_path, name="unnamed_plot"):
     """
     Plots for each receiver, the power contribution of each path type and the power delay profile.
     Generates one pdf for each 50 receivers. 
     """
     df = electromagnetism_utils.load_df(df_path)
     df_list = electromagnetism_utils.split_df(df, [])
+    order=electromagnetism_utils.find_df_order(df)
     
     for k, current_df in enumerate(df_list):
         receivers=current_df['rx_id'].unique()
@@ -87,7 +89,6 @@ def EM_fields_plots(df_path, order=3, name="unnamed_plot"):
             receiver=receivers[i]
             rx_df = current_df[current_df['rx_id'] == receiver]
             path_types = rx_df['path_type'].unique()
-            width = 0.35
             
             for path_type in path_types:
                 data_for_type = rx_df[rx_df['path_type'] == path_type]
@@ -96,7 +97,7 @@ def EM_fields_plots(df_path, order=3, name="unnamed_plot"):
                 individual_powers = [electromagnetism_utils.to_db(power) for power in data_for_type['path_power']]
                 total_power = electromagnetism_utils.to_db(np.sum(data_for_type['path_power']))
 
-                ax1.bar(x=position, height=total_power, width=width, color=color_for_type, label=path_type)
+                ax1.bar(x=position, height=total_power, width=0.35, color=color_for_type, label=path_type)
                 ax2.stem(data_for_type['time_to_receiver'].values * (1e9), individual_powers,
                          linefmt=color_for_type, label=path_type, basefmt=" ")
                 
@@ -107,10 +108,10 @@ def EM_fields_plots(df_path, order=3, name="unnamed_plot"):
             ax2.set(title=f'Power delay Profile RX{receiver}',
                     xlabel='time to reach receiver (ns)',
                     ylabel='Received power [dB]')
-            ax2.legend()
+            ax2.legend(fontsize=10)
             ax2.grid()
 
-        fig.savefig(f"../results/plots/EM_plots_{name}{k}.pdf", dpi=100, bbox_inches='tight')
+        fig.savefig(f"../results/plots/EM_plots_{name}{k}.pdf", dpi=150, bbox_inches='tight')
         plt.close(fig)
     return
 
@@ -155,14 +156,9 @@ def plot_data_on_sphere(ax, data, title):
     # Plot the data on a 3D sphere
     power=electromagnetism_utils.to_db(data[:, 2])
     scatter = ax.scatter(x, y, z, c=power, cmap='jet')
-    cbar = plt.colorbar(scatter, ax=ax)
+    cbar = plt.colorbar(scatter, ax=ax,shrink=0.5,orientation='horizontal',pad=0.02)
     cbar.set_label('Received power [dB]', fontsize=12)
-    ax.set_xlim([-1, 1])
-    ax.set_ylim([-1, 1])
-    ax.set_zlim([-1, 1])
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    ax.set(xlim=(-1, 1), ylim=(-1, 1), zlim=(-1, 1), xlabel='X', ylabel='Y', zlabel='Z')
     
     ax=plot_utils.ensure_axis_orthonormal(ax)
 
@@ -180,7 +176,6 @@ def plot_data_on_sphere(ax, data, title):
     
 def plot_rays_on_sphere(data_tx, data_rx):
     fig = plt.figure(figsize=(16, 8))
-    fig.suptitle("Ray Distribution: Outgoing Rays from the TX Antenna and Incoming Rays at the RX Antenna")
     ax1 = fig.add_subplot(121, projection='3d')
     plot_data_on_sphere(ax1, data_tx, "Distribution of outgoing ray from the tx antenna")
 
@@ -190,7 +185,14 @@ def plot_rays_on_sphere(data_tx, data_rx):
     plt.show()
     return    
 
-
+def plot_rays_on_sphere_helper(df_path):
+    df=electromagnetism_utils.load_df(df_path)
+    nreceivers=len(df['rx_id'].unique())
+    receivers=np.arange(0,nreceivers)
+    data_tx,data_rx=get_receiver_data(df,receivers)
+    plot_rays_on_sphere(data_tx,data_rx)
+    return
+    
     
 def plot_order_importance(solved_em_path):
     """
@@ -200,26 +202,26 @@ def plot_order_importance(solved_em_path):
     -only if first, second and third order paths are taken into account
     -etc.
     """
-    fig = plt.figure(figsize=(30,5))
-    ax = fig.add_subplot(1, 1, 1)
+    fig, ax = plt.subplots(figsize=(20, 8))
     
     df=electromagnetism_utils.load_df(solved_em_path)
     nreceivers=len(df['rx_id'].unique())
-    x=np.arange(0,nreceivers,1)
+    x=np.arange(nreceivers)
     max_order=electromagnetism_utils.find_df_order(df)
-    for order in range(0,max_order+1):
+    for order in range(max_order+1):
         order_df=electromagnetism_utils.get_data_up_to_order(df,order)
         y=electromagnetism_utils.get_power_db_each_receiver(order_df)
-        ax.plot(x,y,marker='o',label=f"up to order {order}")
+        linestyle = '--' if order == 3 else ':' if order == 4 else '-'
+        ax.plot(x, y, marker='o', linestyle=linestyle, label=f"up to order {order}")
     ax.grid()
     ax.legend()
     ax.set(title='Impact of simulating higher orders',
             xlabel='Receiver #',
-            xticks=range(0,nreceivers),
+            xticks=range(nreceivers),
             ylabel='Received power [dB]')
-    plt.plot()
+    plt.savefig("../results/plots/order_importance.eps", format='eps', dpi=300,bbox_inches='tight')
+    plt.show()
     return
-
 
 
 
@@ -230,13 +232,11 @@ if __name__=='__main__':
     df=electromagnetism_utils.load_df(df_path)
     
     
-    plot_order_importance(df_path)
-    plot_measures_only()
-    # nreceivers=len(df['rx_id'].unique())
-    # receivers=np.arange(0,nreceivers)
+    #plot_order_importance(df_path)
+    #plot_measures_only()
+    EM_fields_plots(df_path)
+    plot_rays_on_sphere_helper(df_path)
     
-    # data_tx,data_rx=get_receiver_data(df,receivers)
-    # print(data_tx)
-    # plot_rays_on_sphere(data_tx,data_rx)
+    
     
     

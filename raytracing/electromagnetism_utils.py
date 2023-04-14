@@ -55,10 +55,24 @@ def get_data_up_to_order(df,order):
     return a dataframe truncated to only contain data up until order
     ex: get_data_up_to_order(2) will return all LOS,R,RR,RD
     get_data_up_to_order(0) will return LOS
+    If a receiver has no path at at that order, its power is set to 0
     """  
     all_types=generate_path_types_up_to_order(order)
     selected_types=all_types[:(3+(order-1)*2)]
     df_filtered = df[df['path_type'].isin(selected_types)]
+    
+    all_ids=df['rx_id'].unique()
+    filtered_ids=df_filtered["rx_id"].unique()
+    if not np.array_equal(all_ids,filtered_ids):
+    # find the missing values
+        missing = set(all_ids) - set(filtered_ids)
+        print(f"no data for rx {missing} at order {order}")
+        # add a new row for each missing value
+        for val in missing:
+            new_row = {col: 0 for col in df.columns}
+            new_row['rx_id']=val
+            df_filtered = pd.concat([df_filtered, pd.DataFrame([new_row])], ignore_index=True)
+    
     return df_filtered
 
 

@@ -12,8 +12,12 @@ import matplotlib.pyplot as plt
 import raytracing.electromagnetism as electromagnetism
 import raytracing.electromagnetism_utils as electromagnetism_utils
 
-from electromagnetism import ElectromagneticField,Antenna,Reflection,Diffraction
+from raytracing.electromagnetism import ElectromagneticField,Antenna,Reflection,Diffraction
 
+from raytracing.materials_properties import FREQUENCY
+
+import raytracing.multithread_solve as multithread_solve
+import raytracing.place_utils as place_utils
 import raytracing.plot_utils as plot_utils
 import raytracing.file_utils as file_utils
 
@@ -51,26 +55,26 @@ def test_antenna_align_to_point(antenna,point):
 
 
 
-def test_pp_W2A_and_A2W(antenna, point):
+def test_pp_transform(antenna, point):
     """
     test antenna changement of reference frames
     !!Assumes the antenna is correctly aligned to the point!!
     """
-    point_test1=antenna.pp_W2A(antenna.position)
+    point_test1=antenna.pp_transform(antenna.position,"W2A")
     assert np.allclose(point_test1,np.array([0,0,0])),\
        f"ppW2A test 1 failed: is {point_test1} should be 000"
        
-    point_test2=antenna.pp_A2W(np.array([0,0,0]))
+    point_test2=antenna.pp_transform(np.array([0,0,0]),"A2W")
     assert np.allclose(point_test2,antenna.position),\
        f"ppA2W test 2 failed: is {point_test2} should be {antenna.position}"
     
-    point_relative_to_antenna=antenna.pp_W2A(point)
+    point_relative_to_antenna=antenna.pp_transform(point,"W2A")
     dist=np.linalg.norm(antenna.position-point)
     should_be=np.array([0,0,dist])
     assert np.allclose(point_relative_to_antenna,should_be),\
         f"ppW2A test3 failed: is {point_relative_to_antenna}, should be: {should_be}"
     
-    point_test3=antenna.pp_A2W(should_be)
+    point_test3=antenna.pp_transform(should_be,"A2W")
     assert np.allclose(point_test3,point),\
         f"ppA2W test 4 failed: is {point_test3}, should be: {point}"
     return
@@ -115,8 +119,8 @@ def test_double_conversion(antenna,point):
     and back from the antenna frame to the world frame, returns the same point
     """
     #given point is in world coordinates
-    point_in_antenna=antenna.pp_W2A(point)
-    point_in_world=antenna.pp_A2W(point_in_antenna)
+    point_in_antenna=antenna.pp_transform(point,"W2A")
+    point_in_world=antenna.pp_transform(point_in_antenna,"A2W")
     assert np.allclose(point,point_in_world),\
         "Point 2 antenna followed by antenna to world does not yield the original point:"\
             f"got {point_in_world} should have {point}"
@@ -132,13 +136,13 @@ def test_double_conversion(antenna,point):
 
 def test_incident_angles(antenna):
     on_x=np.array([10,0,0])
-    on_x=antenna.pp_A2W(on_x)
+    on_x=antenna.pp_transform(on_x,"A2W")
     
     on_y=np.array([0,10,0])
-    on_y=antenna.pp_A2W(on_y)
+    on_y=antenna.pp_transform(on_y,"A2W")
     
     on_z=np.array([0,0,10])
-    on_z=antenna.pp_A2W(on_z)
+    on_z=antenna.pp_transform(on_z,"A2W")
     
     r0, el0, az0 = antenna.incident_angles(on_x)
     assert np.isclose(np.degrees(el0), 90), \
@@ -184,6 +188,46 @@ def test_split_reflections_path():
 
 
 
+#PATH LOSS TEST--------------------------------------------
+
+def run_small_simu(npoints=16,order=2):
+    place,tx,geometry=place_utils.create_small_place(npoints)
+    place_utils.plot_place(place, tx)
+    solved_em_path,solved_rays_path= multithread_solve.multithread_solve_place(place=place,tx=tx,geometry=geometry,order=order)
+    return tx,solved_em_path,solved_rays_path
+    
+def plot_small_vs_path_loss(tx,solved_em_path):
+    """
+    comparison of the fields obtained on the small place and path loss.
+    """
+    df=electromagnetism_utils.load_df(solved_em_path)
+    npoints=len(df['rx_id'].unique())
+    
+    simu_y=np.zeros(npoints)
+    simu_x=np.zeros(npoints)
+    pl=np.zeros(npoints)
+    for receiver in range(npoints):
+        rx_df=df.loc[df['rx_id'] == receiver]
+        rx_coord=rx_df["receiver"].values[0]
+        d=np.linalg.norm(tx-rx_coord)
+        pl[receiver]=ElectromagneticField.path_loss(d)
+        simu_x[receiver]=d #distance TX-RX
+        simu_y[receiver]=electromagnetism_utils.to_db(np.sum(rx_df["path_power"].values))
+
+    #plots
+    fig, ax = plt.subplots(figsize=(20, 20))
+    ax.set_title(f'Comparison between path loss and model at {FREQUENCY/1e9} GHz', fontsize=20)
+    ax.plot(simu_x,simu_y,color="orange",marker='o',label='simulation')
+    ax.plot(simu_x,pl,marker='o',label='path loss')
+    ax.grid()
+    ax.tick_params(axis='both', which='major', labelsize=20)
+    ax.set_xlabel('RX-TX distance',fontsize=20)
+    ax.set_ylabel('Received power [dB]',fontsize=20)
+    ax.legend(fontsize=20)
+    plt.show()
+    #plt.savefig("../results/plots/small_place_vs_pathLoss.eps", format='eps', dpi=300,bbox_inches='tight')
+    return
+
 
     
 
@@ -203,7 +247,7 @@ if __name__ == '__main__':
             #actual tests
             test_antenna_align_to_point(antenna,point)
             test_basis_orthonormality(antenna)
-            test_pp_W2A_and_A2W(antenna,point)
+            test_pp_transform(antenna,point)
             test_vv_transform(antenna)
             test_double_conversion(antenna,point)
             test_incident_angles(antenna)
@@ -213,9 +257,11 @@ if __name__ == '__main__':
     run_antenna_class_tests(ntimes=10)
     
     #REFLECTION TESTS---------------------------------
-    test_split_reflections_path()    
+    #test_split_reflections_path()    
     
     
+    # tx,solved_em_path,solved_rays_path=run_small_simu(npoints=16,order=2)
+    # plot_small_vs_path_loss(tx,solved_em_path)
     
     
    

@@ -60,7 +60,7 @@ def merge_solved_problems(full_problem,solved_problems,save_name):
     full_problem.to_json(save_path)
     return save_path
 
-def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3):
+def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3,save_name=None):
     """
     Solves the place, using one CPU for each receiver.
     Saves the plots and dataframe in the results folder.
@@ -68,7 +68,8 @@ def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3):
     """
     print("Starting solving of the ray tracing problems")
     npoints=len(place.set_of_points)
-    save_name=f'{geometry}_{npoints}p'
+    if save_name is None:
+        save_name=f'{geometry}_{npoints}p'
     
     start_time_rt = time.time()
     #distribute the problems

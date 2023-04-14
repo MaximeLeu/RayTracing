@@ -1195,12 +1195,13 @@ class OrientedGeometry(object):
         # geometry.domain = np.array(data.pop('domain')) if 'domain' in data else None
         # geometry.centroid = np.array(data.pop('centroid')) if 'centroid' in data else None
         # geometry.visibility_matrix = np.array(data.pop('visibility_matrix')) if 'visibility_matrix' in data else None
-        sharp_edges_data=data.pop('sharp_edges')
-        if sharp_edges_data is not None:
-            sharp_edges_dict = json.loads(sharp_edges_data)
-            geometry.sharp_edges = container_utils.ManyToOneDict.from_json(data=sharp_edges_dict)
-        else:
-            geometry.sharp_edges=None
+        #sharp_edges_data=data.pop('sharp_edges')
+        #if sharp_edges_data is not None:
+        #    sharp_edges_dict = json.loads(sharp_edges_data)
+        #    geometry.sharp_edges = container_utils.ManyToOneDict.from_json(data=sharp_edges_dict)
+        #else:
+        #    geometry.sharp_edges=None
+        geometry.sharp_edges=None
         return geometry
         
         
@@ -1215,13 +1216,13 @@ class OrientedGeometry(object):
         :rtype: dict
         """
         
-        saved_sharp_edges= self.sharp_edges.to_json() if self.sharp_edges is not None else None        
+        #saved_sharp_edges= self.sharp_edges.to_json() if self.sharp_edges is not None else None        
         data = dict(
             id=self.id,
             # domain=self.domain,
             # centroid=self.centroid,
             # visibility_matrix=self.visibility_matrix,
-            sharp_edges=saved_sharp_edges,
+            #sharp_edges=saved_sharp_edges,
             **self.attributes
         )
 
@@ -1985,7 +1986,7 @@ class OrientedSurface(OrientedGeometry):
 
         self.building_type = attributes.pop('building_type', None)
         if self.building_type is None:
-            self.building_type="ground"
+            self.building_type="road"
             
         if type(polygons) != list:
             polygons = [polygons]
@@ -2210,6 +2211,7 @@ class OrientedPolyhedron(OrientedGeometry):
         return flag
 
 
+
     def extend_polyhedron(self,meters):
         #TODO: attributes not propagated?
         top=self.get_top_face().get_shapely() #get top face
@@ -2227,6 +2229,7 @@ class OrientedPolyhedron(OrientedGeometry):
         for polygon in self.polygons:
             polygon.properties=set_properties(building_type)
         return
+    
     
 class Pyramid(OrientedPolyhedron):
     """
@@ -2701,7 +2704,7 @@ class OrientedPlace(OrientedGeometry):
         how_close_to_buildings : int, the default is 2. how close a tree can be to any building
         Returns
         -------
-        None.
+        the zone where trees may be added.
         """
         def random_point_inside_polygon(number, polygon):
             #Only works on 2D shapely polygons
@@ -2725,28 +2728,7 @@ class OrientedPlace(OrientedGeometry):
         tree_spot=np.array([tree_spot.x,tree_spot.y,0])
         tree=Building.create_tree(tree_spot,tree_size,tree_height=None,rotate=True)
         self.add_polyhedron(tree)
-
-        # VISUALISATION
-        # extended_place=OrientedPlace(OrientedSurface(self.surface.polygons))
-        # if(isinstance(zone,shapely.geometry.MultiPolygon)):
-        #     zones=list(zone.geoms)
-        #     for zone in zones:
-        #         zone_points=np.array(shapely.geometry.mapping(zone)["coordinates"])[0]
-        #         zone_points=np.c_[zone_points, np.zeros(len(zone_points))] #add some z coordinate
-        #         zone=Building.by_polygon_and_height(polygon=zone_points,height=25) #height doesn't matter
-        #         extended_place.add_polyhedron(zone,allow_overlap=True)
-        # else:
-        #     zone_points=np.array(shapely.geometry.mapping(zone)["coordinates"])[0]
-        #     zone_points=np.c_[zone_points, np.zeros(len(zone_points))] #add some z coordinate
-        #     zone=Building.by_polygon_and_height(polygon=zone_points,height=25) #height don't matter
-        #     extended_place.add_polyhedron(zone,allow_overlap=True)
-
-        # fig = plt.figure("extended_place")
-        # fig.set_dpi(300)
-        # ax = fig.add_subplot(projection='3d')
-        # extended_place.center_3d_plot(ax)
-        # ax = extended_place.plot3d(ax=ax)
-        return
+        return zone
 
 
 
@@ -2848,7 +2830,7 @@ def preprocess_geojson(filename,drop_missing_heights=False):
         types=["appartments"]
         print(f"Missing building_type data, randomly adding {types}")
         names = [{}]*len(gdf)
-        for i in range(0,len(names)):
+        for i in range(len(names)):
             if len(types)>1:
                 rand=np.random.randint(0,len(types)-1)
             else:

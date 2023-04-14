@@ -62,3 +62,5 @@ raytracing/claude_125.svg
 raytracing/claude_30.eps
 
 raytracing/claude_30.svg
+
+data/*.json

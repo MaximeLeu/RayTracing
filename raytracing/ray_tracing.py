@@ -482,8 +482,49 @@ class RayTracingProblem:
             plt.pause(0.001) 
         
         return
-        
-        
-        
-        
+
     
+    def plot_specific_receiver(self,rx):
+        """
+        plot the ray paths for a specific 
+        rx: the index of the receiver
+        """
+        fig = plt.figure("Ray traced places - RX" + str(rx), figsize=(16, 16))
+        fig.set_dpi(100)
+        ax = fig.add_subplot(111, projection='3d')
+        ax = self.plot3d(ax=ax, receivers_indexs=[rx], ret=True, legend=True)
+        ax.set_title('RX' + str(rx))
+        plt.show(block=False)
+        plt.pause(0.001)
+        return
+    
+    
+    def plot_specific_path(self,path):
+        """
+        path is given as an array of points
+        """
+        fig = plt.figure("specific path", figsize=(16, 16))
+        fig.set_dpi(100)
+        ax = fig.add_subplot(111, projection='3d')
+        ax = plot_utils.get_3d_plot_ax(ax=ax)
+        self.place.plot3d(ax=ax, points_kwargs=dict(color='k', s=20))
+        #ax=plot_utils.plot_path(ax,path)
+        
+        print(f"AX {ax}")
+        print(path)
+        for i in range(0,len(path)-1):
+            ax.plot([path[i][0],path[i+1][0]],[path[i][1],path[i+1][1]],[path[i][2],path[i+1][2]])
+            print(path[i])
+            
+        plot_utils.add_points_to_3d_ax(ax, path, color='r')
+        self.place.center_3d_plot(ax)
+        plt.show()
+        
+
+
+# def plot_path(ax,path):
+#     add_points_to_3d_ax(ax=ax, points=np.array([path[0]]), label="TX")
+#     add_points_to_3d_ax(ax=ax, points=np.array([path[-1]]), label="RX")
+#     for i in range(len(path)-1):
+#         ax.plot([path[i][0],path[i+1][0]],[path[i][1],path[i+1][1]],[path[i][2],path[i+1][2]])
+#     return ax
