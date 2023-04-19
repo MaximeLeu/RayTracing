@@ -130,6 +130,29 @@ def test_overlap_place():
     pass
 
 
+def test_create_tree():
+    geometry="test_create_tree"
+    #add ground and buildings
+    ground = geom.Square.by_2_corner_points(np.array([[0, 0, 0], [70, 24, 0]]))
+    ground=ground.rotate(axis=np.array([0,1,0]), angle_deg=180)
+    ground.properties=set_properties("road")
+    
+    trunk_spot=ground.get_centroid()
+    tree_trunk=geom.Building.create_tree_trunk(trunk_spot,trunk_size=0.5,trunk_height=5,rotate=False)
+    tree=geom.Building.create_tree_crown(tree_trunk,crown_size=3,crown_height=5,rotate=False)
+    
+    trees=[tree_trunk,tree]
+    place = geom.OrientedPlace(geom.OrientedSurface(ground),trees)
+    #add TX and RX
+    tx = np.array([5., 12., 5.]).reshape(-1, 3)
+    rx = np.array([65., 12., 5.]).reshape(-1, 3)
+    place.add_set_of_points(rx)
+    #save
+    place.to_json(filename=f"../tests/{geometry}.json")
+    place_utils.plot_place(place,tx,show_normals=False)
+    return
+
+
 def test_add_tree(place):
     #test OrientedPlace.add_tree
     zone=place.add_tree(tree_size=1,how_close_to_buildings=2)
@@ -179,8 +202,7 @@ def test_by_polygon2d_and_height():
 
     polyhedrons=[polyhedron1,polyhedron2]
     
-    fig = plt.figure("the place")
-    fig.set_dpi(300)
+    fig = plt.figure("the place",dpi=100)
     ax = fig.add_subplot(projection='3d')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -305,6 +327,9 @@ def plot_building_faces(place,id):
 
 
 
+
+
+
 if __name__ == '__main__':
     file_utils.chdir_to_file_dir(__file__)
     place,tx,geometry=place_utils.create_small_place(npoints=3)
@@ -331,8 +356,8 @@ if __name__ == '__main__':
     # place,tx,geometry=test_building_on_slope()
     # test_split()
     
-    test_add_tree(place)
-    
+    #test_add_tree(place)
+    test_create_tree()
     
     
     # ray_path="../results/slanted_levant_16p_ray_solved.json"
@@ -343,14 +368,14 @@ if __name__ == '__main__':
     #   [-70.28092978,-20.73931573,11.25272222],
     #   [-26.09197126,3.77709834,1.2]])
     
-    ray_path="../results/slanted_levant_80p_ray_solved.json"
-    problem=ray_tracing.RayTracingProblem.from_json(ray_path)
+    # ray_path="../results/slanted_levant_80p_ray_solved.json"
+    # problem=ray_tracing.RayTracingProblem.from_json(ray_path)
     
-    path=np.array([[ 9.18821835,  7.9115677,   6.21041359],
-     [ 9.1882188,   7.91156768,  6.21041348],
-     [-7.3955208,   3.77709834,  2.79002359]])
+    # path=np.array([[ 9.18821835,  7.9115677,   6.21041359],
+    #  [ 9.1882188,   7.91156768,  6.21041348],
+    #  [-7.3955208,   3.77709834,  2.79002359]])
     
-    problem.plot_specific_path(path=path)
+    # problem.plot_specific_path(path=path)
     
     
    

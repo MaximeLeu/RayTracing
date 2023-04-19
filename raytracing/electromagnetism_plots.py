@@ -9,9 +9,8 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import matplotlib.cm as cm
 import matplotlib.colors as mcolors
-
-
 import raytracing.electromagnetism_utils as electromagnetism_utils
 import raytracing.file_utils as file_utils
 import raytracing.plot_utils as plot_utils
@@ -69,6 +68,14 @@ def plot_measures_only():
 
 
 
+def set_color_for_type(path_type,order):
+    types=electromagnetism_utils.generate_path_types_up_to_order(order)
+    ind=types.index(path_type)
+    colors = cm.rainbow(np.linspace(0, 1, len(types)))
+    color = mcolors.rgb2hex(colors[ind])
+    return color,ind,types
+
+
 def EM_fields_plots(df_path, name="unnamed_plot"):
     """
     Plots for each receiver, the power contribution of each path type and the power delay profile.
@@ -89,18 +96,18 @@ def EM_fields_plots(df_path, name="unnamed_plot"):
             receiver=receivers[i]
             rx_df = current_df[current_df['rx_id'] == receiver]
             path_types = rx_df['path_type'].unique()
+            path_types_reversed = path_types[::-1] #for clearer plotting
             
-            for path_type in path_types:
+            for path_type in path_types_reversed:
                 data_for_type = rx_df[rx_df['path_type'] == path_type]
-                color_for_type, position, ticks = plot_utils.set_color_for_type(path_type, order)
+                color_for_type, position, ticks = set_color_for_type(path_type, order)
 
                 individual_powers = [electromagnetism_utils.to_db(power) for power in data_for_type['path_power']]
                 total_power = electromagnetism_utils.to_db(np.sum(data_for_type['path_power']))
 
                 ax1.bar(x=position, height=total_power, width=0.35, color=color_for_type, label=path_type)
                 ax2.stem(data_for_type['time_to_receiver'].values * (1e9), individual_powers,
-                         linefmt=color_for_type, label=path_type, basefmt=" ")
-                
+                         linefmt=color_for_type,label=path_type, basefmt=" ")
             ax1.set(title=f'Total power from sources RX{receiver}',
                     xticks=range(len(ticks)), xticklabels=ticks,
                     ylabel='Received power [dB]')
@@ -112,6 +119,7 @@ def EM_fields_plots(df_path, name="unnamed_plot"):
             ax2.grid()
 
         fig.savefig(f"../results/plots/EM_plots_{name}{k}.pdf", dpi=150, bbox_inches='tight')
+        print("saved figure in /results/plots/")
         plt.close(fig)
     return
 
@@ -235,7 +243,7 @@ if __name__=='__main__':
     #plot_order_importance(df_path)
     #plot_measures_only()
     EM_fields_plots(df_path)
-    plot_rays_on_sphere_helper(df_path)
+    #plot_rays_on_sphere_helper(df_path)
     
     
     

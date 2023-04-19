@@ -3,7 +3,7 @@
 """
 Created on Sun Mar 26 13:33:43 2023
 
-@author: max
+@author: Maxime Leurquin
 """
 import numpy as np
 import pandas as pd

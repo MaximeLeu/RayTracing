@@ -137,11 +137,6 @@ class RayTracingProblem:
             f'emitter: {self.emitter}, '
             f'number of solved_receivers: {len(self.solved_receivers)}, '
             )
-    #TODO: pretty print LOS, reflections, Diffraction
-            # f'LOS: {self.los} '
-            # f'Reflections: {self.reflections} '
-            # f'Diffractions: {self.diffractions}'
-            # )
     
 
     def __eq__(self, other):

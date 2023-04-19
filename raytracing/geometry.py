@@ -15,7 +15,6 @@ import geopandas as gpd
 
 from scipy.spatial.transform import Rotation
 # Utils
-import matplotlib.pyplot as plt
 import itertools
 import pickle
 import uuid
@@ -1899,7 +1898,7 @@ class OrientedPolygon(OrientedGeometry):
         """
         angle=np.radians(angle_deg)
         # 1. Translate the polygon to the origin
-        center = np.mean(self.points, axis=0)
+        center = self.get_centroid()
         translated_points = self.points - center
         # 2. Calculate the rotation matrix
         rotation = Rotation.from_rotvec(angle * axis)
@@ -1939,8 +1938,7 @@ class Square(OrientedPolygon):
         P1=[x,y,z]
         points=[P1,P2]
         """
-        P1 = points[0]
-        P2 = points[1]
+        P1,P2 = points
         assert np.array_equal(P1, P2) == False, "points must be different (P1=P2)"
         assert P1[1] != P2[1] and P1[0] != P2[0], "points must be diagonally opposite"
 
@@ -1963,11 +1961,34 @@ class Square(OrientedPolygon):
         square=Square.by_2_corner_points(points)
         if rotate:
             angle=random.randint(0,90)
-            square=shapely.affinity.rotate(square.get_shapely(), angle, origin='center', use_radians=False)
-            square=np.array(shapely.geometry.mapping(square)["coordinates"][0])
-            square=np.c_[square, np.ones(len(square))] #add some z coordinate
-            square=Square(square)
+            square.rotate(axis=np.array([0,0,1]), angle_deg=angle)
         return square
+    
+    
+    @staticmethod
+    def center(points):
+        """
+        Calculate the center of the square.
+        
+        Returns:
+        Tuple[float, float, float]: The x, y, and z coordinates of the center of the square.
+        """
+        # Get the x, y, and z coordinates of the four corners of the square
+        x1, y1, z1 = points[0]
+        x2, y2, z2 = points[1]
+        x3, y3, z3 = points[2]
+        x4, y4, z4 = points[3]
+        
+        # Calculate the midpoints of opposite sides of the square
+        mid1 = ((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2)
+        mid2 = ((x3 + x4) / 2, (y3 + y4) / 2, (z3 + z4) / 2)
+        
+        # Calculate the midpoint of the line connecting the midpoints of opposite sides
+        center = np.array([(mid1[0] + mid2[0]) / 2,
+                           (mid1[1] + mid2[1]) / 2,
+                           (mid1[2] + mid2[2]) / 2])
+        
+        return center
 
 
 
@@ -2147,8 +2168,6 @@ class OrientedPolyhedron(OrientedGeometry):
         polyhedron.centroid=oriented_geometry.centroid
         polyhedron.domain=oriented_geometry.domain
         polyhedron.visibility_matrix=oriented_geometry.visibility_matrix
-        
-        
         return polyhedron
 
 
@@ -2174,6 +2193,13 @@ class OrientedPolyhedron(OrientedGeometry):
             if polygon.part=="top":
                 return polygon
         assert False, f"could not get top face of {self}"
+        return
+    
+    def remove_top_face(self):
+        for i,polygon in enumerate(self.polygons):
+            if polygon.part=="top":
+                del self.polygons[i]
+                print("delete top face success")
         return
     
     def get_bottom_face(self):
@@ -2389,7 +2415,7 @@ class Building(OrientedPolyhedron):
         #compute the vertical projection of each point on the ground
         for i, point in enumerate(polygon.points):
             point_below_ground=point.copy()
-            point_below_ground[-1]=-10000
+            point_below_ground[-1]=-1000
             line=np.array([point_below_ground,point])
             point_on_ground=polygon_line_intersection(ground,line)
             new_points[i]=point_on_ground
@@ -2428,17 +2454,33 @@ class Building(OrientedPolyhedron):
         for i in range(0,len(splits)):
             buildings.append(Building.building_on_slope(splits[i],conflicting_grounds[i], height))           
         return buildings
-            
+    
     
     @staticmethod
-    def create_tree(tree_spot,tree_size,tree_height,rotate):
-        if tree_height is None:
-            tree_height=random.uniform(MIN_TREE_HEIGHT, MAX_TREE_HEIGHT)
-        tree_top=Square.by_center_and_side(tree_spot,tree_size,rotate=rotate).get_points()
-        tree=Building.by_polygon_and_height(tree_top, tree_height)
-        tree.building_type="tree"
-        tree.apply_properties_to_polygons()
-        return tree
+    def create_tree_trunk(trunk_spot,trunk_size,trunk_height,rotate,crown_size=None,crown_height=None):
+        if trunk_height is None:
+            trunk_height=random.uniform(MIN_TREE_HEIGHT, MAX_TREE_HEIGHT)
+        trunk_top=Square.by_center_and_side(trunk_spot,trunk_size,rotate=rotate).get_points()
+        trunk=Building.by_polygon_and_height(trunk_top, trunk_height,keep_ground=False)
+        trunk.building_type="tree_trunk"
+        trunk.apply_properties_to_polygons()
+        if crown_size is not None and crown_height is not None:
+            trunk.attributes["crown_size"]=crown_size
+            trunk.attributes["crown_height"]=crown_height
+        return trunk
+    
+    @staticmethod
+    def create_tree_crown(tree_trunk,crown_size,crown_height,rotate=False):
+        #adds a crown on top of a tree trunk
+        center=Square.center(tree_trunk.get_top_face().points)    
+        crown_footprint=Square.by_center_and_side(center,crown_size,rotate=rotate)
+        crown=Building.by_polygon_and_height(crown_footprint, crown_height,keep_ground=True)
+        crown.building_type="tree_crown"
+        crown.apply_properties_to_polygons()
+        return crown 
+    
+    
+    
 
     
     
@@ -2726,10 +2768,24 @@ class OrientedPlace(OrientedGeometry):
 
         tree_spot=random_point_inside_polygon(1, zone)[0]
         tree_spot=np.array([tree_spot.x,tree_spot.y,0])
-        tree=Building.create_tree(tree_spot,tree_size,tree_height=None,rotate=True)
+        tree=Building.create_tree_trunk(tree_spot,tree_size,trunk_height=None,rotate=True)
         self.add_polyhedron(tree)
         return zone
-
+    
+    def add_tree_crowns(self):
+        #add tree crowns on top of tree trunks. 
+        #call this function after having solved the place, this way
+        #the rays are allowed to pass through the tree crowns and are only attenuated
+        tree_crowns=[]
+        for polyhedron in self.polyhedra:
+            if polyhedron.building_type=="tree_trunk":
+                crown_size=polyhedron.attributes["crown_size"]
+                crown_height=polyhedron.attributes["crown_height"]
+                tree_crown=Building.create_tree_crown(polyhedron,crown_size=crown_size,crown_height=crown_height,rotate=False)
+                tree_crowns.append(tree_crown)
+                #self.add_polyhedron(tree_crown)
+        self.polyhedra.extend(tree_crowns)
+        return
 
 
 

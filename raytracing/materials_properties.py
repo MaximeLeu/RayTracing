@@ -136,7 +136,9 @@ def set_properties(building_type):
             properties=create_dict("medium_dry_ground")
         case "road":
             properties=create_dict("concrete")
-        case "tree":
+        case "tree_trunk":
+            properties=create_dict("wood") 
+        case "tree_crown":
             properties=create_dict("wood")    
         
         case _:

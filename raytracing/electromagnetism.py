@@ -29,7 +29,7 @@ from raytracing.materials_properties import P_IN,\
 import raytracing.electromagnetism_utils as electromagnetism_utils
 from raytracing.electromagnetism_utils import vv_normalize,cot
 
-
+import raytracing.place_utils as place_utils
 import raytracing.plot_utils as plot_utils
 import raytracing.file_utils as file_utils
 
@@ -177,9 +177,9 @@ class ElectromagneticField:
     @staticmethod
     def account_for_trees(E,points,place):
         """
-        Attenuates the field if the path goes through a tree
-        :param E: electromagnetic field object
-        :type E: ElectromagneticField
+        Attenuates the field if the path goes through a tree crown
+        :param E: the electromagnetic field
+        :type E: ndarray
         :param points: two points describing line path
         :type points: numpy.ndarray *shape=(2, 3)*
         """
@@ -191,9 +191,8 @@ class ElectromagneticField:
             print(f"{len(length)} trees in the way, attenuating, length: {length}")
             for d in length:
                 #attenuation that adds to path loss
-                L_db=0.39*((FREQUENCY/10**6)**0.39)*d**0.25
-                #attenuation=1/(10**(L_db/10))
-                attenuation=1 #TODO
+                L_db=0.39*((FREQUENCY/(1e6))**0.39)*d**0.25
+                attenuation=10**(-L_db/10)
                 print(f"attenuation: {L_db:.2f} dB, thus attenuation factor= {attenuation:.2f} ")
                 E=E*attenuation
         return E
@@ -742,9 +741,14 @@ def my_field_computation(rtp,save_name="problem_fields"):
         return
 
 
-    #Add trees foliage
-    for _ in range(0,N_TREES):
-        rtp.place.add_tree(tree_size=TREE_SIZE)
+    #Add trees foliage on top of each tree trunk
+    rtp.place.add_tree_crowns()
+    place_utils.plot_place(rtp.place,tx,name="place with tree crowns")
+    
+    #randomly add tree foliage everywhere
+    #for _ in range(0,N_TREES):
+        #rtp.place.add_tree(tree_size=TREE_SIZE)
+   
 
     #compute everything
     solution=[]

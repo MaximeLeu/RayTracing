@@ -11,25 +11,26 @@ File containing the functions used to create the places.
 import numpy as np
 import matplotlib.pyplot as plt
 import geopandas as gpd
-import uuid
 #self written imports
 import raytracing.geometry as geom
 from raytracing.materials_properties import set_properties, LAMBDA
 
-from shapely.geometry import LineString, MultiPolygon, Polygon
+from shapely.geometry import LineString, MultiPolygon
 from shapely.ops import split
 
 import raytracing.plot_utils as plot_utils
 import raytracing.file_utils as file_utils
+file_utils.chdir_to_file_dir(__file__)
 
-
-def plot_place(place,tx,show_normals=False):
-    fig = plt.figure("the place",dpi=300)
+def plot_place(place,tx,show_normals=False,name=None):
+    if name is None:
+        name='the place'
+    fig = plt.figure(name,dpi=150)
     ax = fig.add_subplot(projection='3d')
     ax.set_xlabel('x',fontsize=15)
     ax.set_ylabel('y',fontsize=15)
     ax.set_zlabel('z',fontsize=15)
-    
+    ax.tick_params(axis='both', which='both', labelsize=15)
     plot_utils.add_points_to_3d_ax(ax=ax, points=tx, label="TX")
     place.center_3d_plot(ax)
     if show_normals:
@@ -38,7 +39,7 @@ def plot_place(place,tx,show_normals=False):
         ax = place.plot3d(ax=ax)
     plt.legend(fontsize=15)
     plt.show(block=False)
-    plt.pause(0.001)
+    plt.pause(0.01)
     #plt.savefig(f"../results/plots/thePlace.png", format='png', dpi=1000,bbox_inches='tight')
     return
 
@@ -168,14 +169,31 @@ def levant_find_crucial_coordinates(filename="../data/place_levant_edited.geojso
 
 
 def levant_add_trees(tree_spots):
-    tree_size=1.05
-    tree_height=11
-    vinci_tree_spot,maxwell_tree_spot,stevin_tree_spot=tree_spots
-    vinci_tree=geom.Building.create_tree(vinci_tree_spot,tree_size,tree_height,rotate=False)
-    maxwell_tree=geom.Building.create_tree(maxwell_tree_spot,tree_size,tree_height,rotate=False)
-    stevin_tree=geom.Building.create_tree(stevin_tree_spot,tree_size,tree_height,rotate=False)
-    trees=[vinci_tree,maxwell_tree,stevin_tree]   
-    return trees
+    rotate = False
+    vinci_tree_spot, maxwell_tree_spot, stevin_tree_spot = tree_spots
+    
+    trunk_size,trunk_height=[0.5,4]
+    crown_size, crown_height = [2, 5]
+    vinci_tree_trunk = geom.Building.create_tree_trunk(vinci_tree_spot, trunk_size, trunk_height,rotate,\
+                                                       crown_size, crown_height)                                                                                                    
+    vinci_tree_crown = geom.Building.create_tree_crown(vinci_tree_trunk, crown_size, crown_height,rotate)
+        
+    trunk_size,trunk_height=[0.5,4.5]
+    crown_size, crown_height = [2, 4.5]
+    maxwell_tree_trunk = geom.Building.create_tree_trunk(maxwell_tree_spot, trunk_size, trunk_height,rotate,\
+                                                         crown_size, crown_height)
+    maxwell_tree_crown = geom.Building.create_tree_crown(maxwell_tree_trunk, crown_size, crown_height,rotate)
+    
+    trunk_size,trunk_height=[0.5,6.5]
+    crown_size, crown_height = [2, 2]
+    stevin_tree_trunk = geom.Building.create_tree_trunk(stevin_tree_spot, trunk_size, trunk_height,rotate,\
+                                                        crown_size, crown_height,)
+    stevin_tree_crown = geom.Building.create_tree_crown(stevin_tree_trunk, crown_size, crown_height,rotate)
+    
+    tree_trunks = [vinci_tree_trunk, maxwell_tree_trunk, stevin_tree_trunk]
+    tree_crowns = [vinci_tree_crown, maxwell_tree_crown, stevin_tree_crown]
+    return tree_trunks, tree_crowns
+
 
 
 def create_flat_levant(npoints=15):
@@ -201,16 +219,17 @@ def create_flat_levant(npoints=15):
         return tx    
 
     #construct stairs
-    stairs_polyhedron=place.polyhedra[3]
-    sh_rectangle=stairs_polyhedron.get_top_face()
-    polygons=split_rectangle(sh_rectangle,nx=1,ny=1)  
-    polyhedrons=build_staircase(polygons,place.surface.polygons[0])
-    del place.polyhedra[3]
-    place.polyhedra.extend(polyhedrons)
+    # stairs_polyhedron=place.polyhedra[3]
+    # sh_rectangle=stairs_polyhedron.get_top_face()
+    # polygons=split_rectangle(sh_rectangle,nx=1,ny=1)  
+    # polyhedrons=build_staircase(polygons,place.surface.polygons[0])
+    # del place.polyhedra[3]
+    # place.polyhedra.extend(polyhedrons)
 
     
-    trees=levant_add_trees(tree_spots)
-    place.polyhedra.extend(trees)
+    tree_trunks,tree_crowns=levant_add_trees(tree_spots)
+    place.polyhedra.extend(tree_trunks)
+    #place.polyhedra.extend(tree_crowns) #when added here tree crowns are blocking rays.
 
     tx=add_tx_rx(place, maxwell_entrance, levant_bottom, npoints)
     place.to_json(filename=f"../data/{geometry}.json")
@@ -218,6 +237,7 @@ def create_flat_levant(npoints=15):
 
 
 def create_slanted_levant(npoints=15):
+    
     geometry="slanted_levant"
     geometry_filename='../data/place_levant_edited.geojson'
     preprocessed_name=geom.preprocess_geojson(geometry_filename)
@@ -274,8 +294,9 @@ def create_slanted_levant(npoints=15):
         return buildings
     
     buildings=rebuild_buildings_on_slanted_grounds(place,grounds)
-    trees=levant_add_trees(tree_spots)
-    buildings.extend(trees)
+    tree_trunks,tree_crowns=levant_add_trees(tree_spots)
+    buildings.extend(tree_trunks)
+    #buildings.extend(tree_crowns) #when added here tree crowns are blocking rays.
     
     #rebuild the place
     place=geom.OrientedPlace(geom.OrientedSurface(grounds),buildings)
@@ -302,18 +323,18 @@ def create_slanted_levant(npoints=15):
     place, tx=add_tx_rx(place, maxwell_entrance, levant_bottom, npoints)
     place.to_json(filename=f"../data/{geometry}.json")
     
-    stairs_polyhedron=place.polyhedra[4]
-    
+    #build stairs
+    # stairs_polyhedron=place.polyhedra[4]
     # fig = plt.figure("the place",dpi=300)
     # ax = fig.add_subplot(projection='3d')
     # ax=stairs_polyhedron.plot3d(ax=ax)
     # plt.show()
+    # sh_rectangle=stairs_polyhedron.get_top_face()
+    # polygons=split_rectangle(sh_rectangle,nx=8,ny=1)  
+    # polyhedrons=build_staircase(polygons,place.surface.polygons[1])
+    # del place.polyhedra[4]
+    # place.polyhedra.extend(polyhedrons)
     
-    sh_rectangle=stairs_polyhedron.get_top_face()
-    polygons=split_rectangle(sh_rectangle,nx=8,ny=1)  
-    polyhedrons=build_staircase(polygons,place.surface.polygons[1])
-    del place.polyhedra[4]
-    place.polyhedra.extend(polyhedrons)
     place.to_json(filename=f"../data/{geometry}.json")
     print(f"MAXWELL_ENTRANCE: {maxwell_entrance}")
     return place, tx, geometry
@@ -335,7 +356,7 @@ def split_rectangle(polygon,nx,ny):
     result = polygon
     for splitter in splitters:
         result = MultiPolygon(split(result, splitter))
-    polygons = list(result)
+    polygons = [geom for geom in result.geoms]
     
     plot=False
     if plot:
@@ -381,7 +402,6 @@ def build_staircase(polygons,ground):
     
 
 
-
 if __name__ == '__main__':
     file_utils.chdir_to_file_dir(__file__)
     plt.close("all")
@@ -390,20 +410,9 @@ if __name__ == '__main__':
     place,tx,geometry=create_slanted_levant(npoints=8)
     #place,tx,geometry=create_two_rays_place(npoints=5)
     
-    
-    # stairs_polyhedron=place.polyhedra[4]
-    # fig = plt.figure("the place",dpi=300)
-    # ax = fig.add_subplot(projection='3d')
-    # ax=stairs_polyhedron.plot3d(ax=ax)
-    # plt.show()
-    
-    # stairs_polyhedron=place.polyhedra[4]
-    # sh_rectangle=stairs_polyhedron.get_top_face()
-    # polygons=split_rectangle(sh_rectangle,nx=8,ny=1)  
-    # polyhedrons=build_staircase(polygons,place.surface.polygons[1])
-    # place.polyhedra.remove(4)
-    # place.polyhedra.extend(polyhedrons)
     plot_place(place, tx,show_normals=False)
+    
+
     
     
    

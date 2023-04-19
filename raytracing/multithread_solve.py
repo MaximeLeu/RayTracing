@@ -88,7 +88,7 @@ def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3,save_name=None):
     end_time_rt = time.time()
     print("Finished solving the ray tracing problems")
     print_elapsed_time(start_time_rt,end_time_rt)
-    full_problem.plot_all_rays()
+    #full_problem.plot_all_rays()
 
     print("Starting EM solving")
     start_time_em = time.time()
@@ -113,41 +113,7 @@ def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3,save_name=None):
     
     
     return solved_em_path,solved_rays_path
-
-
-
-
-# #works consecutively but 4 times slower...
-#from concurrent.futures import ThreadPoolExecutor
-# def multithread_solve_place(place, tx, save_name, N_CPU=16, order=3):
-#     """
-#     Solves the place, using one CPU for each receiver.
-#     Saves the plots and dataframe in the results folder.
-#     place: place with all the receivers added
-#     """
-#     # distribute the problems
-#     args = []
-#     for i in range(len(place.set_of_points)):
-#         args.append([i, order, tx, place])
-#     # Create a ThreadPoolExecutor to handle the parallel tasks
-#     with ThreadPoolExecutor(max_workers=N_CPU) as executor:
-#         # Use the executor.map function to apply 'compute_single_receiver' on each set of arguments
-#         solved_problems = list(executor.map(compute_single_receiver, args))
-#     # merge the solved_problems into one full_problem
-#     full_problem = RayTracingProblem(tx, place)
-#     solved_rays_path = merge_solved_problems(full_problem, solved_problems, save_name)
-#     full_problem.plot_all_rays()
-#     #compute fields
-#     solved_em_path=f'../results/{save_name}_em_solved.csv'
-#     my_field_computation(full_problem,solved_em_path)
-
-#     #plot full problem
-#     EM_fields_plots(solved_em_path,order=order,name=save_name)
-#     return solved_em_path,solved_rays_path
-        
-
     
-
 if __name__ == "__main__":
     file_utils.chdir_to_file_dir(__file__)
     #To test if it works
