@@ -88,6 +88,18 @@ def get_power_db_each_receiver(df):
         power_db[i]=to_db(np.sum(rx_df["path_power"]))
     return power_db
 
+def get_receiver_coordinates(df,two_dimensionnal=False):
+    nreceivers=len(df['rx_id'].unique())
+    receivers_coord=[]
+    for receiver in range(nreceivers):
+        rx_df=df.loc[df['rx_id'] == receiver]#all data for this rx  
+        receivers_coord.append(rx_df["receiver"].values[0])
+        
+    if two_dimensionnal:
+        receivers_coord=[np.array([x,y]) for x, y, z in receivers_coord]
+    return receivers_coord
+    
+
 
 def split_df(df,df_list=[]):
     """
@@ -202,13 +214,14 @@ def save_df(df,save_name):
         string=string.replace(" ","")
         df.at[i,'receiver']=string
         
-        string=np.array2string(df.at[i,'tx_angles'],separator=",",max_line_width=999)
-        string=string.replace(" ","")
-        df.at[i,'tx_angles']=string
-        
-        string=np.array2string(df.at[i,'rx_angles'],separator=",",max_line_width=999)
-        string=string.replace(" ","")
-        df.at[i,'rx_angles']=string
+        if df.at[i,'path_type'] !="Impossible":
+            string=np.array2string(df.at[i,'tx_angles'],separator=",",max_line_width=999)
+            string=string.replace(" ","")
+            df.at[i,'tx_angles']=string
+            
+            string=np.array2string(df.at[i,'rx_angles'],separator=",",max_line_width=999)
+            string=string.replace(" ","")
+            df.at[i,'rx_angles']=string
         
     df.to_csv(f"../results/{save_name}",index=False)
 
@@ -226,7 +239,8 @@ def load_df(df_path):
         df.at[i,"receiver"]=string_arr_to_ndarray(df.at[i,"receiver"])
         df.at[i,"field_strength"]=string_complex_arr_to_ndarray(df.at[i,"field_strength"])
     
-        df.at[i,'tx_angles']=string_arr_to_ndarray(df.at[i,'tx_angles'])
-        df.at[i,'rx_angles']=string_arr_to_ndarray(df.at[i,'rx_angles'])
+        if df.at[i,'path_type'] != 'Impossible':
+            df.at[i,'tx_angles']=string_arr_to_ndarray(df.at[i,'tx_angles'])
+            df.at[i,'rx_angles']=string_arr_to_ndarray(df.at[i,'rx_angles'])
         
     return df

@@ -127,11 +127,16 @@ def EM_fields_plots(df_path, name="unnamed_plot"):
 
 
 def get_receiver_data(df,receivers):
+    """
+    given a receiver and a solved electromagnetic dataframe returns 
+    all the tx and rx angles and the power for the receiver.
+    """
     rx_matrix_list=[]
     tx_matrix_list=[]
     for receiver in receivers:
         data=df.loc[df["rx_id"]==receiver]
-        
+        if data["path_type"].values[0]=="Impossible":
+            continue
         tx_angles=data['tx_angles'].to_numpy()
         tx_angles=np.deg2rad(np.vstack(tx_angles))
         rx_angles=data['rx_angles'].to_numpy()
@@ -144,12 +149,38 @@ def get_receiver_data(df,receivers):
         rx_matrix_list.append(rx_path_data)
         tx_matrix_list.append(tx_path_data)
     
+    
     stacked_tx_matrix = np.vstack(tx_matrix_list)
     stacked_rx_matrix = np.vstack(rx_matrix_list)
 
     return stacked_tx_matrix,stacked_rx_matrix
     
     
+
+def plot_rx_rays_distribution(df,receivers,save_name):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+    data_tx,data_rx=get_receiver_data(df,receivers) #data_tx[:0]=elevation, data_tx[:1]= azimuth. Same for data_rx
+    for receiver in receivers:
+        power = electromagnetism_utils.to_db(data_rx[:, 2])
+        scatter1 = ax1.scatter(np.degrees(data_rx[:, 1]), np.degrees(data_rx[:, 0]), c=power, cmap='jet')
+        ax2.scatter(np.degrees(data_tx[:, 1]), np.degrees(data_tx[:, 0]),c=power,cmap='jet')
+    
+    cbar = plt.colorbar(scatter1, ax=[ax1, ax2], shrink=0.5, orientation='horizontal', pad=0.15)
+    cbar.set_label('Power [dB]', fontsize=14)
+    
+    ax1.set(title="RX angles distribution",
+            ylabel="theta (degrees)",
+            xlabel='phi (degrees)')
+    
+    ax2.set(title="TX angles distribution",
+            ylabel="theta (degrees)",
+            xlabel='phi (degrees)')
+    ax1.grid()
+    ax2.grid()
+    plt.savefig(f"../results/plots/rays_distribution_{save_name}.png", format='png', dpi=300,bbox_inches='tight')
+    plt.show()
+    return
+
 
 def plot_data_on_sphere(ax, data, title):
     x, y, z = electromagnetism_utils.to_cartesian(r=1, theta=data[:, 0], phi=data[:, 1])
@@ -182,23 +213,20 @@ def plot_data_on_sphere(ax, data, title):
     ax.set_title(title, fontsize="14")
     
     
-def plot_rays_on_sphere(data_tx, data_rx):
+def plot_rays_on_sphere(data_tx, data_rx,save_name):
     fig = plt.figure(figsize=(16, 8))
     ax1 = fig.add_subplot(121, projection='3d')
     plot_data_on_sphere(ax1, data_tx, "Distribution of outgoing ray from the tx antenna")
 
     ax2 = fig.add_subplot(122, projection='3d')
     plot_data_on_sphere(ax2, data_rx, "Distribution of incoming rays at the rx antenna")
-
+    plt.savefig(f"../results/plots/rays_on_sphere_{save_name}.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
     return    
 
-def plot_rays_on_sphere_helper(df_path):
-    df=electromagnetism_utils.load_df(df_path)
-    nreceivers=len(df['rx_id'].unique())
-    receivers=np.arange(0,nreceivers)
+def plot_rays_on_sphere_helper(df,receivers,save_name):
     data_tx,data_rx=get_receiver_data(df,receivers)
-    plot_rays_on_sphere(data_tx,data_rx)
+    plot_rays_on_sphere(data_tx,data_rx,save_name)
     return
     
     
@@ -237,13 +265,14 @@ if __name__=='__main__':
     file_utils.chdir_to_file_dir(__file__)
     plt.close('all')
     df_path="../results/slanted_levant_16p_em_solved.csv"
+    df_path="../results/place_saint_jean_160p_em_solved.csv"
     df=electromagnetism_utils.load_df(df_path)
     
-    
+    #plot_rx_rays_distribution(df,receivers=np.arange(0,159,1))
     #plot_order_importance(df_path)
     #plot_measures_only()
-    EM_fields_plots(df_path)
-    #plot_rays_on_sphere_helper(df_path)
+    #EM_fields_plots(df_path)
+    plot_rays_on_sphere_helper(df_path)
     
     
     

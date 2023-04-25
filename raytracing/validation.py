@@ -103,8 +103,8 @@ def plot_levant_vs_measures(tx,solved_em_path):
     ax.set_xlim([30, 83]) #for october measures
     
     ax.legend(fontsize=20)
-    plt.show()
     plt.savefig(f"../results/plots/{geometry}_validation.eps", format='eps', dpi=300,bbox_inches='tight')
+    plt.show()
     return
     
     

@@ -8,6 +8,7 @@ from mpl_toolkits import mplot3d
 from matplotlib import patches
 # Numerical libraries
 import numpy as np
+import shapely
 
 anim = dict(
     pause=False,
@@ -20,6 +21,42 @@ def ensure_axis_orthonormal(ax):
     ax.axis('equal')
     return ax
     
+
+def plot_shapely(shapely_object,ax=None,color=None):
+    #https://coderslegacy.com/python/plotting-shapely-polygons-with-interiors-holes/
+    if ax is None:
+        fig, ax = plt.subplots()
+    if isinstance(shapely_object, shapely.geometry.Point):
+        ax.plot(shapely_object.x, shapely_object.y, marker='o', markersize=5)
+        
+    elif isinstance(shapely_object, shapely.geometry.Polygon):
+        if color is None:
+            x, y = shapely_object.exterior.xy
+            ax.plot(x, y)
+            for inner in shapely_object.interiors:
+                xi, yi = zip(*inner.coords[:])
+                ax.plot(xi, yi)
+        else:
+            x, y = shapely_object.exterior.xy
+            ax.plot(x, y,color='black')
+            for inner in shapely_object.interiors:
+                xi, yi = zip(*inner.coords[:])
+                ax.plot(xi, yi,color=color)
+            
+        
+            
+    elif isinstance(shapely_object, shapely.geometry.MultiPolygon):
+        for obj in shapely_object.geoms:
+            x, y = obj.exterior.xy
+            ax.plot(x, y)
+            for inner in obj.interiors:
+                xi, yi = zip(*inner.coords[:])
+                ax.plot(xi, yi)
+    else:
+        raise ValueError("Unsupported Shapely object type.")
+
+    plt.show()
+    return ax
 
 
 def get_subplot_row_columns(amount_of_plots):

@@ -11,12 +11,18 @@ File containing the functions used to create the places.
 import numpy as np
 import matplotlib.pyplot as plt
 import geopandas as gpd
+import random
+import json
+from pathlib import Path
 #self written imports
 import raytracing.geometry as geom
 from raytracing.materials_properties import set_properties, LAMBDA
 
-from shapely.geometry import LineString, MultiPolygon
+from shapely.geometry import LineString, MultiPolygon, Polygon,Point
 from shapely.ops import split
+from scipy.spatial.distance import cdist
+
+import shapely
 
 import raytracing.plot_utils as plot_utils
 import raytracing.file_utils as file_utils
@@ -281,18 +287,6 @@ def create_slanted_levant(npoints=15):
     
     maxwell_entrance, levant_bottom=define_levant_top_bottom(grounds,maxwell_entrance,levant_bottom)
     
-    def rebuild_buildings_on_slanted_grounds(place, grounds):
-        buildings = []
-        for i, polyhedron in enumerate(place.polyhedra):
-            top = polyhedron.get_top_face()
-            height = top.points[0][2]
-            rebuilded = geom.Building.rebuild_building(top, grounds, height)
-            for building in rebuilded: #the building maybe split on multiple grounds
-                building.building_type=polyhedron.building_type
-                building.apply_properties_to_polygons()
-                buildings.append(building)      
-        return buildings
-    
     buildings=rebuild_buildings_on_slanted_grounds(place,grounds)
     tree_trunks,tree_crowns=levant_add_trees(tree_spots)
     buildings.extend(tree_trunks)
@@ -335,11 +329,21 @@ def create_slanted_levant(npoints=15):
     # del place.polyhedra[4]
     # place.polyhedra.extend(polyhedrons)
     
-    place.to_json(filename=f"../data/{geometry}.json")
     print(f"MAXWELL_ENTRANCE: {maxwell_entrance}")
     return place, tx, geometry
 
-   
+def rebuild_buildings_on_slanted_grounds(place, grounds):
+    buildings = []
+    for i, polyhedron in enumerate(place.polyhedra):
+        top = polyhedron.get_top_face()
+        height = top.points[0][2]
+        rebuilded = geom.Building.rebuild_building(top, grounds, height)
+        for building in rebuilded: #the building maybe split on multiple grounds
+            building.building_type=polyhedron.building_type
+            building.apply_properties_to_polygons()
+            buildings.append(building)      
+    return buildings   
+
 def split_rectangle(polygon,nx,ny):
     #given an OrientedPolygon rectangle split it in nx rows and ny columns. Returns a list of shapely polygons.
     #code is copied from:
@@ -402,19 +406,329 @@ def build_staircase(polygons,ground):
     
 
 
+class Place_saint_jean():
+    @staticmethod
+    def gen_place_saint_jean():
+        geometry_filename='../data/place_saint_jean/place_saint_jean.geojson'
+        preprocessed_name=geom.preprocess_geojson(geometry_filename)
+        place = geom.generate_place_from_rooftops_file(preprocessed_name)
+        return place
+    
+    @staticmethod
+    def create_place_saint_jean(points_filename):
+        geometry="place_saint_jean"
+        place = Place_saint_jean.gen_place_saint_jean()
+        points=Place_saint_jean.load_points_from_file(points_filename)
+        place.add_set_of_points(points)
+        
+        #tx = np.array([25, 2.5, 18])#in the intersection, fails ....
+        tx=np.array([72,40,2])#near big mama
+        #tx=np.array([-93,80,2])#near conservatoire
+        
+        #place.surface=place.surface.translate(np.array([0,0,100])) #to check easily if ground normals are well set
+        tx=tx.reshape(-1,3)
+        place.to_json(filename=f"../data/place_saint_jean/{geometry}.json")
+        return place,tx,geometry
+    
+    @staticmethod
+    def create_slanted_place_saint_jean(points_filename):
+        geometry="slanted_place_saint_jean"
+        place = Place_saint_jean.gen_place_saint_jean()
+        points=Place_saint_jean.load_points_from_file(points_filename)
+        place.add_set_of_points(points)
+        
+        def create_grounds():
+            bottom_left=np.array([-150,-150,0])
+            top_right=np.array([150,150,30])
+            ground1=geom.Square.by_2_corner_points(np.array([bottom_left,top_right])) #flat ground between barb and vinci
+            #ensure normals are pointing upwards
+            ground1=ground1.rotate(axis=np.array([0,1,0]), angle_deg=180)
+            ground1.properties=set_properties("road")
+            grounds=[ground1]
+            return grounds
+        
+        grounds=create_grounds()
+        buildings=rebuild_buildings_on_slanted_grounds(place,grounds)  
+        #rebuild the place
+        place=geom.OrientedPlace(geom.OrientedSurface(grounds),buildings)
+        #place.surface=place.surface.translate(np.array([0,0,100])) #to check easily if ground normals are well set
+        
+        def add_rx(place,points_filename):
+            points=Place_saint_jean.load_points_from_file(points_filename)
+            #TODO: Only works if one ground
+            ground=ground=place.surface.polygons[0]
+            TX_HEIGHT=1.2
+            for i,point in enumerate(points):
+                #get intersection between point and ground
+                #then put the point ..m away from the ground
+                line=[point,point+np.array([0,0,1])]
+                intersection=geom.polygon_line_intersection(ground,line)
+                points[i]=intersection+np.array([0,0,TX_HEIGHT])
+            place.add_set_of_points(points)
+        
+        add_rx(place,points_filename)
+        #tx = np.array([25, 2, 18])#in the intersection
+        
+        tx=np.array([72,40,0])#near big mama
+        line=[tx,tx+np.array([0,0,1])]
+        ground=ground=place.surface.polygons[0]
+        intersection=geom.polygon_line_intersection(ground,line)
+        tx=intersection+np.array([0,0,2])
+        
+        tx = tx.reshape(-1, 3)
+        place.to_json(filename=f"../data/place_saint_jean/{geometry}.json")
+        return place,tx,geometry
+    
+    
+    @staticmethod
+    def create_points(npoints=16*5,d=4):
+        street_polygon=Place_saint_jean.select_saint_jean_streets_hardcoded()
+        points=Place_saint_jean.generate_spaced_points_in_polygon(street_polygon,npoints,d)
+        #add 3th dimension
+        RX_HEIGHT=1.2
+        points = [(p.coords[0][0], p.coords[0][1], RX_HEIGHT) for p in points]
+        filename=f"../data/place_saint_jean/place_saint_jean_{npoints}_points_d_{d}.json"
+        with open(filename, 'w') as f:
+            json.dump(points, f)
+        print(f"generated and wrote points to {filename}")
+        return points,filename
+    
+    @staticmethod
+    def load_points_from_file(filename):
+        with open(filename, 'r') as f:
+            points = json.load(f)
+        return [tuple(point) for point in points]
+    
+    @staticmethod
+    def plot_points(filename):
+        points=Place_saint_jean.load_points_from_file(filename)
+        street_polygon=Place_saint_jean.select_saint_jean_streets_hardcoded()
+        ax=plot_utils.plot_shapely(street_polygon)
+        for point in points:
+            ax=plot_utils.plot_shapely(shapely.geometry.Point(point),ax)
+        return 
+    
+    @staticmethod
+    def select_saint_jean_streets_hardcoded():
+        place = Place_saint_jean.gen_place_saint_jean()
+        
+        zone = MultiPolygon()
+        for polyhedron in place.polyhedra:
+            top=polyhedron.get_top_face().get_shapely()
+            zone=zone.union(top)
+        
+        zone=zone.simplify(tolerance=1e-2)
+        
+        conservatoire=zone.geoms[0]
+        conservatoire_points=conservatoire.exterior.coords[8:19]
+        conservatoire_points.extend(conservatoire.exterior.coords[21:34])
+      
+        natural_corner=zone.geoms[1]
+        natural_corner_points=natural_corner.exterior.coords[20::]
+        natural_corner_points.append(natural_corner.exterior.coords[1])
+       
+        studio_baxton=zone.geoms[2]
+        studio_baxton_points=studio_baxton.exterior.coords[20:-6]
+      
+        parlement=zone.geoms[3]
+        parlement_points=parlement.exterior.coords[7:57]
+       
+        big_mama=zone.geoms[4]
+        big_mama_points=big_mama.exterior.coords[-10::]
+        big_mama_points.extend(big_mama.exterior.coords[:6])
+        
+        centraal=zone.geoms[5]
+        centraal_points=centraal.exterior.coords[8:11]
+        
+        vdab=zone.geoms[6]
+        vdab_points=vdab.exterior.coords[3:5]
+          
+        under_baxton=zone.geoms[7]
+        under_baxton_points=under_baxton.exterior.coords[11:14]
+           
+        manneken=zone.geoms[8]
+        manneken_points=manneken.exterior.coords[2:7]
+           
+        street_points=parlement_points
+        street_points.extend(conservatoire_points)
+        street_points.extend(manneken_points)
+        street_points.extend(studio_baxton_points)
+        street_points.extend(under_baxton_points)
+        street_points.extend(natural_corner_points)
+        street_points.extend(vdab_points)
+        street_points.extend(centraal_points)
+        street_points.extend(big_mama_points)
+        
+        # ax=plot_utils.plot_shapely(zone)
+        # for point in street_points:
+        #     ax=plot_utils.plot_shapely(shapely.geometry.Point(point),ax)   
+        
+        street_polygon=shapely.geometry.Polygon(street_points)
+        return street_polygon
+    
+    
+    @staticmethod
+    def generate_spaced_points_in_polygon(polygon: Polygon, n: int, d: float):
+        #randomly generates points inside the polygon that at least have a distance d between them.
+        #can run infinitely if d is too large compared to the number of points asked
+        points = []
+        minx, miny, maxx, maxy = polygon.bounds
+        while len(points) < n:
+            x = random.uniform(minx, maxx)
+            y = random.uniform(miny, maxy)
+            point = Point(x, y)
+            if polygon.contains(point) and point.distance(polygon.boundary) > 1:
+                if len(points) == 0:
+                    points.append(point)
+                else:
+                    coords = np.array([p.coords[0] for p in points])
+                    distances = cdist(coords, np.array([(x, y)]))
+                    if np.min(distances) >= d:
+                        points.append(point)
+        return points
+    
+    @staticmethod
+    def create_shapely_rectangle(bottom_left,top_right):
+        #create a shapely rectangle given two corners:
+        rectangle= shapely.geometry.box(*bottom_left, *top_right)
+        return rectangle
+    
+    @staticmethod
+    def get_largest_polygon(multipolygon):
+        #returns the largest polygon of a multipolygon
+        polygons_by_area = sorted(multipolygon.geoms, key=lambda polygon: polygon.area, reverse=True)
+        return polygons_by_area[0]
+
+    
+    # @staticmethod 
+    # def select_saint_jean_streets():
+    #     place = Place_saint_jean.gen_place_saint_jean()
+        
+    #     ground = place.surface.polygons[0].get_shapely()
+    #     zone = MultiPolygon()
+    #     for polyhedron in place.polyhedra:
+    #         top=polyhedron.get_top_face().get_shapely()
+    #         zone=zone.union(top)
+         
+    #     zone_without_buildings=ground.difference(zone)
+    #     zone_without_buildings=Place_saint_jean.get_largest_polygon(zone_without_buildings)
+    #     plot_utils.plot_shapely(zone_without_buildings)
+        
+    #     ax=plot_utils.plot_shapely(zone.geoms[0])
+    #     ax=plot_utils.plot_shapely(zone.geoms[3],ax)
+        
+    #     #remove parts of ground that are useless:
+    #     bottom_left=Place_saint_jean.create_shapely_rectangle([-150,-150],[-30,-42])
+    #     top_right=Place_saint_jean.create_shapely_rectangle([-35,70],[150,150])
+    #     middle_right=Place_saint_jean.create_shapely_rectangle([96,-20],[150,150])
+    #     bottom_right=Place_saint_jean.create_shapely_rectangle([85,-66],[150,-150])
+        
+    #     rectangles=[bottom_left,top_right,middle_right,bottom_right]
+    #     for rectangle in rectangles:
+    #         zone_without_buildings=zone_without_buildings.difference(rectangle)
+    #     ax=plot_utils.plot_shapely(zone_without_buildings)
+        
+    #     return zone
+    
+    
+    
+    def set_heights(filename='../data/place_saint_jean/place_saint_jean.geojson'):
+        #run once after having extracted the geojson from overpass turbo
+        #heights data comes from google earth
+        #overwrites the original geojson
+        gdf = gpd.read_file(filename)
+        gdf=gdf.copy()
+        
+        #left branch- rue du chene
+        gdf.loc[gdf['id']=="way/132534306","height"] = 18
+        gdf.loc[gdf['id']=="way/224649029","height"] = 17
+        gdf.loc[gdf['id']=="way/224649043","height"] = 17.5
+        gdf.loc[gdf['id']=="way/224649045","height"] = 18.3
+        gdf.loc[gdf['id']=="way/224649048", "height"] = 15.7
+        gdf.loc[gdf['id']=="way/224649008", "height"] = 15
+        gdf.loc[gdf['id']=="way/224649010", "height"] = 16.2
+        gdf.loc[gdf['id']=="way/224649013", "height"] = 17.5
+        gdf.loc[gdf['id']=="way/224649016", "height"] = 18
+        gdf.loc[gdf['id']=="way/224649017", "height"] = 15.4
+        gdf.loc[gdf['id']=="way/224649020", "height"] = 17.9
+        
+        gdf.loc[gdf['id']=="way/257712523", "height"] = 25
+        gdf.loc[gdf['id']=="way/257712322", "height"] = 25.3 
+        gdf.loc[gdf['id']=="way/257712313", "height"] = 25.1
+        gdf.loc[gdf['id']=="way/257712612", "height"] = 22
+        gdf.loc[gdf['id']=="way/257712467", "height"] = 17
+        gdf.loc[gdf['id']=="way/257712240", "height"] = 15
+        gdf.loc[gdf['id']=="way/257712430", "height"] = 15
+        
+        # right branch -rue de lescalier
+        gdf.loc[gdf['id']=="way/224649059", "height"] = 15.9
+        gdf.loc[gdf['id']=="way/224649042", "height"] = 17
+        gdf.loc[gdf['id']=="way/224649055", "height"] = 16.9
+        gdf.loc[gdf['id']=="way/224649041", "height"] = 15.2
+        gdf.loc[gdf['id']=="way/224649067", "height"] = 16.6
+        gdf.loc[gdf['id']=="way/224649040", "height"] = 18
+        gdf.loc[gdf['id']=="way/224649039", "height"] = 17.7
+        gdf.loc[gdf['id']=="way/224649038", "height"] = 16.3
+        gdf.loc[gdf['id']=="way/224649056", "height"] = 22 #big mama
+        gdf.loc[gdf['id']=="way/224649036", "height"] = 18
+        gdf.loc[gdf['id']=="way/224649007", "height"] = 17.5
+        gdf.loc[gdf['id']=="way/224649034", "height"] = 16.9
+        gdf.loc[gdf['id']=="way/224649069", "height"] = 17
+        gdf.loc[gdf['id']=="way/144256881", "height"] = 16
+        
+        gdf.loc[gdf['id']=="way/472952353", "height"] = 24
+        gdf.loc[gdf['id']=="way/224649053", "height"] = 48#31 centraal
+        
+        # rue de dinant
+        gdf.loc[gdf['id']=="way/257712250", "height"] = 18
+        gdf.loc[gdf['id']=="way/257712276", "height"] = 17
+        gdf.loc[gdf['id']=="way/257712333", "height"] = 17.5
+        
+        #middle branch
+        gdf.loc[gdf['id']=="way/257712524", "height"] = 21 #bx beerbox
+        gdf.loc[gdf['id']=="way/257712412", "height"] = 14
+        gdf.loc[gdf['id']=="way/257712444", "height"] = 20
+        gdf.loc[gdf['id']=="way/257712251", "height"] = 21
+        gdf.loc[gdf['id']=="relation/3459600", "height"] = 21 #conservatoire
+        gdf.loc[gdf['id']=="way/257712542", "height"] = 18
+        gdf.loc[gdf['id']=="way/257712325", "height"] = 18
+        gdf.loc[gdf['id']=="way/257712489", "height"] = 18
+        gdf.loc[gdf['id']=="way/257712345", "height"] = 18
+        gdf.loc[gdf['id']=="way/1094964729", "height"] = 18
+        gdf.loc[gdf['id']=="way/132394539", "height"] = 15
+        gdf.loc[gdf['id']=="way/224649021", "height"] = 22
+        gdf.loc[gdf['id']=="way/224649022", "height"] = 21
+        gdf.loc[gdf['id']=="way/224649065", "height"] = 21.5
+        gdf.loc[gdf['id']=="way/224649025", "height"] = 22
+        gdf.loc[gdf['id']=="way/224649027", "height"] = 21.6
+        gdf.loc[gdf['id']=="way/224649030", "height"] = 20.4
+        gdf.loc[gdf['id']=="way/224649032", "height"] = 21.9
+        gdf.loc[gdf['id']=="way/472952353", "height"] = 22.4
+        gdf.loc[gdf['id']=="way/224649058", "height"] = 20
+        gdf.loc[gdf['id']=="way/132394513", "height"] = 18#natural corner
+        gdf.loc[gdf['id']=="way/224649054", "height"] = 20#vdab
+               
+        gdf.to_file(filename, driver="GeoJSON")
+        return
+    
+     
+
 if __name__ == '__main__':
-    file_utils.chdir_to_file_dir(__file__)
     plt.close("all")
     #place,tx,geometry=create_small_place(npoints=10)
     #place,tx,geometry=create_flat_levant(npoints=16)
-    place,tx,geometry=create_slanted_levant(npoints=8)
+    #place,tx,geometry=create_slanted_levant(npoints=8)
     #place,tx,geometry=create_two_rays_place(npoints=5)
     
+    #points,points_filename=Place_saint_jean.create_points(npoints=16,d=4)
+    points_filename="../data/place_saint_jean/place_saint_jean_16_points_d_4.json"
+    #Place_saint_jean.plot_points(points_filename)
+    
+    place,tx,geometry=Place_saint_jean.create_place_saint_jean(points_filename=points_filename)
+    #place,tx,geometry=Place_saint_jean.create_slanted_place_saint_jean(points_filename=points_filename)
+    
     plot_place(place, tx,show_normals=False)
-    
 
-    
-    
    
       
     

@@ -94,6 +94,7 @@ def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3,save_name=None):
     start_time_em = time.time()
     #compute fields
     solved_em_path=f'../results/{save_name}_em_solved.csv'
+
     my_field_computation(full_problem,solved_em_path)
     end_time_em = time.time()
     print("Finished EM solving and saved results")

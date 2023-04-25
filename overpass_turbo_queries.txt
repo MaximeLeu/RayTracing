@@ -1,0 +1,111 @@
+// -----------------------------To find areas that specify building height-----------------------------
+[out:json][timeout:60];
+(
+  way["building:height"]({{bbox}});
+  way["height"]({{bbox}});
+  relation["height"]({{bbox}});
+  relation["building:height"]({{bbox}});
+);
+out body;
+>;
+out skel qt;
+
+//-----------------------------To select specific buildings-----------------------------
+[out:json][timeout:25];
+(
+  way(162923960);//stevin
+  way(143236237);//barb
+  way(480739936);//between stevin/maxwell
+  way(162923962);//maxwell
+  way(162876893);//stairs
+  way(38771965);//reaumur
+  relation(192842);//vinci
+  node(5710653392);//tree near stevin
+  node(5710653391);//tree near maxwell
+  node(5710653390);//tree near vinci
+);
+(._;>;);
+out body;
+
+
+//-----------------------------to select specific buildings in a bbox-----------------------------
+[out:json][timeout:30];
+(
+way["building"]({{bbox}});
+relation["building"]["type"="multipolygon"]({{bbox}});
+node["natural"="tree"]({{bbox}});
+);
+out body;
+>;
+out skel qt;
+
+
+//----------select Y-street-buildings-------------------
+[out:json][timeout:25];
+(
+//left branch- rue du chene
+  way(132534306);
+  way(224649029);
+  way(224649043);
+  way(224649045);
+  way(224649048);
+  way(224649008);
+  way(224649010);
+  way(224649013);
+  way(224649016);
+  way(224649017);
+  way(224649020);
+  way(257712523);
+  way(257712322);
+  way(257712313);
+  way(257712612);
+  way(257712467);
+  
+  //right branch -rue de lescalier
+  way(224649059);
+  way(224649042);
+  way(224649055);
+  way(224649041);
+  way(224649067);
+  way(224649040);
+  way(224649039);
+  way(224649038);
+  way(224649056);
+  way(224649036);
+  way(224649007);
+  way(224649034);
+  way(224649069);
+  way(144256881);
+  way(472952353);
+  way(224649053);//big building behind
+  //rue de dinant
+  way(257712250);
+  way(257712276);
+  way(257712333);
+
+//middle branch
+  relation(3459600);
+  way(257712542);
+  way(257712325);
+  way(257712489);
+  way(257712345);
+  way(1094964729);
+  way(132394539);
+  way(224649021);
+  way(224649022);
+  way(224649065);
+  way(224649025);
+  way(224649027);
+  way(224649030);
+  way(224649032);
+  way(472952353);
+  way(224649058);
+  way(132394513);
+  way(224649054);
+  
+  //trees
+  node(1302463777);
+);
+(._;>;);
+out body;
+

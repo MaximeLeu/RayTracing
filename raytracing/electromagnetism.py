@@ -519,15 +519,23 @@ class SolvedField:
     class to store the data about the field computed at the end of a path
     """
     def __init__(self,path):
-        self.rx=path[-1] #1x3 numpy.ndarray
-        self.tx=path[0]
-        self.world_path=path #in world coordinates
-        self.path_len=geom.path_length(path)
-        self.time=self.path_len/c #float
+        if path is not None:
+            self.rx=path[-1] #1x3 numpy.ndarray
+            self.tx=path[0]
+            self.world_path=path #in world coordinates
+            self.path_len=geom.path_length(path)
+            self.time=self.path_len/c #float
+        else:
+            self.rx=None
+            self.tx=None
+            self.world_path=None
+            self.path_len=None
+            self.time=None
+        
 
         self.path_type=None #string
         self.rx_id=None #int
-        self.field=0 #stored in world coordinates, the field incident at the RX antenna.
+        self.field=np.array([0,0,0]) #stored in world coordinates, the field incident at the RX antenna.
         
         self.rx_antenna=None
         self.tx_antenna=None
@@ -573,8 +581,12 @@ class SolvedField:
         return
 
     def add_to_df(self,df):
-        tx_angles=np.array(np.degrees([self.tx_el,self.tx_az]))
-        rx_angles=np.array(np.degrees([self.rx_el,self.rx_az]))
+        tx_angles=None
+        rx_angles=None
+        if self.tx_el is not None and self.tx_az is not None:
+            tx_angles=np.array(np.degrees([self.tx_el,self.tx_az]))
+        if self.rx_el is not None and self.rx_az is not None:
+            rx_angles=np.array(np.degrees([self.rx_el,self.rx_az]))
         row = {
             'rx_id': self.rx_id,
             'receiver': self.rx,
@@ -612,7 +624,7 @@ def find_shortest_path(rtp,receiver):
     path_type=None
     shortest_path=None
     shortest_path_lenght=np.inf
-    for order in rtp.diffractions:
+    for order in rtp.diffractions[receiver]:
         for path in range(0,len(rtp.diffractions[receiver][order])):
             the_data=rtp.diffractions[receiver][order][path]
             the_path=the_data[0]
@@ -622,7 +634,7 @@ def find_shortest_path(rtp,receiver):
                 shortest_path=the_path
                 path_type="Diff"
 
-    for order in rtp.reflections:
+    for order in rtp.reflections[receiver]:
         for path in range(0,len(rtp.reflections[receiver][order])):
             the_data=rtp.reflections[receiver][order][path]
             the_path=the_data[0]
@@ -633,6 +645,8 @@ def find_shortest_path(rtp,receiver):
                 path_type="Ref"
 
     print(f'the shortest path is a {path_type}')
+    if path_type is None:
+        print(f"No path was found between TX and RX{receiver}")
     return shortest_path
 
 
@@ -672,7 +686,6 @@ def my_field_computation(rtp,save_name="problem_fields"):
             print(f'NO LOS for RX{receiver}')
         return
 
-    #TODO: account for trees for reflections, without duplicate in diffractions
     def compute_reflections(receiver,rtp,solved_list,tx_antenna):
         """
         For each pure reflections path reaching this receiver compute the field
@@ -754,33 +767,53 @@ def my_field_computation(rtp,save_name="problem_fields"):
     solution=[]
     df=SolvedField.create_sol_df()
     
+    #align TX antenna to a specific point and let it be
+    #rx antenna is always aligned in the best possible way
+    align_once=False
+    if align_once:
+        align_point=rtp.receivers[40]
+        print(f"ALIGNING TX ANTENNA TO {align_point} only ONCE")
+    
     for receiver in range(0,len(rtp.solved_receivers)):
         print(f"\n EM SOLVING RECEIVER {receiver}")
         tx_antenna=Antenna(tx)
         rx_antenna=Antenna(rtp.receivers[receiver])
 
         best_path=find_shortest_path(rtp,receiver)
-        tx_antenna.align_antenna_to_point(best_path[1])#first point
-        rx_antenna.align_antenna_to_point(best_path[-2])#second to last point
+        if best_path is not None:
+            tx_antenna.align_antenna_to_point(best_path[1])#first point
+            rx_antenna.align_antenna_to_point(best_path[-2])#second to last point
+            if align_once:
+                tx_antenna.align_antenna_to_point(align_point)
+           
 
-        this_solved_list=[] #list containing the fields for all the path between tx and this rx
-        compute_LOS(receiver,rtp,this_solved_list,tx_antenna)
-        compute_reflections(receiver, rtp,this_solved_list,tx_antenna)
-        compute_diffractions(receiver,rtp,this_solved_list,tx_antenna)
-        for sol in this_solved_list:
-            sol.rx_antenna=rx_antenna
-            sol.compute_rx_angles()
-            Ae=Antenna.compute_Ae(sol.rx_el,sol.rx_az)#rx radiation pattern and rx gain taken into account here
-            field_polarisation=vv_normalize(rx_antenna.vv_transform(sol.field,"W2A"))
-            polarisation_efficiency=(np.linalg.norm(np.dot(field_polarisation,rx_antenna.vv_transform(rx_antenna.polarisation,"W2A"))))**2
-            print(f"polarisation_eff {polarisation_efficiency}")
-            sol.power=1/(2*Z_0)*Ae*(np.linalg.norm(np.real(rx_antenna.vv_transform(sol.field,"W2A"))))**2
-            sol.power=sol.power*polarisation_efficiency*TX_GAIN 
-            #sol.show_antennas_alignement()
-            print(f"rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi:.2f}\u00b0 phi {sol.rx_az*180/pi:.2f}\u00b0")
+            this_solved_list=[] #list containing the fields for all the path between tx and this rx
+            compute_LOS(receiver,rtp,this_solved_list,tx_antenna)
+            compute_reflections(receiver, rtp,this_solved_list,tx_antenna)
+            compute_diffractions(receiver,rtp,this_solved_list,tx_antenna)
+            for sol in this_solved_list:
+                sol.rx_antenna=rx_antenna
+                sol.compute_rx_angles()
+                Ae=Antenna.compute_Ae(sol.rx_el,sol.rx_az)#rx radiation pattern and rx gain taken into account here
+                field_polarisation=vv_normalize(rx_antenna.vv_transform(sol.field,"W2A"))
+                polarisation_efficiency=(np.linalg.norm(np.dot(field_polarisation,rx_antenna.vv_transform(rx_antenna.polarisation,"W2A"))))**2
+                print(f"polarisation_eff {polarisation_efficiency}")
+                sol.power=1/(2*Z_0)*Ae*(np.linalg.norm(np.real(rx_antenna.vv_transform(sol.field,"W2A"))))**2
+                sol.power=sol.power*polarisation_efficiency*TX_GAIN 
+                #sol.show_antennas_alignement()
+                print(f"rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi:.2f}\u00b0 phi {sol.rx_az*180/pi:.2f}\u00b0")
+                df=sol.add_to_df(df)
+            solution.append(this_solved_list) #list of all the solutions, useless
+         
+        else:#no path between the receiver and the tx
+            this_solved_list=[]
+            sol=SolvedField(path=None)
+            sol.path_type="Impossible" #no path
+            sol.rx=rtp.receivers[receiver]
+            sol.rx_id=receiver
+            sol.tx=tx
+           
             df=sol.add_to_df(df)
-
-        solution.append(this_solved_list) #list of all the solutions, useless
     electromagnetism_utils.save_df(df,save_name)#saves into the result folder
     return df
 

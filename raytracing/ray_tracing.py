@@ -136,6 +136,9 @@ class RayTracingProblem:
             f'{self.place}, ' 
             f'emitter: {self.emitter}, '
             f'number of solved_receivers: {len(self.solved_receivers)}, '
+            f'los: {len(self.los)}, '
+            f'reflections: {len(self.reflections)}, '
+            f'diffractions : {len(self.diffractions)}'
             )
     
 
