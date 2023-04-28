@@ -168,8 +168,7 @@ class ElectromagneticField:
         r_vv=vv_normalize(r_vv)
 
         #field in antenna's coordinates
-        #E=-1j*K*Z_0/(4*pi)*np.exp(-1j*K*r)/r*ElectromagneticField.radiation_pattern(theta,phi)
-        E=-1j*138/(4*pi)*np.exp(-1j*K*r)/r*ElectromagneticField.radiation_pattern(theta,phi)
+        E=-1j*K*Z_0/(4*pi)*np.exp(-1j*K*r)/r*ElectromagneticField.radiation_pattern(theta,phi)
         E=E*vv_normalize(np.cross(np.cross(r_vv,tx_antenna.vv_transform(tx_antenna.polarisation,"W2A")),r_vv)) 
         E=tx_antenna.vv_transform(E,"A2W")#return to world coordinates
         return E
@@ -202,7 +201,7 @@ class ElectromagneticField:
         """
         Given the distance between TX and RX antennas compute the path loss in dB
         """
-        pr_pt=((LAMBDA/(4*pi*d))**2)*RX_GAIN*TX_GAIN*(ElectromagneticField.radiation_pattern(theta=0,phi=0))**2
+        pr_pt=((LAMBDA/(4*pi*d))**2)*RX_GAIN*TX_GAIN*(ElectromagneticField.radiation_pattern(theta=0,phi=0))**2 
         pl=10*np.log10(pr_pt)
         return pl
 
@@ -756,7 +755,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
 
     #Add trees foliage on top of each tree trunk
     rtp.place.add_tree_crowns()
-    place_utils.plot_place(rtp.place,tx,name="place with tree crowns")
+    #place_utils.plot_place(rtp.place,tx,name="place with tree crowns")
     
     #randomly add tree foliage everywhere
     #for _ in range(0,N_TREES):

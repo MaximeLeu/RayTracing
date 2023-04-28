@@ -20,6 +20,19 @@ from raytracing.materials_properties import P_IN,\
                                 K,\
                                 Z_0\
 
+def MSE(real,simu):
+    mse = (np.linalg.norm(real-simu)**2)/len(real)
+    return mse
+
+def angle_distance(alpha, beta):
+    #ex: distance(0,300)=60  distance(-5,10)=15
+    phi = abs(beta - alpha) % 360 
+    distance = 360 - phi if phi > 180 else phi
+    return distance
+
+def bring_angles_deg_in_0_360_range(angles):
+    angles = np.array(angles)
+    return (angles + 360) % 360
 
 def generate_path_types_of_order(order):
     """

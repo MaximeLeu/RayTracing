@@ -89,34 +89,20 @@ def run_saint_jean_simu(points_filename,order=2,flat=False):
 if __name__ == '__main__':
     file_utils.chdir_to_file_dir(__file__)
     plt.close("all")
-    #points_filename="../data/place_saint_jean/place_saint_jean_160_points_d_4.json"
-    # points_filename="../data/place_saint_jean/place_saint_jean_16_points_d_4.json"
-   
-    #electromagnetism_plots.plot_order_importance(solved_em_path)
-    #electromagnetism_plots.EM_fields_plots(solved_em_path,name="place_saint_jean")
-    
-    # solved_rays_path="../results/place_saint_jean_16p_ray_solved.json"
-    # problem=ray_tracing.RayTracingProblem.from_json(solved_rays_path)
-    # problem.plot_specific_receiver(10)
-    
-    # points_filename="../data/place_saint_jean/place_saint_jean_16_points_d_4.json"
-    # Place_saint_jean.plot_points(points_filename)
-    
-    # df=electromagnetism_utils.load_df(solved_em_path)
-    # receivers=[1]
-    # electromagnetism_plots.plot_rx_rays_distribution(df,receivers)
-    # electromagnetism_plots.plot_rays_on_sphere_helper(df,receivers)
-    
     
     def run_simu_suite(points_filename="../data/place_saint_jean/place_saint_jean_16_points_d_4.json"):
-        receivers=[1]
-        
         tx,solved_em_path,solved_rays_path=run_saint_jean_simu(points_filename,order=2,flat=False)
         df=electromagnetism_utils.load_df(solved_em_path)
         save_name='slanted_stjean' 
         radiomap(df,save_name,interpolation_method='linear')
-        electromagnetism_plots.plot_rx_rays_distribution(df,receivers,save_name)
-        electromagnetism_plots.plot_rays_on_sphere_helper(df,receivers,save_name)
+        #electromagnetism_plots.plot_rx_rays_distribution(df,receivers=[1],save_name)
+        #electromagnetism_plots.plot_rays_on_sphere_helper(df,receivers=[1],save_name)
+        electromagnetism_plots.plot_delay_spread_pdf(df, save_name)
+        electromagnetism_plots.plot_angular_spread_cdf(df, save_name)
+        
+        #problem=ray_tracing.RayTracingProblem.from_json(solved_rays_path)
+        #problem.plot_specific_receiver(10)
+        
          
         # save_name='flat_stjean' 
         # tx,solved_em_path,solved_rays_path=run_saint_jean_simu(points_filename,order=2,flat=True)
@@ -125,5 +111,6 @@ if __name__ == '__main__':
         # electromagnetism_plots.plot_rx_rays_distribution(df,receivers,save_name)
         # electromagnetism_plots.plot_rays_on_sphere_helper(df,receivers,save_name)
         
-    run_simu_suite()
+    points_filename="../data/place_saint_jean/place_saint_jean_16_points_d_4.json"
+    run_simu_suite(points_filename)
         

@@ -23,6 +23,7 @@ MIN_TREE_HEIGHT=10
 MAX_TREE_HEIGHT=20
 TREE_SIZE=2
 FREQUENCY=12.5*1e9 #in Hz
+#FREQUENCY=30*1e9
 
 LAMBDA=c/FREQUENCY
 K=2*pi/LAMBDA
@@ -34,13 +35,9 @@ RADIATION_EFFICIENCY=1
 RADIATION_POWER=RADIATION_EFFICIENCY*P_IN
 
 ALPHA=10#increase alpha to make the antenna more directive.
-#TX_GAIN=4*pi*1/((pi/6)**2) #4pi/(az*el), where az and el are the 3db beamdidths angles in radians
-#RX_GAIN=4*pi*1/((pi/9)**2) #20 degree beamwidth  approx 103
-#RX_GAIN=RX_GAIN*30 #*170 at 30GHz and *30 at 12.5GHz
-TX_GAIN=450
-RX_GAIN=300
 
-
+TX_GAIN=1  #at 30GHz
+RX_GAIN=.5 #at 30GHz
 
 
 ITU="ITU-R P.2040-2"

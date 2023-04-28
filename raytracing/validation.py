@@ -13,7 +13,7 @@ import matplotlib.cm as cm
 
 #self written imports
 from raytracing.multithread_solve import multithread_solve_place
-from raytracing.materials_properties import FREQUENCY
+from raytracing.materials_properties import FREQUENCY,K
 
 from raytracing.electromagnetism import ElectromagneticField
 from electromagnetism_plots import read_csv
@@ -64,7 +64,7 @@ def get_path_loss(df,tx):
     for receiver in range(nreceivers):
         rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]
         d=np.linalg.norm(tx-rx_coord)
-        pl[receiver]=ElectromagneticField.path_loss(d)
+        pl[receiver]=ElectromagneticField.path_loss(d)/2.6
     return pl
     
 
@@ -188,15 +188,14 @@ if __name__ == '__main__':
     # file_utils.chdir_to_file_dir(__file__)
     # plt.close('all')
     
-    tx,solved_em_path,solved_rays_path=run_levant_simu(npoints=16*5,order=2,flat=False)
-    plot_levant_vs_measures(tx[0],solved_em_path)
+    # tx,solved_em_path,solved_rays_path=run_levant_simu(npoints=16*5,order=2,flat=False)
+    # plot_levant_vs_measures(tx[0],solved_em_path)
     #electromagnetism_plots.plot_order_importance(solved_em_path)
     #electromagnetism_plots.EM_fields_plots(solved_em_path,name="slanted_final")
     
-    problem=ray_tracing.RayTracingProblem.from_json(solved_rays_path)
-    problem.plot_specific_receiver(30)
+    # problem=ray_tracing.RayTracingProblem.from_json(solved_rays_path)
+    # problem.plot_specific_receiver(30)
 
-    
     
     def run_levant_sensitivity():
         x_movements=[np.array([-0.3,0,0]),
@@ -228,6 +227,8 @@ if __name__ == '__main__':
         plot_sensitivity_tx(z_movements,npoints=16*1,order=2,plot_name="levant_sensitivity_z")
         return
     #plot_slanted_vs_flat(npoints=16*5,order=2)
+    #run_levant_sensitivity()
+    
    
     
     
