@@ -20,6 +20,13 @@ from raytracing.materials_properties import P_IN,\
                                 K,\
                                 Z_0\
 
+def cdf(array):
+    arr=np.sort(array)
+    N=len(arr)
+    p=np.array(range(N))/float(N)
+    return arr,p #x,y
+
+
 def MSE(real,simu):
     mse = (np.linalg.norm(real-simu)**2)/len(real)
     return mse

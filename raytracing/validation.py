@@ -10,6 +10,7 @@ Code to validate the program
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import scipy as sc
 
 #self written imports
 from raytracing.multithread_solve import multithread_solve_place
@@ -83,16 +84,30 @@ def plot_levant_vs_measures(tx,solved_em_path):
     print(f"PLotting {geometry} vs measures")
     
     pl=get_path_loss(df,tx)
-    x,y=get_corresponding_measures("february")
+    #x,y=get_corresponding_measures("february")
     x1,y1=get_corresponding_measures("october")
     simu_x,simu_y=read_simu(df,tx)
+    
+    
+    #xlim the simu to match the measures
+    print(f"simu x before {simu_x}")
+    simu_x=simu_x[simu_x<=np.max(x1)]
+    print(f"simu_x after {simu_x}")
+    print(f"measures x: {x1}")
+    cut=len(simu_x)
+    simu_y=simu_y[:cut]
+    pl=pl[:cut]
+    
+    f_mes = sc.interpolate.interp1d(x1, y1,fill_value='extrapolate')
+    simu_interp_meas=f_mes(simu_x)
+    simu_MSE=electromagnetism_utils.MSE(simu_y,simu_interp_meas)
     
     fig, ax = plt.subplots(figsize=(20, 8))
     
     ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/(1e9)} GHz',fontsize=20)
     #ax.plot(x,y,color='green', marker='o',label="february measures")
     ax.plot(x1,y1,color='red', marker='o',label="october measures")
-    ax.plot(simu_x,simu_y,color="orange",marker='o',label='simulation')
+    ax.plot(simu_x,simu_y,color="orange",marker='o',label=f'simulation. MSE={simu_MSE:.2f}')
     ax.plot(simu_x,pl,label='path loss')
     
     ax.grid()
@@ -100,7 +115,7 @@ def plot_levant_vs_measures(tx,solved_em_path):
     ax.set_xlabel('Distance to Maxwell building base [m]',fontsize=20)
     ax.set_ylabel('Received power [dB]',fontsize=20)
     
-    ax.set_xlim([30, 83]) #for october measures
+    #ax.set_xlim([30, 83]) #for october measures
     
     ax.legend(fontsize=20)
     plt.savefig(f"../results/plots/{geometry}_validation.eps", format='eps', dpi=300,bbox_inches='tight')
@@ -123,14 +138,30 @@ def plot_slanted_vs_flat(npoints,order):
     mes_x,mes_y=get_corresponding_measures("october")
     flat_x,flat_y=read_simu(flat_df,flat_tx)
     slanted_x,slanted_y=read_simu(slanted_df,slanted_tx)
-
+    
+    #xlim the simu to match the measures
+    flat_x=flat_x[flat_x<np.max(mes_x)]
+    cut=len(flat_x)
+    flat_y=flat_y[:cut]
+    
+    slanted_x=slanted_x[slanted_x<np.max(mes_x)]
+    cut=len(slanted_x)
+    slanted_y=slanted_y[:cut]
+    
+    #interpolate the measures on the simulation points:
+    f_mes = sc.interpolate.interp1d(mes_x, mes_y,fill_value='extrapolate')
+    flat_interp_meas=f_mes(flat_x)
+    slanted_interp_meas=f_mes(slanted_x)
+    flat_MSE=electromagnetism_utils.MSE(flat_y,flat_interp_meas)
+    slanted_MSE=electromagnetism_utils.MSE(slanted_y,slanted_interp_meas)
+    
 
     fig, ax = plt.subplots(figsize=(20, 8))
     ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/(1e9)} GHz for flat and slanted ground',fontsize=20)
     
     #ax.plot(x1,y1,color='red', marker='o',label="october measures")
-    ax.plot(flat_x,flat_y,color="blue",marker='o',label='flat ground')
-    ax.plot(slanted_x,slanted_y,color="orange",marker='o',label='slanted ground')
+    ax.plot(flat_x,flat_y,color="blue",marker='o',label=f'flat ground. MSE={flat_MSE:.2f}')
+    ax.plot(slanted_x,slanted_y,color="orange",marker='o',label=f'slanted ground. MSE={slanted_MSE:.2f}')
     ax.plot(mes_x,mes_y,color='red', marker='o',label="october measures")
     
     ax.grid()
@@ -139,7 +170,7 @@ def plot_slanted_vs_flat(npoints,order):
     ax.set_ylabel('Received power [dB]',fontsize=20)
     ax.legend(fontsize=20)
     
-    ax.set_xlim([30, 83]) #for october measures
+    #ax.set_xlim([30, 83]) #for october measures
     
     plt.savefig("../results/plots/flat_vs_slanted.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
@@ -156,6 +187,7 @@ def plot_sensitivity_tx(movements,npoints,order,plot_name):
     normal_df=electromagnetism_utils.load_df(solved_em_path)
     normal_y=electromagnetism_utils.get_power_db_each_receiver(normal_df)    
 
+    mse=np.zeros(len(movements))
     fig, ax = plt.subplots(figsize=(20, 10))
     colors = cm.rainbow(np.linspace(0, 1, len(movements)))
     for idx, movement in enumerate(movements):
@@ -165,7 +197,9 @@ def plot_sensitivity_tx(movements,npoints,order,plot_name):
                                                                  order=order,save_name=f"{geometry}_{npoints}p_{plot_name}")
         moved_df = electromagnetism_utils.load_df(solved_em_path2)
         moved_y = electromagnetism_utils.get_power_db_each_receiver(moved_df)
-        ax.plot(range(npoints), moved_y,color=colors[idx], marker='o', label=f'tx moved of +{movement}m')
+        mse[idx]=electromagnetism_utils.MSE(normal_y,moved_y)
+        ax.plot(range(npoints), moved_y,color=colors[idx], marker='o', label=f'tx+={movement}m MSE={mse[idx]:.2f}')
+        
     
     ax.plot(range(npoints),normal_y,color="black",marker='o',label='baseline')
     ax.set(title=f'TX sensitivity study at {FREQUENCY/(1e9)} GHz',
@@ -176,6 +210,7 @@ def plot_sensitivity_tx(movements,npoints,order,plot_name):
     ax.grid()
     plt.savefig(f"../results/plots/{plot_name}.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
+    print(f"MSE for each movement: {mse}")
     return
     
     
@@ -188,8 +223,8 @@ if __name__ == '__main__':
     # file_utils.chdir_to_file_dir(__file__)
     # plt.close('all')
     
-    # tx,solved_em_path,solved_rays_path=run_levant_simu(npoints=16*5,order=2,flat=False)
-    # plot_levant_vs_measures(tx[0],solved_em_path)
+    tx,solved_em_path,solved_rays_path=run_levant_simu(npoints=16*5,order=2,flat=False)
+    plot_levant_vs_measures(tx[0],solved_em_path)
     #electromagnetism_plots.plot_order_importance(solved_em_path)
     #electromagnetism_plots.EM_fields_plots(solved_em_path,name="slanted_final")
     
@@ -221,7 +256,7 @@ if __name__ == '__main__':
                      np.array([0,0,0.2]),
                      np.array([0,0,0.3])
                      ]
-        
+        #close the created plot to start computing of the next one.
         plot_sensitivity_tx(x_movements,npoints=16*1,order=2,plot_name="levant_sensitivity_x")
         plot_sensitivity_tx(y_movements,npoints=16*1,order=2,plot_name="levant_sensitivity_y")
         plot_sensitivity_tx(z_movements,npoints=16*1,order=2,plot_name="levant_sensitivity_z")

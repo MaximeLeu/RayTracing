@@ -152,7 +152,8 @@ def levant_find_crucial_coordinates(filename="../data/place_levant_edited.geojso
     maxwell_point=gdf.loc[gdf['id']=="node/2368705254"]["geometry"].values[0]
     maxwell_entrance=np.array([maxwell_point.x,maxwell_point.y,0])
     
-    levant_bottom=maxwell_entrance+np.array([-94,0,0])
+    levant_bottom=maxwell_entrance+np.array([-94,0,0])#february measures
+    #levant_bottom=maxwell_entrance+np.array([-83,0,0]) #october measures
     
     stevin_entrance_point=gdf.loc[gdf['id']=="node/8804430834"]["geometry"].values[0]
     stevin_entrance=np.array([stevin_entrance_point.x,stevin_entrance_point.y,0])
@@ -717,16 +718,17 @@ if __name__ == '__main__':
     plt.close("all")
     #place,tx,geometry=create_small_place(npoints=10)
     #place,tx,geometry=create_flat_levant(npoints=16)
-    #place,tx,geometry=create_slanted_levant(npoints=8)
+    #place,tx,geometry=create_slanted_levant(npoints=16*5)
     #place,tx,geometry=create_two_rays_place(npoints=5)
     
     #points,points_filename=Place_saint_jean.create_points(npoints=16,d=4)
     points_filename="../data/place_saint_jean/place_saint_jean_16_points_d_4.json"
     #Place_saint_jean.plot_points(points_filename)
     
-    place,tx,geometry=Place_saint_jean.create_place_saint_jean(points_filename=points_filename)
-    #place,tx,geometry=Place_saint_jean.create_slanted_place_saint_jean(points_filename=points_filename)
+    #place,tx,geometry=Place_saint_jean.create_place_saint_jean(points_filename=points_filename)
+    place,tx,geometry=Place_saint_jean.create_slanted_place_saint_jean(points_filename=points_filename)
     
+    place.set_of_points=place.set_of_points[0]
     plot_place(place, tx,show_normals=False)
 
    

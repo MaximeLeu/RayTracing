@@ -293,27 +293,22 @@ def plot_order_importance(solved_em_path):
     return
 
 
-def plot_delay_spread_pdf(df, name):
-    # https://rfmw.em.keysight.com/wireless/helpfiles/89600b/webhelp/Subsystems/channelsounding/content/trc_soundingmetrics_rmsdelayspread.htm
-    def compute_RMS_delay_spread_single_receiver(df, receiver):
-        data = df.loc[df["rx_id"] == receiver].reset_index()
-        ta = data['time_to_receiver'].min()
-        ak_squared = data['path_power']**2
-        sum_ak_squared = ak_squared.sum()
-        tm = sum(((data['time_to_receiver'] - ta)
-                 * ak_squared) / sum_ak_squared)
-        trms = (ak_squared*(data['time_to_receiver'] -
-                ta - tm)**2).sum() / sum_ak_squared
-        trms = np.sqrt(trms)
-        return trms
-    # drop unreachable receivers.
+def compute_RMS_delay_spreads(df):
+    #https://www.itu.int/dms_pubrec/itu-r/rec/p/R-REC-P.1407-6-201706-I!!PDF-E.pdf
     df = df.dropna(subset=['tx_angles', 'rx_angles'])
     receivers = df['rx_id'].unique()
-    trms = np.zeros(len(receivers))
+    trms=np.zeros(len(receivers))
     for i, receiver in enumerate(receivers):
-        trms[i] = compute_RMS_delay_spread_single_receiver(df, receiver)
+        data = df.loc[df["rx_id"] == receiver]
+        total_power = data["path_power"].sum()
+        t0 = data['time_to_receiver'].min()
+        t_mean=np.dot(data["time_to_receiver"],data["path_power"])/total_power-t0
+        trms[i]=np.sqrt(np.dot((data['time_to_receiver']-t0-t_mean)**2,data["path_power"])/total_power)
+    return trms
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+def plot_RMS_delay_spreads_pdf(df, name):
+    trms=compute_RMS_delay_spreads(df)
+    fig, ax = plt.subplots(figsize=(10, 6))
     sns.histplot(trms*1e9, kde=False, stat='density', bins=30, ax=ax)
     ax.set(xlabel='RMS delay Spread (ns)',
            ylabel='Probability Density',
@@ -325,7 +320,63 @@ def plot_delay_spread_pdf(df, name):
     return
 
 
-def compute_angular_spread(df):
+def compute_RMS_angular_spreads(df):
+    #https://www.itu.int/dms_pubrec/itu-r/rec/p/R-REC-P.1407-6-201706-I!!PDF-E.pdf
+    df = df.dropna(subset=['tx_angles', 'rx_angles'])
+    receivers = df['rx_id'].unique()
+    RMS_az_spreads, RMS_el_spreads = np.zeros(len(receivers)), np.zeros(len(receivers))
+    for i, receiver in enumerate(receivers):
+        data = df.loc[df["rx_id"] == receiver].copy().reset_index()
+        total_power = data["path_power"].sum()
+        
+        most_powerful_ray=data["path_power"].idxmax()
+        power_el=data.loc[most_powerful_ray,"rx_angles"][0]
+        power_az=data.loc[most_powerful_ray,"rx_angles"][1]
+        
+        #put the angles relative to the most powerful ray
+        rx_el = data["rx_angles"].apply(lambda x: electromagnetism_utils.angle_distance(x[0],power_el))
+        rx_az = data["rx_angles"].apply(lambda x: electromagnetism_utils.angle_distance(x[1],power_az))
+        
+        rx_el=np.deg2rad(rx_el)
+        rx_az=np.deg2rad(rx_az)
+        
+        el_mean=np.dot(rx_el,data["path_power"])/total_power
+        az_mean=np.dot(rx_az,data["path_power"])/total_power
+        
+        RMS_el_spreads[i]=np.sqrt(np.dot((rx_el-el_mean)**2,data["path_power"])/total_power)
+        RMS_az_spreads[i]=np.sqrt(np.dot((rx_az-az_mean)**2,data["path_power"])/total_power)
+        
+    RMS_el_spreads=np.degrees(RMS_el_spreads)
+    RMS_az_spreads=np.degrees(RMS_az_spreads)
+    return RMS_az_spreads,RMS_el_spreads
+
+
+def plot_RMS_angular_spreads_cdf(df,save_name):
+    az_spreads,el_spreads=compute_RMS_angular_spreads(df)
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 6))
+    x1,y1=electromagnetism_utils.cdf(az_spreads)
+    x2,y2=electromagnetism_utils.cdf(el_spreads)
+    ax1.plot(x1,y1,'-o')
+    ax1.set(xlabel="RMS azimuth spread (deg)",
+           ylabel='Cumulative probability',
+           title="RMS azimuth spread cdf")
+    ax1.grid()
+    
+    ax2.plot(x2,y2,'-o')
+    ax2.set(xlabel="RMS elevation spread (deg)",
+            ylabel='Cumulative probability',
+            title="RMS elevation spread cdf")
+    ax2.grid() 
+    plt.savefig(f"../results/plots/RMS_angular_spread_cdf_{save_name}.eps",
+                format='eps', dpi=300, bbox_inches='tight')
+    plt.show()
+
+
+
+
+def compute_angular_windows(df):
+    #THIS IS THE ANGULAR WINDOW.
     #find the closest bundle of rays that contribute to 70% of the total received power.
     #then compute the spread between the two furthest apart rays of the bundle.
     #power threshold=70%
@@ -344,7 +395,7 @@ def compute_angular_spread(df):
         # 1:put all [elevation,azimuth] values on a sphere of radius 1.
         # 2:Convert to euclidian coordinates
         # 3:Compute euclidian distance.
-    POWER_PERCENT = 0.98 #percent of power that must be in the cluster
+    POWER_PERCENT = 0.99 #percent of power that must be in the cluster
   
     def find_power_contributors_cluster(data,centroid,other_points):
         #given a centroid, and an array of points around it (including itself), find the smallest cluster of points
@@ -427,34 +478,32 @@ def compute_angular_spread(df):
 
 
 
-def plot_angular_spread_cdf(df,save_name):
+def plot_angular_windows_cdf(df,save_name):
     #plot the percentage of receivers where the angle spread is under ...degrees
     #percentage of receives where >70% power is received within a ...degrees radius.
-    az_spreads,el_spreads=compute_angular_spread(df)
+    az_win,el_win=compute_angular_windows(df)
+    
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 6))
-    def cdf(array):
-        arr=np.sort(array)
-        N=len(arr)
-        p=np.array(range(N))/float(N)
-        return arr,p #x,y
-    x1,y1=cdf(az_spreads)
-    x2,y2=cdf(el_spreads)
+    x1,y1=electromagnetism_utils.cdf(az_win)
+    x2,y2=electromagnetism_utils.cdf(el_win)
     ax1.plot(x1,y1,'-o')
-    ax1.set(xlabel="Azimuth spread (deg)",
+    ax1.set(xlabel="Azimuth angular window (deg)",
            ylabel='Cumulative probability',
-           title="Azimuth spread cdf")
+           title="Azimuth angular window cdf")
     ax1.grid()
     
     ax2.plot(x2,y2,'-o')
-    ax2.set(xlabel="Elevation spread (deg)",
+    ax2.set(xlabel="Elevation angular window (deg)",
             ylabel='Cumulative probability',
-            title="Elevation spread cdf")
+            title="Elevation angular window cdf")
     ax2.grid() 
-    plt.savefig(f"../results/plots/angular_spread_cdf_{save_name}.eps",
+    plt.savefig(f"../results/plots/angular_windows_cdf_{save_name}.eps",
                 format='eps', dpi=300, bbox_inches='tight')
     plt.show()
     
     
+    
+
 
 
 if __name__ == '__main__':
@@ -470,6 +519,9 @@ if __name__ == '__main__':
     # plot_measures_only()
     # EM_fields_plots(df_path)
     # plot_rays_on_sphere_helper(df_path)
-    # plot_delay_spread_pdf(df,'delay_spread_test')
-    plot_angular_spread_cdf(df,"test_angle_spreads_cdf")
+    
+    plot_RMS_delay_spreads_pdf(df,"test")
+    plot_RMS_angular_spreads_cdf(df,"test")
+    plot_angular_windows_cdf(df,"test")
+   
     
