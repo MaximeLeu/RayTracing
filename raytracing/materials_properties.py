@@ -34,10 +34,12 @@ P_IN=1
 RADIATION_EFFICIENCY=1
 RADIATION_POWER=RADIATION_EFFICIENCY*P_IN
 
+ISOTROPIC_ANTENNA=True #make the tx and RX antennas isotropic
 ALPHA=10#increase alpha to make the antenna more directive.
 
-TX_GAIN=1  #at 30GHz
-RX_GAIN=.5 #at 30GHz
+
+#TX_GAIN,RX_GAIN=1,0.5 #for levant validation
+TX_GAIN,RX_GAIN=1,1
 
 
 ITU="ITU-R P.2040-2"

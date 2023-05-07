@@ -66,8 +66,8 @@ def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3,save_name=None):
     Saves the plots and dataframe in the results folder.
     place: place with all the receivers added
     """
-    print("Starting solving of the ray tracing problems")
     npoints=len(place.set_of_points)
+    print(f"Starting solving of the ray tracing problems. {npoints} points to compute.")
     if save_name is None:
         save_name=f'{geometry}_{npoints}p'
     

@@ -17,6 +17,7 @@ from pathlib import Path
 #self written imports
 import raytracing.geometry as geom
 from raytracing.materials_properties import set_properties, LAMBDA
+from scipy.spatial.transform import Rotation
 
 from shapely.geometry import LineString, MultiPolygon, Polygon,Point
 from shapely.ops import split
@@ -102,7 +103,6 @@ def create_dummy_place():
     return place, tx, geometry
 
 
-
 def create_two_rays_place(npoints=20):
     geometry="two_rays"
     #add ground
@@ -123,216 +123,6 @@ def create_two_rays_place(npoints=20):
     return place, tx, geometry
 
 
-#TODO: add receivers randomly otherwise they may end up inside buildings
-def create_my_geometry():
-    geometry="mygeometry"
-    #create place
-    geometry_filename="../data/TutorialTest/sciences.geojson"
-    geometry_filename=geom.sample_geojson(geometry_filename,nBuildings=10)
-    preprocessed_name=geom.preprocess_geojson(geometry_filename)
-    
-    place = geom.generate_place_from_rooftops_file(preprocessed_name)
-    # add TX and RX
-    ground_center = place.get_centroid()
-    tx = ground_center + [-50, 5, 1]
-    rx = ground_center + [-100,10,1]
-    tx = tx.reshape(-1, 3)
-    rx = rx.reshape(-1, 3)
-    place.add_set_of_points(rx)
-    place.to_json(filename=f"../data/{geometry}.json")
-    return place,tx, geometry
-
-
-def levant_find_crucial_coordinates(filename="../data/place_levant_edited.geojson"):
-    #Only useful to create the levant scenarios.
-    gdf = gpd.read_file(filename)
-    gdf.to_crs(epsg=3035, inplace=True)
-    geom.center_gdf(gdf)
-
-    maxwell_point=gdf.loc[gdf['id']=="node/2368705254"]["geometry"].values[0]
-    maxwell_entrance=np.array([maxwell_point.x,maxwell_point.y,0])
-    
-    levant_bottom=maxwell_entrance+np.array([-94,0,0])#february measures
-    #levant_bottom=maxwell_entrance+np.array([-83,0,0]) #october measures
-    
-    stevin_entrance_point=gdf.loc[gdf['id']=="node/8804430834"]["geometry"].values[0]
-    stevin_entrance=np.array([stevin_entrance_point.x,stevin_entrance_point.y,0])
-    
-    reaumur_entrance_point=gdf.loc[gdf['id']=="node/2034353808"]["geometry"].values[0]
-    reaumur_entrance=np.array([reaumur_entrance_point.x,reaumur_entrance_point.y,0])
-
-    vinci_tree_point=gdf.loc[gdf['id']=="node/5710653390"]["geometry"].values[0]
-    vinci_tree_spot=np.array([vinci_tree_point.x,vinci_tree_point.y,0])
-    maxwell_tree_point=gdf.loc[gdf['id']=="node/5710653391"]["geometry"].values[0]
-    maxwell_tree_spot=np.array([maxwell_tree_point.x,maxwell_tree_point.y,0])
-    stevin_tree_point=gdf.loc[gdf['id']=="node/5710653392"]["geometry"].values[0]
-    stevin_tree_spot=np.array([stevin_tree_point.x,stevin_tree_point.y,0])
-    
-    entrances=[maxwell_entrance,stevin_entrance,reaumur_entrance]
-    tree_spots=[vinci_tree_spot,maxwell_tree_spot,stevin_tree_spot]
-    bound_points=geom.get_bounds(gdf)
-    return entrances,levant_bottom,bound_points,tree_spots
-    
-
-
-def levant_add_trees(tree_spots):
-    rotate = False
-    vinci_tree_spot, maxwell_tree_spot, stevin_tree_spot = tree_spots
-    
-    trunk_size,trunk_height=[0.5,4]
-    crown_size, crown_height = [2, 5]
-    vinci_tree_trunk = geom.Building.create_tree_trunk(vinci_tree_spot, trunk_size, trunk_height,rotate,\
-                                                       crown_size, crown_height)                                                                                                    
-    vinci_tree_crown = geom.Building.create_tree_crown(vinci_tree_trunk, crown_size, crown_height,rotate)
-        
-    trunk_size,trunk_height=[0.5,4.5]
-    crown_size, crown_height = [2, 4.5]
-    maxwell_tree_trunk = geom.Building.create_tree_trunk(maxwell_tree_spot, trunk_size, trunk_height,rotate,\
-                                                         crown_size, crown_height)
-    maxwell_tree_crown = geom.Building.create_tree_crown(maxwell_tree_trunk, crown_size, crown_height,rotate)
-    
-    trunk_size,trunk_height=[0.5,6.5]
-    crown_size, crown_height = [2, 2]
-    stevin_tree_trunk = geom.Building.create_tree_trunk(stevin_tree_spot, trunk_size, trunk_height,rotate,\
-                                                        crown_size, crown_height,)
-    stevin_tree_crown = geom.Building.create_tree_crown(stevin_tree_trunk, crown_size, crown_height,rotate)
-    
-    tree_trunks = [vinci_tree_trunk, maxwell_tree_trunk, stevin_tree_trunk]
-    tree_crowns = [vinci_tree_crown, maxwell_tree_crown, stevin_tree_crown]
-    return tree_trunks, tree_crowns
-
-
-
-def create_flat_levant(npoints=15):
-    geometry="flat_levant"
-    geometry_filename='../data/place_levant_edited.geojson'
-    preprocessed_name=geom.preprocess_geojson(geometry_filename)
-    place = geom.generate_place_from_rooftops_file(preprocessed_name)
-    
-    entrances,levant_bottom,_,tree_spots=levant_find_crucial_coordinates(geometry_filename)
-    maxwell_entrance,_,_=entrances
-    
-    def add_tx_rx(place, maxwell, levant_bottom, npoints):
-        RX_HEIGHT = 1.2
-        TX_HEIGHT = 1.2
-        MAXWELL_HEIGHT=17.5
-        tx=maxwell_entrance+np.array([23,6,MAXWELL_HEIGHT+TX_HEIGHT])
-        tx = tx.reshape(-1, 3)
-        rx0 = maxwell + np.array([-34, 0, RX_HEIGHT])
-        step = np.linalg.norm(levant_bottom - rx0) / npoints
-        for receiver in range(npoints):
-            rx = rx0 + np.array([-step * receiver, 0, 0])    
-            place.add_set_of_points(rx.reshape(-1, 3)) 
-        return tx    
-
-    #construct stairs
-    # stairs_polyhedron=place.polyhedra[3]
-    # sh_rectangle=stairs_polyhedron.get_top_face()
-    # polygons=split_rectangle(sh_rectangle,nx=1,ny=1)  
-    # polyhedrons=build_staircase(polygons,place.surface.polygons[0])
-    # del place.polyhedra[3]
-    # place.polyhedra.extend(polyhedrons)
-
-    
-    tree_trunks,tree_crowns=levant_add_trees(tree_spots)
-    place.polyhedra.extend(tree_trunks)
-    #place.polyhedra.extend(tree_crowns) #when added here tree crowns are blocking rays.
-
-    tx=add_tx_rx(place, maxwell_entrance, levant_bottom, npoints)
-    place.to_json(filename=f"../data/{geometry}.json")
-    return place,tx,geometry
-
-
-def create_slanted_levant(npoints=15):
-    
-    geometry="slanted_levant"
-    geometry_filename='../data/place_levant_edited.geojson'
-    preprocessed_name=geom.preprocess_geojson(geometry_filename)
-    place = geom.generate_place_from_rooftops_file(preprocessed_name)
-    
-    entrances,levant_bottom,bound_points,tree_spots=levant_find_crucial_coordinates(geometry_filename)
-    maxwell_entrance,stevin_entrance,reaumur_entrance=entrances
-    
-    deltaH=3 #height difference between top and bottom of levant street
-    tree_spots = [arr + np.array([0,0,deltaH]) for arr in tree_spots]
-    
-    bottom_left=bound_points[0] #behind the barb
-    top_right=bound_points[2]+np.array([0,0,deltaH])#behind the maxwell
-    low_right=np.array([reaumur_entrance[0],top_right[1],0]) #start of slope
-    high_left=np.array([stevin_entrance[0],bottom_left[1],deltaH]) #end of slope
-    
-    def create_grounds(bottom_left,top_right,low_right,high_left):
-        ground1=geom.Square.by_2_corner_points(np.array([bottom_left,low_right])) #flat ground between barb and vinci
-        ground2=geom.Square.by_2_corner_points(np.array([low_right,high_left])) #slanted ground between vinci and stevin
-        ground3=geom.Square.by_2_corner_points(np.array([high_left,top_right])) #flat ground between stevin and maxwell
-        
-        #ensure normals are pointing upwards
-        ground1=ground1.rotate(axis=np.array([0,1,0]), angle_deg=180)
-        ground3=ground3.rotate(axis=np.array([0,1,0]), angle_deg=180)
-        
-        ground1.properties=set_properties("road")
-        ground2.properties=set_properties("road")
-        ground3.properties=set_properties("road")
-        grounds=[ground1,ground2,ground3]
-        return grounds
-    
-    grounds=create_grounds(bottom_left,top_right,low_right,high_left)
-    
-    def define_levant_top_bottom(grounds,maxwell_entrance,levant_bottom):
-        points = [maxwell_entrance, maxwell_entrance + np.array([0, 0, 100])]
-        maxwell_entrance = geom.polygon_line_intersection(grounds[2], points)
-        
-        points = [levant_bottom, levant_bottom + np.array([0, 0, 100])]
-        levant_bottom = geom.polygon_line_intersection(grounds[0], points)
-        return maxwell_entrance, levant_bottom
-    
-    maxwell_entrance, levant_bottom=define_levant_top_bottom(grounds,maxwell_entrance,levant_bottom)
-    
-    buildings=rebuild_buildings_on_slanted_grounds(place,grounds)
-    tree_trunks,tree_crowns=levant_add_trees(tree_spots)
-    buildings.extend(tree_trunks)
-    #buildings.extend(tree_crowns) #when added here tree crowns are blocking rays.
-    
-    #rebuild the place
-    place=geom.OrientedPlace(geom.OrientedSurface(grounds),buildings)
-    #place.surface=place.surface.translate(np.array([0,0,100])) #to check easily if ground normals are well set
-
-    def add_tx_rx(place, maxwell_entrance, levant_bottom, npoints):
-        RX_HEIGHT = 1.2
-        TX_HEIGHT = 1.2
-        MAXWELL_HEIGHT=17.5
-        tx=maxwell_entrance+np.array([23,6,MAXWELL_HEIGHT+TX_HEIGHT])
-        tx = tx.reshape(-1, 3)
-        rx0 = maxwell_entrance + np.array([-34, 0, RX_HEIGHT])
-        step = np.linalg.norm(levant_bottom - rx0) / npoints
-        for receiver in range(npoints):
-            rx = rx0 + np.array([-step * receiver, 0, 0])    
-            if rx[0] < high_left[0]:  # in the slope
-                rx = geom.polygon_line_intersection(grounds[1], [rx, rx + np.array([0, 0, 100])])
-                rx = rx + np.array([0, 0, RX_HEIGHT])     
-            if rx[0] < low_right[0]:  # on flat ground again
-                rx[2] = RX_HEIGHT     
-            place.add_set_of_points(rx.reshape(-1, 3)) 
-        return place, tx
-
-    place, tx=add_tx_rx(place, maxwell_entrance, levant_bottom, npoints)
-    place.to_json(filename=f"../data/{geometry}.json")
-    
-    #build stairs
-    # stairs_polyhedron=place.polyhedra[4]
-    # fig = plt.figure("the place",dpi=300)
-    # ax = fig.add_subplot(projection='3d')
-    # ax=stairs_polyhedron.plot3d(ax=ax)
-    # plt.show()
-    # sh_rectangle=stairs_polyhedron.get_top_face()
-    # polygons=split_rectangle(sh_rectangle,nx=8,ny=1)  
-    # polyhedrons=build_staircase(polygons,place.surface.polygons[1])
-    # del place.polyhedra[4]
-    # place.polyhedra.extend(polyhedrons)
-    
-    print(f"MAXWELL_ENTRANCE: {maxwell_entrance}")
-    return place, tx, geometry
-
 def rebuild_buildings_on_slanted_grounds(place, grounds):
     buildings = []
     for i, polyhedron in enumerate(place.polyhedra):
@@ -345,66 +135,260 @@ def rebuild_buildings_on_slanted_grounds(place, grounds):
             buildings.append(building)      
     return buildings   
 
-def split_rectangle(polygon,nx,ny):
-    #given an OrientedPolygon rectangle split it in nx rows and ny columns. Returns a list of shapely polygons.
-    #code is copied from:
-    #https://stackoverflow.com/questions/58283684/how-to-divide-a-rectangle-in-specific-number-of-rows-and-columns
-    
-    polygon=polygon.get_shapely()
-    minx, miny, maxx, maxy = polygon.bounds
-    minx, miny, maxx, maxy = polygon.bounds
-    dx = (maxx - minx) / nx  # width of a small part
-    dy = (maxy - miny) / ny  # height of a small part
-    horizontal_splitters = [LineString([(minx, miny + i*dy), (maxx, miny + i*dy)]) for i in range(ny)]
-    vertical_splitters = [LineString([(minx + i*dx, miny), (minx + i*dx, maxy)]) for i in range(nx)]
-    splitters = horizontal_splitters + vertical_splitters
-    result = polygon
-    for splitter in splitters:
-        result = MultiPolygon(split(result, splitter))
-    polygons = [geom for geom in result.geoms]
-    
-    plot=False
-    if plot:
-        fig = plt.figure("splitted rectangles")
-        fig.set_dpi(300)
-        ax = fig.add_subplot(projection='3d')
-        ax=plot_utils.ensure_axis_orthonormal(ax)
+
+class Place_du_levant():
+    @staticmethod
+    def levant_find_crucial_coordinates(filename="../data/place_levant_edited.geojson"):
+        #Only useful to create the levant scenarios.
+        gdf = gpd.read_file(filename)
+        gdf.to_crs(epsg=3035, inplace=True)
+        geom.center_gdf(gdf)
+
+        maxwell_point=gdf.loc[gdf['id']=="node/2368705254"]["geometry"].values[0]
+        maxwell_entrance=np.array([maxwell_point.x,maxwell_point.y,0])
+        
+        levant_bottom=maxwell_entrance+np.array([-94,0,0])#february measures
+        #levant_bottom=maxwell_entrance+np.array([-83,0,0]) #october measures
+        
+        stevin_entrance_point=gdf.loc[gdf['id']=="node/8804430834"]["geometry"].values[0]
+        stevin_entrance=np.array([stevin_entrance_point.x,stevin_entrance_point.y,0])
+        
+        reaumur_entrance_point=gdf.loc[gdf['id']=="node/2034353808"]["geometry"].values[0]
+        reaumur_entrance=np.array([reaumur_entrance_point.x,reaumur_entrance_point.y,0])
+
+        vinci_tree_point=gdf.loc[gdf['id']=="node/5710653390"]["geometry"].values[0]
+        vinci_tree_spot=np.array([vinci_tree_point.x,vinci_tree_point.y,0])
+        maxwell_tree_point=gdf.loc[gdf['id']=="node/5710653391"]["geometry"].values[0]
+        maxwell_tree_spot=np.array([maxwell_tree_point.x,maxwell_tree_point.y,0])
+        stevin_tree_point=gdf.loc[gdf['id']=="node/5710653392"]["geometry"].values[0]
+        stevin_tree_spot=np.array([stevin_tree_point.x,stevin_tree_point.y,0])
+        
+        entrances=[maxwell_entrance,stevin_entrance,reaumur_entrance]
+        tree_spots=[vinci_tree_spot,maxwell_tree_spot,stevin_tree_spot]
+        bound_points=geom.get_bounds(gdf)
+        return entrances,levant_bottom,bound_points,tree_spots
+
+    @staticmethod
+    def levant_add_trees(tree_spots):
+        rotate = False
+        vinci_tree_spot, maxwell_tree_spot, stevin_tree_spot = tree_spots
+        
+        trunk_size,trunk_height=[0.5,4]
+        crown_size, crown_height = [2, 5]
+        vinci_tree_trunk = geom.Building.create_tree_trunk(vinci_tree_spot, trunk_size, trunk_height,rotate,\
+                                                           crown_size, crown_height)                                                                                                    
+        vinci_tree_crown = geom.Building.create_tree_crown(vinci_tree_trunk, crown_size, crown_height,rotate)
+            
+        trunk_size,trunk_height=[0.5,4.5]
+        crown_size, crown_height = [2, 4.5]
+        maxwell_tree_trunk = geom.Building.create_tree_trunk(maxwell_tree_spot, trunk_size, trunk_height,rotate,\
+                                                             crown_size, crown_height)
+        maxwell_tree_crown = geom.Building.create_tree_crown(maxwell_tree_trunk, crown_size, crown_height,rotate)
+        
+        trunk_size,trunk_height=[0.5,6.5]
+        crown_size, crown_height = [2, 2]
+        stevin_tree_trunk = geom.Building.create_tree_trunk(stevin_tree_spot, trunk_size, trunk_height,rotate,\
+                                                            crown_size, crown_height,)
+        stevin_tree_crown = geom.Building.create_tree_crown(stevin_tree_trunk, crown_size, crown_height,rotate)
+        
+        tree_trunks = [vinci_tree_trunk, maxwell_tree_trunk, stevin_tree_trunk]
+        tree_crowns = [vinci_tree_crown, maxwell_tree_crown, stevin_tree_crown]
+        return tree_trunks, tree_crowns
+   
+    @staticmethod
+    def create_flat_levant(npoints=15):
+        geometry="flat_levant"
+        geometry_filename='../data/place_levant_edited.geojson'
+        preprocessed_name=geom.preprocess_geojson(geometry_filename)
+        place = geom.generate_place_from_rooftops_file(preprocessed_name)
+        
+        entrances,levant_bottom,_,tree_spots=Place_du_levant.levant_find_crucial_coordinates(geometry_filename)
+        maxwell_entrance,_,_=entrances
+        
+        def add_tx_rx(place, maxwell, levant_bottom, npoints):
+            RX_HEIGHT = 1.2
+            TX_HEIGHT = 1.2
+            MAXWELL_HEIGHT=17.5
+            tx=maxwell_entrance+np.array([23,6,MAXWELL_HEIGHT+TX_HEIGHT])
+            tx = tx.reshape(-1, 3)
+            rx0 = maxwell + np.array([-34, 0, RX_HEIGHT])
+            step = np.linalg.norm(levant_bottom - rx0) / npoints
+            for receiver in range(npoints):
+                rx = rx0 + np.array([-step * receiver, 0, 0])    
+                place.add_set_of_points(rx.reshape(-1, 3)) 
+            return tx    
+
+        #construct stairs
+        # stairs_polyhedron=place.polyhedra[3]
+        # sh_rectangle=stairs_polyhedron.get_top_face()
+        # polygons=split_rectangle(sh_rectangle,nx=1,ny=1)  
+        # polyhedrons=build_staircase(polygons,place.surface.polygons[0])
+        # del place.polyhedra[3]
+        # place.polyhedra.extend(polyhedrons)
+
+        
+        tree_trunks,tree_crowns=Place_du_levant.levant_add_trees(tree_spots)
+        place.polyhedra.extend(tree_trunks)
+        #place.polyhedra.extend(tree_crowns) #when added here tree crowns are blocking rays.
+
+        tx=add_tx_rx(place, maxwell_entrance, levant_bottom, npoints)
+        place.to_json(filename=f"../data/{geometry}.json")
+        return place,tx,geometry
+
+    @staticmethod
+    def create_slanted_levant(npoints=15):
+        
+        geometry="slanted_levant"
+        geometry_filename='../data/place_levant_edited.geojson'
+        preprocessed_name=geom.preprocess_geojson(geometry_filename)
+        place = geom.generate_place_from_rooftops_file(preprocessed_name)
+        
+        entrances,levant_bottom,bound_points,tree_spots=Place_du_levant.levant_find_crucial_coordinates(geometry_filename)
+        maxwell_entrance,stevin_entrance,reaumur_entrance=entrances
+        
+        deltaH=3 #height difference between top and bottom of levant street
+        tree_spots = [arr + np.array([0,0,deltaH]) for arr in tree_spots]
+        
+        bottom_left=bound_points[0] #behind the barb
+        top_right=bound_points[2]+np.array([0,0,deltaH])#behind the maxwell
+        low_right=np.array([reaumur_entrance[0],top_right[1],0]) #start of slope
+        high_left=np.array([stevin_entrance[0],bottom_left[1],deltaH]) #end of slope
+        
+        def create_grounds(bottom_left,top_right,low_right,high_left):
+            ground1=geom.Square.by_2_corner_points(np.array([bottom_left,low_right])) #flat ground between barb and vinci
+            ground2=geom.Square.by_2_corner_points(np.array([low_right,high_left])) #slanted ground between vinci and stevin
+            ground3=geom.Square.by_2_corner_points(np.array([high_left,top_right])) #flat ground between stevin and maxwell
+            
+            #ensure normals are pointing upwards
+            ground1=ground1.rotate(axis=np.array([0,1,0]), angle_deg=180)
+            ground3=ground3.rotate(axis=np.array([0,1,0]), angle_deg=180)
+            
+            ground1.properties=set_properties("road")
+            ground2.properties=set_properties("road")
+            ground3.properties=set_properties("road")
+            grounds=[ground1,ground2,ground3]
+            return grounds
+        
+        grounds=create_grounds(bottom_left,top_right,low_right,high_left)
+        
+        def define_levant_top_bottom(grounds,maxwell_entrance,levant_bottom):
+            points = [maxwell_entrance, maxwell_entrance + np.array([0, 0, 100])]
+            maxwell_entrance = geom.polygon_line_intersection(grounds[2], points)
+            
+            points = [levant_bottom, levant_bottom + np.array([0, 0, 100])]
+            levant_bottom = geom.polygon_line_intersection(grounds[0], points)
+            return maxwell_entrance, levant_bottom
+        
+        maxwell_entrance, levant_bottom=define_levant_top_bottom(grounds,maxwell_entrance,levant_bottom)
+        
+        buildings=rebuild_buildings_on_slanted_grounds(place,grounds)
+        tree_trunks,tree_crowns=Place_du_levant.levant_add_trees(tree_spots)
+        buildings.extend(tree_trunks)
+        #buildings.extend(tree_crowns) #when added here tree crowns are blocking rays.
+        
+        #rebuild the place
+        place=geom.OrientedPlace(geom.OrientedSurface(grounds),buildings)
+        #place.surface=place.surface.translate(np.array([0,0,100])) #to check easily if ground normals are well set
+
+        def add_tx_rx(place, maxwell_entrance, levant_bottom, npoints):
+            RX_HEIGHT = 1.2
+            TX_HEIGHT = 1.2
+            MAXWELL_HEIGHT=17.5
+            tx=maxwell_entrance+np.array([23,6,MAXWELL_HEIGHT+TX_HEIGHT])
+            tx = tx.reshape(-1, 3)
+            rx0 = maxwell_entrance + np.array([-34, 0, RX_HEIGHT])
+            step = np.linalg.norm(levant_bottom - rx0) / npoints
+            for receiver in range(npoints):
+                rx = rx0 + np.array([-step * receiver, 0, 0])    
+                if rx[0] < high_left[0]:  # in the slope
+                    rx = geom.polygon_line_intersection(grounds[1], [rx, rx + np.array([0, 0, 100])])
+                    rx = rx + np.array([0, 0, RX_HEIGHT])     
+                if rx[0] < low_right[0]:  # on flat ground again
+                    rx[2] = RX_HEIGHT     
+                place.add_set_of_points(rx.reshape(-1, 3)) 
+            return place, tx
+
+        place, tx=add_tx_rx(place, maxwell_entrance, levant_bottom, npoints)
+        place.to_json(filename=f"../data/{geometry}.json")
+        
+        #build stairs
+        # stairs_polyhedron=place.polyhedra[4]
+        # fig = plt.figure("the place",dpi=300)
+        # ax = fig.add_subplot(projection='3d')
+        # ax=stairs_polyhedron.plot3d(ax=ax)
+        # plt.show()
+        # sh_rectangle=stairs_polyhedron.get_top_face()
+        # polygons=split_rectangle(sh_rectangle,nx=8,ny=1)  
+        # polyhedrons=build_staircase(polygons,place.surface.polygons[1])
+        # del place.polyhedra[4]
+        # place.polyhedra.extend(polyhedrons)
+        
+        print(f"MAXWELL_ENTRANCE: {maxwell_entrance}")
+        return place, tx, geometry
+
+    @staticmethod
+    def split_rectangle(polygon,nx,ny):
+        #given an OrientedPolygon rectangle split it in nx rows and ny columns. Returns a list of shapely polygons.
+        #code is copied from:
+        #https://stackoverflow.com/questions/58283684/how-to-divide-a-rectangle-in-specific-number-of-rows-and-columns
+        
+        polygon=polygon.get_shapely()
+        minx, miny, maxx, maxy = polygon.bounds
+        minx, miny, maxx, maxy = polygon.bounds
+        dx = (maxx - minx) / nx  # width of a small part
+        dy = (maxy - miny) / ny  # height of a small part
+        horizontal_splitters = [LineString([(minx, miny + i*dy), (maxx, miny + i*dy)]) for i in range(ny)]
+        vertical_splitters = [LineString([(minx + i*dx, miny), (minx + i*dx, maxy)]) for i in range(nx)]
+        splitters = horizontal_splitters + vertical_splitters
+        result = polygon
+        for splitter in splitters:
+            result = MultiPolygon(split(result, splitter))
+        polygons = [geom for geom in result.geoms]
+        
+        plot=False
+        if plot:
+            fig = plt.figure("splitted rectangles")
+            fig.set_dpi(300)
+            ax = fig.add_subplot(projection='3d')
+            ax=plot_utils.ensure_axis_orthonormal(ax)
+            for polygon in polygons:
+                polygon=geom.OrientedPolygon.shapely_to_oriented_polygon(polygon)
+                polygon.plot3d(facecolor=(0,1,1,1),ax=ax,alpha=1,normal=False)      
+            fig.show()     
+        return polygons
+          
+    @staticmethod
+    def build_staircase(polygons,ground):
+        #given list of polygons, for each polygon build a polyhedron on the ground, and one a few meters above.
+        roof_height=3
+        polyhedrons=[]
         for polygon in polygons:
             polygon=geom.OrientedPolygon.shapely_to_oriented_polygon(polygon)
-            polygon.plot3d(facecolor=(0,1,1,1),ax=ax,alpha=1,normal=False)      
-        fig.show()     
-    return polygons
+            bottom_polyhedron=geom.Building.building_on_slope(polygon,ground,height=0.5,id=None)
+            
+            bottom_polyhedron_z=bottom_polyhedron.get_top_face().points[0][2]      
+            polygon=polygon.translate(np.array([0,0,bottom_polyhedron_z+roof_height]))
+            top_polyhedron=geom.Building.by_polygon_and_height(polygon, height= 0.5, id=None,make_ccw=True, keep_ground=True,flat_roof=True)
+            
+            bottom_polyhedron.building_type="road"
+            top_polyhedron.building_type="road"
+            bottom_polyhedron.apply_properties_to_polygons()
+            top_polyhedron.apply_properties_to_polygons()
+            
+            polyhedrons.extend([bottom_polyhedron,top_polyhedron])
         
-def build_staircase(polygons,ground):
-    #given list of polygons, for each polygon build a polyhedron on the ground, and one a few meters above.
-    roof_height=3
-    polyhedrons=[]
-    for polygon in polygons:
-        polygon=geom.OrientedPolygon.shapely_to_oriented_polygon(polygon)
-        bottom_polyhedron=geom.Building.building_on_slope(polygon,ground,height=0.5,id=None)
-        
-        bottom_polyhedron_z=bottom_polyhedron.get_top_face().points[0][2]      
-        polygon=polygon.translate(np.array([0,0,bottom_polyhedron_z+roof_height]))
-        top_polyhedron=geom.Building.by_polygon_and_height(polygon, height= 0.5, id=None,make_ccw=True, keep_ground=True,flat_roof=True)
-        
-        bottom_polyhedron.building_type="road"
-        top_polyhedron.building_type="road"
-        bottom_polyhedron.apply_properties_to_polygons()
-        top_polyhedron.apply_properties_to_polygons()
-        
-        polyhedrons.extend([bottom_polyhedron,top_polyhedron])
-    
-    plot=False
-    if plot:
-        fig = plt.figure("splitted rectangles")
-        fig.set_dpi(300)
-        ax = fig.add_subplot(projection='3d')
-        for polyhedron in polyhedrons:
-            polyhedron.plot3d(facecolor=(0,1,1,1),ax=ax,alpha=1,normal=False)
-        fig.show()
-        
-    return polyhedrons
-    
+        plot=False
+        if plot:
+            fig = plt.figure("splitted rectangles")
+            fig.set_dpi(300)
+            ax = fig.add_subplot(projection='3d')
+            for polyhedron in polyhedrons:
+                polyhedron.plot3d(facecolor=(0,1,1,1),ax=ax,alpha=1,normal=False)
+            fig.show()
+            
+        return polyhedrons
+
+
 
 
 class Place_saint_jean():
@@ -416,15 +400,17 @@ class Place_saint_jean():
         return place
     
     @staticmethod
-    def create_place_saint_jean(points_filename):
+    def create_place_saint_jean(points_filename,tx):
         geometry="place_saint_jean"
         place = Place_saint_jean.gen_place_saint_jean()
         points=Place_saint_jean.load_points_from_file(points_filename)
         place.add_set_of_points(points)
         
-        #tx = np.array([25, 2.5, 18])#in the intersection, fails ....
-        tx=np.array([72,40,2])#near big mama
-        #tx=np.array([-93,80,2])#near conservatoire
+        if tx is None:
+            #tx = np.array([25, 2.5, 18])#in the intersection, fails ....
+            tx=np.array([72,40,2])#near big mama
+            #tx=np.array([-93,80,2])#near conservatoire
+        
         
         #place.surface=place.surface.translate(np.array([0,0,100])) #to check easily if ground normals are well set
         tx=tx.reshape(-1,3)
@@ -432,54 +418,115 @@ class Place_saint_jean():
         return place,tx,geometry
     
     @staticmethod
-    def create_slanted_place_saint_jean(points_filename):
+    def create_slanted_place_saint_jean(points_filename,tx,tx_on_ground=True):
         geometry="slanted_place_saint_jean"
         place = Place_saint_jean.gen_place_saint_jean()
         points=Place_saint_jean.load_points_from_file(points_filename)
         place.add_set_of_points(points)
         
+        RX_HEIGHT=1.2
+        TX_HEIGHT=3
+        
         def create_grounds():
-            bottom_left=np.array([-150,-150,0])
-            top_right=np.array([150,150,30])
-            ground1=geom.Square.by_2_corner_points(np.array([bottom_left,top_right])) #flat ground between barb and vinci
+            bottom_left=np.array([-170,-150,16])
+            top_right=np.array([150,150,34])
+            ground1=geom.Square.by_2_corner_points(np.array([bottom_left,top_right]))
             #ensure normals are pointing upwards
-            ground1=ground1.rotate(axis=np.array([0,1,0]), angle_deg=180)
+            ground1=ground1.rotate(axis=np.array([0,1,0]), angle_deg=180) 
+            ground1=ground1.rotate(axis=np.array([0,0,1]), angle_deg=-80)
             ground1.properties=set_properties("road")
+            ground1.part='ground'
             grounds=[ground1]
             return grounds
         
+        
+        # def create_grounds2():
+        #     #invalid geometry
+        #     square_pis=geom.Square.by_2_corner_points(np.array([[-160,65,0],[0,-140,27]]))
+        #     square_place=geom.Square.by_2_corner_points(np.array([[0,-140,27],[45,45,27]]))
+        #     square_escalier=geom.Square.by_2_corner_points(np.array([[45,45,27],[150,-150,40]]))
+        #     square_street=geom.OrientedPolygon(points=np.array([[45,45,27],[0,45,27],[0,150,24],[45,150,24]]))
+            
+        #     square_place=square_place.rotate(axis=np.array([0,1,0]), angle_deg=180)
+        #     square_street=square_street.rotate(axis=np.array([1,0,0]), angle_deg=180)
+            
+        #     angle=np.radians(-45)
+        #     axis=np.array([0,0,1])
+        #     rotation = Rotation.from_rotvec(angle * axis)
+        #     rotation_matrix = rotation.as_matrix()
+        
+        #     grounds=[square_pis,square_place,square_escalier,square_street]
+        #     for ground in grounds:
+        #         #ground.rotate(axis=np.array([0,0,1]), angle_deg=40)
+        #         ground.properties=set_properties("road")
+        #         ground.part='ground'
+        #         ground.points=np.dot(ground.points,rotation_matrix.T)
+        #     return grounds
+            
+        #grounds=create_grounds2()
         grounds=create_grounds()
         buildings=rebuild_buildings_on_slanted_grounds(place,grounds)  
         #rebuild the place
         place=geom.OrientedPlace(geom.OrientedSurface(grounds),buildings)
-        #place.surface=place.surface.translate(np.array([0,0,100])) #to check easily if ground normals are well set
+        #place.surface=place.surface.translate(np.array([0,0,100])) #to check easily if ground normals are well set 
         
         def add_rx(place,points_filename):
             points=Place_saint_jean.load_points_from_file(points_filename)
-            #TODO: Only works if one ground
-            ground=ground=place.surface.polygons[0]
-            TX_HEIGHT=1.2
+            print(f"loaded {len(points)} points from file")
+            grounds=place.surface.polygons
             for i,point in enumerate(points):
-                #get intersection between point and ground
-                #then put the point ..m away from the ground
-                line=[point,point+np.array([0,0,1])]
-                intersection=geom.polygon_line_intersection(ground,line)
-                points[i]=intersection+np.array([0,0,TX_HEIGHT])
+                shPoint = Point(point[0], point[1])
+                #find above which ground the point is
+                for ground in grounds:
+                    if ground.get_shapely().contains(shPoint):
+                        #get intersection between point and ground
+                        #then put the point ..m away from the ground
+                        line=[point,point+np.array([0,0,1])]
+                        intersection=geom.polygon_line_intersection(ground,line)
+                        points[i]=intersection+np.array([0,0,RX_HEIGHT])
             place.add_set_of_points(points)
-        
+            print(f"added {len(points)} points to the place.")
         add_rx(place,points_filename)
-        #tx = np.array([25, 2, 18])#in the intersection
         
-        tx=np.array([72,40,0])#near big mama
-        line=[tx,tx+np.array([0,0,1])]
-        ground=ground=place.surface.polygons[0]
-        intersection=geom.polygon_line_intersection(ground,line)
-        tx=intersection+np.array([0,0,2])
+        def add_tx(tx,base_surface):
+            #adds the tx TX_HEIGHT away from the base_surface.
+            if tx is None:
+                tx = np.array([25, 2, 18])#in the intersection
+            line=[tx,tx+np.array([0,0,1])]
+            intersection=geom.polygon_line_intersection(base_surface,line)
+            tx=intersection+np.array([0,0,TX_HEIGHT])
+            tx = tx.reshape(-1, 3)
+            return tx
         
-        tx = tx.reshape(-1, 3)
+        if tx_on_ground is True:
+            ground=place.surface.polygons[0]
+            tx=add_tx(tx,ground)
+        else:
+            tx=add_tx(tx,place.polyhedra[29].get_top_face()) #31 centraal=place.polyhedra[29]
+        
         place.to_json(filename=f"../data/place_saint_jean/{geometry}.json")
         return place,tx,geometry
     
+    @staticmethod
+    def generate_spaced_points_in_polygon(polygon: Polygon, n: int, d: float):
+        #takes a shapely polygon as argument
+        #randomly generates points inside the polygon that at least have a distance d between them.
+        #can run infinitely if d is too large compared to the number of points asked
+        points = []
+        minx, miny, maxx, maxy = polygon.bounds
+        while len(points) < n:
+            x = random.uniform(minx, maxx)
+            y = random.uniform(miny, maxy)
+            point = Point(x, y)
+            if polygon.contains(point) and point.distance(polygon.boundary) > 1:
+                if len(points) == 0:
+                    points.append(point)
+                else:
+                    coords = np.array([p.coords[0] for p in points])
+                    distances = cdist(coords, np.array([(x, y)]))
+                    if np.min(distances) >= d:
+                        points.append(point)
+        return points
     
     @staticmethod
     def create_points(npoints=16*5,d=4):
@@ -568,71 +615,19 @@ class Place_saint_jean():
         return street_polygon
     
     
-    @staticmethod
-    def generate_spaced_points_in_polygon(polygon: Polygon, n: int, d: float):
-        #randomly generates points inside the polygon that at least have a distance d between them.
-        #can run infinitely if d is too large compared to the number of points asked
-        points = []
-        minx, miny, maxx, maxy = polygon.bounds
-        while len(points) < n:
-            x = random.uniform(minx, maxx)
-            y = random.uniform(miny, maxy)
-            point = Point(x, y)
-            if polygon.contains(point) and point.distance(polygon.boundary) > 1:
-                if len(points) == 0:
-                    points.append(point)
-                else:
-                    coords = np.array([p.coords[0] for p in points])
-                    distances = cdist(coords, np.array([(x, y)]))
-                    if np.min(distances) >= d:
-                        points.append(point)
-        return points
+    # @staticmethod
+    # def create_shapely_rectangle(bottom_left,top_right):
+    #     #create a shapely rectangle given two corners:
+    #     rectangle= shapely.geometry.box(*bottom_left, *top_right)
+    #     return rectangle
+    
+    # @staticmethod
+    # def get_largest_polygon(multipolygon):
+    #     #returns the largest polygon of a multipolygon
+    #     polygons_by_area = sorted(multipolygon.geoms, key=lambda polygon: polygon.area, reverse=True)
+    #     return polygons_by_area[0]
     
     @staticmethod
-    def create_shapely_rectangle(bottom_left,top_right):
-        #create a shapely rectangle given two corners:
-        rectangle= shapely.geometry.box(*bottom_left, *top_right)
-        return rectangle
-    
-    @staticmethod
-    def get_largest_polygon(multipolygon):
-        #returns the largest polygon of a multipolygon
-        polygons_by_area = sorted(multipolygon.geoms, key=lambda polygon: polygon.area, reverse=True)
-        return polygons_by_area[0]
-
-    
-    # @staticmethod 
-    # def select_saint_jean_streets():
-    #     place = Place_saint_jean.gen_place_saint_jean()
-        
-    #     ground = place.surface.polygons[0].get_shapely()
-    #     zone = MultiPolygon()
-    #     for polyhedron in place.polyhedra:
-    #         top=polyhedron.get_top_face().get_shapely()
-    #         zone=zone.union(top)
-         
-    #     zone_without_buildings=ground.difference(zone)
-    #     zone_without_buildings=Place_saint_jean.get_largest_polygon(zone_without_buildings)
-    #     plot_utils.plot_shapely(zone_without_buildings)
-        
-    #     ax=plot_utils.plot_shapely(zone.geoms[0])
-    #     ax=plot_utils.plot_shapely(zone.geoms[3],ax)
-        
-    #     #remove parts of ground that are useless:
-    #     bottom_left=Place_saint_jean.create_shapely_rectangle([-150,-150],[-30,-42])
-    #     top_right=Place_saint_jean.create_shapely_rectangle([-35,70],[150,150])
-    #     middle_right=Place_saint_jean.create_shapely_rectangle([96,-20],[150,150])
-    #     bottom_right=Place_saint_jean.create_shapely_rectangle([85,-66],[150,-150])
-        
-    #     rectangles=[bottom_left,top_right,middle_right,bottom_right]
-    #     for rectangle in rectangles:
-    #         zone_without_buildings=zone_without_buildings.difference(rectangle)
-    #     ax=plot_utils.plot_shapely(zone_without_buildings)
-        
-    #     return zone
-    
-    
-    
     def set_heights(filename='../data/place_saint_jean/place_saint_jean.geojson'):
         #run once after having extracted the geojson from overpass turbo
         #heights data comes from google earth
@@ -678,7 +673,7 @@ class Place_saint_jean():
         gdf.loc[gdf['id']=="way/144256881", "height"] = 16
         
         gdf.loc[gdf['id']=="way/472952353", "height"] = 24
-        gdf.loc[gdf['id']=="way/224649053", "height"] = 48#31 centraal
+        gdf.loc[gdf['id']=="way/224649053", "height"] = 25#48m centraal
         
         # rue de dinant
         gdf.loc[gdf['id']=="way/257712250", "height"] = 18
@@ -716,9 +711,11 @@ class Place_saint_jean():
 
 if __name__ == '__main__':
     plt.close("all")
+    #Place_saint_jean.set_heights()
+    
     #place,tx,geometry=create_small_place(npoints=10)
-    #place,tx,geometry=create_flat_levant(npoints=16)
-    #place,tx,geometry=create_slanted_levant(npoints=16*5)
+    #place,tx,geometry=Place_du_levant.create_flat_levant(npoints=16)
+    #place,tx,geometry=Place_du_levant.create_slanted_levant(npoints=16*5)
     #place,tx,geometry=create_two_rays_place(npoints=5)
     
     #points,points_filename=Place_saint_jean.create_points(npoints=16,d=4)
@@ -726,11 +723,29 @@ if __name__ == '__main__':
     #Place_saint_jean.plot_points(points_filename)
     
     #place,tx,geometry=Place_saint_jean.create_place_saint_jean(points_filename=points_filename)
-    place,tx,geometry=Place_saint_jean.create_slanted_place_saint_jean(points_filename=points_filename)
+    tx_at_pis=np.array([-102,92,0])
+    tx_at_pis+=np.array([+6,0,0])
     
-    place.set_of_points=place.set_of_points[0]
+    tx_at_escalier=np.array([61,-93,0])
+    tx_at_escalier+=np.array([-8,0,0])
+    
+    tx_at_vieille_ble=np.array([73,40,0])
+    tx_at_vieille_ble_side=tx_at_vieille_ble+np.array([-3,1.5,0])
+    
+    tx_in_middle=np.array([35,-6,0])
+    
+    tx_at_centraal=np.array([69,-54,0])
+    
+    place,tx,geometry=Place_saint_jean.create_slanted_place_saint_jean(points_filename=points_filename,tx=tx_at_centraal,tx_on_ground=False)
+    #place.set_of_points=np.array([])
+    
     plot_place(place, tx,show_normals=False)
+    
+    
+    
 
+   
+    
    
       
     

@@ -837,7 +837,9 @@ def reflexion_points_and_diffraction_point_from_origin_destination_planes_and_ed
 def polygons_obstruct_line_path(polygons, points, return_polygons=False):
     """
     Returns whether a line path is obstructed by any of the polygons.
-
+    The function projects the line path and the polygons onto a plane orthogonal to the line path
+    This projection simplifies the intersection problem, as it converts the 3D problem into a 2D problem
+    
     :param polygons: the polygons:
     :type polygons: Iterable[OrientedPolygon]
     :param points: two points describing line path
@@ -1595,7 +1597,7 @@ class OrientedPolygon(OrientedGeometry):
         return self.points.shape[0]
 
     def __str__(self):
-        return f'Polygon({len(self)} points) part {self.part}, building id: {self.building_id}, properties==None?:{self.properties==None}'
+        return f'Polygon({len(self)} points) part {self.part}, building id: {self.building_id}, properties set?:{self.properties!=None}'
 
     def __eq__(self, other):
         if not isinstance(other, OrientedPolygon):
@@ -1677,6 +1679,14 @@ class OrientedPolygon(OrientedGeometry):
 
     @staticmethod
     def shapely_to_oriented_polygon(shapely_polygon):
+        if shapely_polygon.geom_type=="MultiPolygon":
+            print("received multipolygon")
+            polygons=list(shapely_polygon.geoms)
+            oriented_polys=[]
+            for polygon in polygons:
+                oriented_polys.append(OrientedPolygon.shapely_to_oriented_polygon(polygon))
+            return oriented_polys
+        
         points_2d = np.array(shapely_polygon.exterior.coords)
         if np.array_equal(points_2d[0],points_2d[-1]):
             #shapely polygons first and last points are usually the same
@@ -1779,7 +1789,7 @@ class OrientedPolygon(OrientedGeometry):
         :type plane_tol: float
         :return: wether the point is in the plane
         :rtype: bool
-        """
+        """    
         point = point.reshape(3)
         if check_in_plane:
             d = self.get_parametric(force=False)[3]
@@ -1896,6 +1906,7 @@ class OrientedPolygon(OrientedGeometry):
         :param angle: the angle of rotation in degrees
         :type angle: float
         """
+    
         angle=np.radians(angle_deg)
         # 1. Translate the polygon to the origin
         center = self.get_centroid()
@@ -1937,6 +1948,7 @@ class Square(OrientedPolygon):
         The points must be diagonally opposite and must define a quadrilateral
         P1=[x,y,z]
         points=[P1,P2]
+        The created square will always be parallel to the x axis... Cannot be used to create a losange
         """
         P1,P2 = points
         assert np.array_equal(P1, P2) == False, "points must be different (P1=P2)"
@@ -2452,7 +2464,11 @@ class Building(OrientedPolyhedron):
         buildings=[]
         splits=polygon.split(conflicting_grounds)
         for i in range(0,len(splits)):
-            buildings.append(Building.building_on_slope(splits[i],conflicting_grounds[i], height))           
+            if isinstance(splits[i],list):
+                for j in range(len(splits[i])):
+                    buildings.append(Building.building_on_slope(splits[i][j],conflicting_grounds[i], height)) 
+            else:
+                buildings.append(Building.building_on_slope(splits[i],conflicting_grounds[i], height))           
         return buildings
     
     
@@ -2513,7 +2529,6 @@ class Cube(OrientedPolyhedron):
 
         building = Building.by_polygon_and_height(polygon, side_length)#TESTING
 
-        #TODO: return orientedPOlyhedron and not cube
         return Cube(building.polygons)
 
 

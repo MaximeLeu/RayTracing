@@ -6,16 +6,14 @@ Created on Sun Mar 26 13:29:01 2023
 @author: max
 """
 import csv
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import matplotlib.cm as cm
 import seaborn as sns
-import sklearn
-from sklearn.cluster import KMeans
-import hdbscan
 
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import matplotlib.colors as mcolors
+
+
 import raytracing.electromagnetism_utils as electromagnetism_utils
 import raytracing.file_utils as file_utils
 import raytracing.plot_utils as plot_utils
@@ -49,8 +47,8 @@ def plot_measures_only():
     ax.plot(x, y, color='green', marker='o', label="february")
     ax.plot(x1, y1, color='red', marker='o', label="october")
     ax.set(title='Measurements at 12.5 GHz',
-           xlabel='distance from Maxwell building [m]', ylabel='Received power [dB]',
-           xlim=(30, 90), ylim=(-60, -35))
+            xlabel='distance from Maxwell building [m]', ylabel='Received power [dB]',
+            xlim=(30, 90), ylim=(-60, -35))
     ax.grid()
     ax.legend(loc='lower left')
     plt.savefig("../results/validation_measures/claude_125.eps",
@@ -63,8 +61,8 @@ def plot_measures_only():
     ax.plot(x, y, color='green', marker='o', label="february")
     ax.plot(x1, y1, color='red', marker='o', label="october")
     ax.set(title='Measurements at 30 GHz',
-           xlabel='distance from Maxwell building [m]', ylabel='Received power [dB]',
-           xlim=(30, 90), ylim=(-60, -35))
+            xlabel='distance from Maxwell building [m]', ylabel='Received power [dB]',
+            xlim=(30, 90), ylim=(-60, -35))
     ax.grid()
     ax.legend(loc='lower left')
     fig.savefig("../results/validation_measures/claude_30.eps",
@@ -72,6 +70,7 @@ def plot_measures_only():
     plt.close(fig)
     print("saved figures in /results/validation_measures")
     return
+
 
 
 def set_color_for_type(path_type, order):
@@ -85,7 +84,7 @@ def set_color_for_type(path_type, order):
 def EM_fields_plots(df_path, name="unnamed_plot"):
     """
     Plots for each receiver, the power contribution of each path type and the power delay profile.
-    Generates one pdf for each 50 receivers. 
+    Generates one pdf file for each 50 receivers. 
     """
     df = electromagnetism_utils.load_df(df_path)
     df_list = electromagnetism_utils.split_df(df, [])
@@ -122,12 +121,12 @@ def EM_fields_plots(df_path, name="unnamed_plot"):
             ax1.set(title=f'Total power from sources RX{receiver}',
                     xticks=range(len(ticks)), xticklabels=ticks,
                     ylabel='Received power [dB]')
-            ax1.grid()
+            
             ax2.set(title=f'Power delay Profile RX{receiver}',
                     xlabel='time to reach receiver (ns)',
                     ylabel='Received power [dB]')
             ax2.legend(fontsize=10)
-            ax2.grid()
+            ax1.grid(),ax2.grid()
 
         fig.savefig(
             f"../results/plots/EM_plots_{name}{k}.pdf", dpi=150, bbox_inches='tight')
@@ -198,11 +197,12 @@ def plot_rx_rays_distribution(df, receivers, save_name):
     ax2.set(title="TX angles distribution",
             ylabel="theta (degrees)",
             xlabel='phi (degrees)')
-    ax1.grid()
-    ax2.grid()
+    
+    ax1.grid(),ax2.grid()
     plt.savefig(
         f"../results/plots/rays_distribution_{save_name}.png", format='png', dpi=300, bbox_inches='tight')
-    plt.show()
+    plt.close(fig)
+    #plt.show()
     return
 
 
@@ -238,27 +238,21 @@ def plot_data_on_sphere(ax, data, title):
     ax.text(0, 0, 1.1, 'Z', color='b', fontsize=12)
 
     ax.set_title(title, fontsize="14")
+    return
 
 
-def plot_rays_on_sphere(data_tx, data_rx, save_name):
-    fig = plt.figure(figsize=(16, 8))
-    ax1 = fig.add_subplot(121, projection='3d')
-    plot_data_on_sphere(
-        ax1, data_tx, "Distribution of outgoing ray from the tx antenna")
-
-    ax2 = fig.add_subplot(122, projection='3d')
-    plot_data_on_sphere(
-        ax2, data_rx, "Distribution of incoming rays at the rx antenna")
-    plt.savefig(
-        f"../results/plots/rays_on_sphere_{save_name}.eps", format='eps', dpi=300, bbox_inches='tight')
+def plot_rays_on_sphere(df, receivers, save_name=None):
+    data_tx, data_rx = get_receiver_data(df, receivers)
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 8), subplot_kw=dict(projection='3d'))
+    plot_data_on_sphere(axes[0], data_tx, "Distribution of outgoing ray from the tx antenna")
+    plot_data_on_sphere(axes[1], data_rx, "Distribution of incoming rays at the rx antenna")
+    if save_name:
+        plt.savefig(f"../results/plots/rays_on_sphere_{save_name}.eps", format='eps', dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        return
     plt.show()
     return
 
-
-def plot_rays_on_sphere_helper(df, receivers, save_name):
-    data_tx, data_rx = get_receiver_data(df, receivers)
-    plot_rays_on_sphere(data_tx, data_rx, save_name)
-    return
 
 
 def plot_order_importance(solved_em_path):
@@ -270,7 +264,6 @@ def plot_order_importance(solved_em_path):
     -etc.
     """
     fig, ax = plt.subplots(figsize=(20, 8))
-
     df = electromagnetism_utils.load_df(solved_em_path)
     nreceivers = len(df['rx_id'].unique())
     x = np.arange(nreceivers)
@@ -281,105 +274,23 @@ def plot_order_importance(solved_em_path):
         linestyle = '--' if order == 3 else ':' if order == 4 else '-'
         ax.plot(x, y, marker='o', linestyle=linestyle,
                 label=f"up to order {order}")
-    ax.grid()
-    ax.legend()
+    
     ax.set(title='Impact of simulating higher orders',
            xlabel='Receiver #',
            xticks=range(nreceivers),
            ylabel='Received power [dB]')
+    ax.grid(),ax.legend()
     plt.savefig("../results/plots/order_importance.eps",
                 format='eps', dpi=300, bbox_inches='tight')
     plt.show()
     return
 
-
-def compute_RMS_delay_spreads(df):
-    #https://www.itu.int/dms_pubrec/itu-r/rec/p/R-REC-P.1407-6-201706-I!!PDF-E.pdf
-    df = df.dropna(subset=['tx_angles', 'rx_angles'])
-    receivers = df['rx_id'].unique()
-    trms=np.zeros(len(receivers))
-    for i, receiver in enumerate(receivers):
-        data = df.loc[df["rx_id"] == receiver]
-        total_power = data["path_power"].sum()
-        t0 = data['time_to_receiver'].min()
-        t_mean=np.dot(data["time_to_receiver"],data["path_power"])/total_power-t0
-        trms[i]=np.sqrt(np.dot((data['time_to_receiver']-t0-t_mean)**2,data["path_power"])/total_power)
-    return trms
-
-def plot_RMS_delay_spreads_pdf(df, name):
-    trms=compute_RMS_delay_spreads(df)
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.histplot(trms*1e9, kde=False, stat='density', bins=30, ax=ax)
-    ax.set(xlabel='RMS delay Spread (ns)',
-           ylabel='Probability Density',
-           title='Delay spread probability density')
-    ax.grid()
-    plt.savefig(f"../results/plots/delay_spread_pdf_{name}.eps",
-                format='eps', dpi=300, bbox_inches='tight')
-    plt.show()
-    return
-
-
-def compute_RMS_angular_spreads(df):
-    #https://www.itu.int/dms_pubrec/itu-r/rec/p/R-REC-P.1407-6-201706-I!!PDF-E.pdf
-    df = df.dropna(subset=['tx_angles', 'rx_angles'])
-    receivers = df['rx_id'].unique()
-    RMS_az_spreads, RMS_el_spreads = np.zeros(len(receivers)), np.zeros(len(receivers))
-    for i, receiver in enumerate(receivers):
-        data = df.loc[df["rx_id"] == receiver].copy().reset_index()
-        total_power = data["path_power"].sum()
-        
-        most_powerful_ray=data["path_power"].idxmax()
-        power_el=data.loc[most_powerful_ray,"rx_angles"][0]
-        power_az=data.loc[most_powerful_ray,"rx_angles"][1]
-        
-        #put the angles relative to the most powerful ray
-        rx_el = data["rx_angles"].apply(lambda x: electromagnetism_utils.angle_distance(x[0],power_el))
-        rx_az = data["rx_angles"].apply(lambda x: electromagnetism_utils.angle_distance(x[1],power_az))
-        
-        rx_el=np.deg2rad(rx_el)
-        rx_az=np.deg2rad(rx_az)
-        
-        el_mean=np.dot(rx_el,data["path_power"])/total_power
-        az_mean=np.dot(rx_az,data["path_power"])/total_power
-        
-        RMS_el_spreads[i]=np.sqrt(np.dot((rx_el-el_mean)**2,data["path_power"])/total_power)
-        RMS_az_spreads[i]=np.sqrt(np.dot((rx_az-az_mean)**2,data["path_power"])/total_power)
-        
-    RMS_el_spreads=np.degrees(RMS_el_spreads)
-    RMS_az_spreads=np.degrees(RMS_az_spreads)
-    return RMS_az_spreads,RMS_el_spreads
-
-
-def plot_RMS_angular_spreads_cdf(df,save_name):
-    az_spreads,el_spreads=compute_RMS_angular_spreads(df)
+def compute_angular_windows(df,POWER_PERCENT=0.99):
+    #POWER_PERCENT=percent of power that must be in the cluster
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 6))
-    x1,y1=electromagnetism_utils.cdf(az_spreads)
-    x2,y2=electromagnetism_utils.cdf(el_spreads)
-    ax1.plot(x1,y1,'-o')
-    ax1.set(xlabel="RMS azimuth spread (deg)",
-           ylabel='Cumulative probability',
-           title="RMS azimuth spread cdf")
-    ax1.grid()
-    
-    ax2.plot(x2,y2,'-o')
-    ax2.set(xlabel="RMS elevation spread (deg)",
-            ylabel='Cumulative probability',
-            title="RMS elevation spread cdf")
-    ax2.grid() 
-    plt.savefig(f"../results/plots/RMS_angular_spread_cdf_{save_name}.eps",
-                format='eps', dpi=300, bbox_inches='tight')
-    plt.show()
-
-
-
-
-def compute_angular_windows(df):
-    #THIS IS THE ANGULAR WINDOW.
-    #find the closest bundle of rays that contribute to 70% of the total received power.
-    #then compute the spread between the two furthest apart rays of the bundle.
-    #power threshold=70%
+    #This function finds the closest bundle of rays that contribute to 70% of the total received power.
+    #Then it computes the spread between the two furthest apart rays of the bundle.
+    #Assuming power_percent=70%
     # METHOD1:
         #When one ray is known to be in the bundle, because he contributes to more than 30% of the total power.
         # 1:Pick the highest power contributor: P
@@ -395,7 +306,7 @@ def compute_angular_windows(df):
         # 1:put all [elevation,azimuth] values on a sphere of radius 1.
         # 2:Convert to euclidian coordinates
         # 3:Compute euclidian distance.
-    POWER_PERCENT = 0.99 #percent of power that must be in the cluster
+   
   
     def find_power_contributors_cluster(data,centroid,other_points):
         #given a centroid, and an array of points around it (including itself), find the smallest cluster of points
@@ -476,52 +387,189 @@ def compute_angular_windows(df):
         az_spreads[i]=best_az_spread
     return az_spreads,el_spreads
 
+def compute_RMS_delay_spreads(df):
+    #https://www.itu.int/dms_pubrec/itu-r/rec/p/R-REC-P.1407-6-201706-I!!PDF-E.pdf
+    df = df.dropna(subset=['tx_angles', 'rx_angles'])
+    receivers = df['rx_id'].unique()
+    trms=np.zeros(len(receivers))
+    for i, receiver in enumerate(receivers):
+        data = df.loc[df["rx_id"] == receiver]
+        total_power = data["path_power"].sum()
+        t0 = data['time_to_receiver'].min()
+        t_mean=np.dot(data["time_to_receiver"],data["path_power"])/total_power-t0
+        trms[i]=np.sqrt(np.dot((data['time_to_receiver']-t0-t_mean)**2,data["path_power"])/total_power)
+    return trms
 
 
-def plot_angular_windows_cdf(df,save_name):
+def compute_RMS_angular_spreads(df):
+    #https://www.itu.int/dms_pubrec/itu-r/rec/p/R-REC-P.1407-6-201706-I!!PDF-E.pdf
+    df = df.dropna(subset=['tx_angles', 'rx_angles'])
+    receivers = df['rx_id'].unique()
+    RMS_az_spreads, RMS_el_spreads = np.zeros(len(receivers)), np.zeros(len(receivers))
+    for i, receiver in enumerate(receivers):
+        data = df.loc[df["rx_id"] == receiver].copy().reset_index()
+        total_power = data["path_power"].sum()
+        
+        most_powerful_ray=data["path_power"].idxmax()
+        power_el=data.loc[most_powerful_ray,"rx_angles"][0]
+        power_az=data.loc[most_powerful_ray,"rx_angles"][1]
+        
+        #put the angles relative to the most powerful ray
+        rx_el = data["rx_angles"].apply(lambda x: electromagnetism_utils.angle_distance(x[0],power_el))
+        rx_az = data["rx_angles"].apply(lambda x: electromagnetism_utils.angle_distance(x[1],power_az))
+        
+        rx_el=np.deg2rad(rx_el)
+        rx_az=np.deg2rad(rx_az)
+        
+        el_mean=np.dot(rx_el,data["path_power"])/total_power
+        az_mean=np.dot(rx_az,data["path_power"])/total_power
+        
+        RMS_el_spreads[i]=np.sqrt(np.dot((rx_el-el_mean)**2,data["path_power"])/total_power)
+        RMS_az_spreads[i]=np.sqrt(np.dot((rx_az-az_mean)**2,data["path_power"])/total_power)
+        
+    RMS_el_spreads=np.degrees(RMS_el_spreads)
+    RMS_az_spreads=np.degrees(RMS_az_spreads)
+    return RMS_az_spreads,RMS_el_spreads
+
+
+
+def compare_RMS_delay_spreads_pdf(dfs,names,save_name=None):
+    dfs = [dfs] if not isinstance(dfs, list) else dfs
+    names = [names] if not isinstance(names, list) else names
+    fig, axes = plt.subplots(nrows=1,ncols=len(names),figsize=(10*len(names), 6))
+    axes=[axes] if not isinstance(axes,np.ndarray) else axes
+    
+    for i, df in enumerate(dfs):
+        trms = compute_RMS_delay_spreads(df) * 1e9
+        sns.histplot(trms, kde=False, stat='density', bins=30, ax=axes[i])
+        axes[i].set(xlabel='RMS delay Spread (ns)',
+               ylabel='Probability Density',
+               title=f"Delay spread probability density {names[i]}")
+        axes[i].grid()
+    if save_name:
+        plt.savefig(f"../results/plots/delay_spread_pdf_{save_name}.eps",
+                format='eps', dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        return
+    plt.show()
+    return
+
+    
+def compare_RMS_delay_spreads_cdf(dfs,names,save_name=None):
+    dfs = [dfs] if not isinstance(dfs, list) else dfs
+    names = [names] if not isinstance(names, list) else names
+    fig, ax = plt.subplots(figsize=(10, 6))
+    colors = ['b', 'r', 'g', 'm']
+
+    for i, df in enumerate(dfs):
+        trms = compute_RMS_delay_spreads(df) * 1e9
+        x, y = electromagnetism_utils.cdf(trms)
+        ax.plot(x, y, '-' + colors[i], label=names[i])
+
+    ax.set(xlabel="RMS delay spread (ns)",
+           ylabel='Cumulative probability',
+           title="RMS delay spread CDF")
+    ax.grid()
+    ax.legend(loc='lower right')
+    if save_name:
+        plt.savefig(f"../results/plots/RMS_delay_spread_cdf_{save_name}.eps",
+                format='eps', dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        return
+    plt.show()
+    return
+    
+def compare_RMS_angular_spreads_cdf(dfs, names, save_name=None):
+    dfs = [dfs] if not isinstance(dfs, list) else dfs
+    names = [names] if not isinstance(names, list) else names
+    fig, axes = plt.subplots(1, 2, figsize=(20, 6))
+    colors = ['b', 'r', 'g', 'm']
+    for i, df in enumerate(dfs):
+        az_spreads, el_spreads = compute_RMS_angular_spreads(df)
+        x_az, y_az = electromagnetism_utils.cdf(az_spreads)
+        x_el, y_el = electromagnetism_utils.cdf(el_spreads)
+        
+        axes[0].plot(x_az, y_az, '-' + colors[i], label=names[i])
+        axes[1].plot(x_el, y_el, '-' + colors[i], label=names[i])
+    
+    axes[0].set(xlabel="RMS azimuth spread (deg)",
+                ylabel='Cumulative probability',
+                title="RMS azimuth spread cdf")
+    axes[1].set(xlabel="RMS elevation spread (deg)",
+                ylabel='Cumulative probability',
+                title="RMS elevation spread cdf")
+    axes[0].grid(),axes[1].grid() 
+    axes[0].legend(loc='lower right'),axes[1].legend(loc="lower right")
+    if save_name:
+        plt.savefig(f"../results/plots/RMS_angular_spread_cdf_{save_name}.eps",
+                    format='eps', dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        return
+    plt.show()
+    return
+
+
+def compare_angular_windows_cdf(dfs,names, save_name=None):
     #plot the percentage of receivers where the angle spread is under ...degrees
     #percentage of receives where >70% power is received within a ...degrees radius.
-    az_win,el_win=compute_angular_windows(df)
+    dfs = [dfs] if not isinstance(dfs, list) else dfs
+    names = [names] if not isinstance(names, list) else names
+    fig, axes = plt.subplots(1, 2, figsize=(20, 6))
+    colors = ['b', 'r', 'g', 'm']
+
+    for i, df in enumerate(dfs):
+        az_win, el_win = compute_angular_windows(df)
+        x_az, y_az = electromagnetism_utils.cdf(az_win)
+        x_el, y_el = electromagnetism_utils.cdf(el_win)
+        axes[0].plot(x_az, y_az, '-' + colors[i], label=names[i])
+        axes[1].plot(x_el, y_el, '-' + colors[i], label=names[i])
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 6))
-    x1,y1=electromagnetism_utils.cdf(az_win)
-    x2,y2=electromagnetism_utils.cdf(el_win)
-    ax1.plot(x1,y1,'-o')
-    ax1.set(xlabel="Azimuth angular window (deg)",
+    axes[0].set(xlabel="Azimuth angular window (deg)",
            ylabel='Cumulative probability',
-           title="Azimuth angular window cdf")
-    ax1.grid()
-    
-    ax2.plot(x2,y2,'-o')
-    ax2.set(xlabel="Elevation angular window (deg)",
+           title="Azimuth angular window CDF")
+    axes[1].set(xlabel="Elevation angular window (deg)",
             ylabel='Cumulative probability',
-            title="Elevation angular window cdf")
-    ax2.grid() 
-    plt.savefig(f"../results/plots/angular_windows_cdf_{save_name}.eps",
+            title="Elevation angular window CDF")
+    axes[0].grid(), axes[1].grid()
+    axes[0].legend(loc='lower right'), axes[1].legend(loc="lower right")
+    if save_name:
+        plt.savefig(f"../results/plots/angular_windows_cdf_{save_name}.eps",
                 format='eps', dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        return
     plt.show()
-    
-    
-    
+    return
 
 
 
 if __name__ == '__main__':
     file_utils.chdir_to_file_dir(__file__)
     plt.close('all')
-    df_path = "../results/slanted_levant_16p_em_solved.csv"
-    df_path = "../results/place_saint_jean_160p_em_solved.csv"
-    df = electromagnetism_utils.load_df(df_path)
+    # df_path = "../results/place_saint_jean_160p_em_solved.csv"
+    # df = electromagnetism_utils.load_df(df_path)
 
-    #plot_rx_rays_distribution(df, receivers=np.arange(
-    #    0, 1, 1), save_name="test_rays_distrib")
+    #plot_rx_rays_distribution(df, receivers=np.arange(0, 1, 1), save_name="test_rays_distrib")
+    #plot_rays_on_sphere(df, receivers=[1,2,3], save_name=None)
     # plot_order_importance(df_path)
     # plot_measures_only()
     # EM_fields_plots(df_path)
-    # plot_rays_on_sphere_helper(df_path)
     
-    plot_RMS_delay_spreads_pdf(df,"test")
-    plot_RMS_angular_spreads_cdf(df,"test")
-    plot_angular_windows_cdf(df,"test")
-   
+
     
+    df1_path = "../results/plots/solved/data/slanted_place_saint_jean_tx_at_centraal_O2_12_160p_em_solved.csv"
+    df1 = electromagnetism_utils.load_df(df1_path)
+    name1="on top of building"
+    
+    df2_path = "../results/plots/solved/data/slanted_place_saint_jean_tx_in_middle_O2_12_160p_em_solved.csv"
+    df2 = electromagnetism_utils.load_df(df2_path)
+    name2="at street level"
+    dfs=[df1,df2]
+    names=[name1,name2]
+    
+    compare_RMS_delay_spreads_cdf(dfs,names)
+    #compare_angular_windows_cdf(dfs,names)
+    #compare_RMS_angular_spreads_cdf(dfs,names)
+
+    #compare_RMS_delay_spreads_pdf(dfs,names)
+
+    #plot_rays_on_sphere(df1,receivers=[1,2,3],save_name='test')

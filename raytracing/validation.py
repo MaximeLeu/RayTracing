@@ -22,6 +22,7 @@ from electromagnetism_plots import read_csv
 import raytracing.ray_tracing as ray_tracing
 import raytracing.electromagnetism_plots as electromagnetism_plots
 import raytracing.place_utils as place_utils
+from place_utils import Place_du_levant
 import raytracing.electromagnetism_utils as electromagnetism_utils
 
 plt.rcParams.update({'font.size': 20})
@@ -44,7 +45,7 @@ def read_simu(df,tx):
     extracts x and y data from the dataframe
     put x and y in same format as the measurements
     """
-    entrances,_,_,_=place_utils.levant_find_crucial_coordinates(filename="../data/place_levant_edited.geojson")
+    entrances,_,_,_=Place_du_levant.levant_find_crucial_coordinates(filename="../data/place_levant_edited.geojson")
     maxwell_entrance=entrances[0]
     
     nreceivers=len(df['rx_id'].unique())
@@ -70,7 +71,7 @@ def get_path_loss(df,tx):
     
 
 def run_levant_simu(npoints=16,order=2,flat=False):
-    place,tx,geometry=place_utils.create_flat_levant(npoints) if flat else place_utils.create_slanted_levant(npoints)
+    place,tx,geometry=Place_du_levant.create_flat_levant(npoints) if flat else Place_du_levant.create_slanted_levant(npoints)
     #place_utils.plot_place(place, tx)
     solved_em_path,solved_rays_path= multithread_solve_place(place=place,tx=tx,geometry=geometry,order=order)
     return tx,solved_em_path,solved_rays_path
@@ -88,12 +89,8 @@ def plot_levant_vs_measures(tx,solved_em_path):
     x1,y1=get_corresponding_measures("october")
     simu_x,simu_y=read_simu(df,tx)
     
-    
     #xlim the simu to match the measures
-    print(f"simu x before {simu_x}")
     simu_x=simu_x[simu_x<=np.max(x1)]
-    print(f"simu_x after {simu_x}")
-    print(f"measures x: {x1}")
     cut=len(simu_x)
     simu_y=simu_y[:cut]
     pl=pl[:cut]
@@ -118,7 +115,7 @@ def plot_levant_vs_measures(tx,solved_em_path):
     #ax.set_xlim([30, 83]) #for october measures
     
     ax.legend(fontsize=20)
-    plt.savefig(f"../results/plots/{geometry}_validation.eps", format='eps', dpi=300,bbox_inches='tight')
+    plt.savefig(f"../results/plots/levant/{geometry}_validation.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
     return
     
@@ -172,7 +169,7 @@ def plot_slanted_vs_flat(npoints,order):
     
     #ax.set_xlim([30, 83]) #for october measures
     
-    plt.savefig("../results/plots/flat_vs_slanted.eps", format='eps', dpi=300,bbox_inches='tight')
+    plt.savefig("../results/plots/levant/flat_vs_slanted.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
     return
     
@@ -191,7 +188,7 @@ def plot_sensitivity_tx(movements,npoints,order,plot_name):
     fig, ax = plt.subplots(figsize=(20, 10))
     colors = cm.rainbow(np.linspace(0, 1, len(movements)))
     for idx, movement in enumerate(movements):
-        place,tx,geometry=place_utils.create_slanted_levant(npoints)
+        place,tx,geometry=Place_du_levant.create_slanted_levant(npoints)
         tx[0]=tx[0]+movement
         solved_em_path2,_= multithread_solve_place(place=place,tx=tx,geometry=geometry,
                                                                  order=order,save_name=f"{geometry}_{npoints}p_{plot_name}")
@@ -208,7 +205,7 @@ def plot_sensitivity_tx(movements,npoints,order,plot_name):
         ylabel='Received power [dB]')
     ax.legend(fontsize=20)
     ax.grid()
-    plt.savefig(f"../results/plots/{plot_name}.eps", format='eps', dpi=300,bbox_inches='tight')
+    plt.savefig(f"../results/plots/levant/{plot_name}.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
     print(f"MSE for each movement: {mse}")
     return

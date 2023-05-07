@@ -204,6 +204,7 @@ class RayTracingProblem:
         - lines of sight (a.k.a. direct paths)
         """
         self.visibility_matrix = self.place.get_visibility_matrix(strict=False)
+        
         cube = geom.Cube.by_point_and_side_length(self.emitter, 2 * 0.1)
 
         self.distance_to_screen = cube.polygons[0].distance_to_point(self.emitter)
@@ -239,13 +240,14 @@ class RayTracingProblem:
 
     def check_reflections(self, lines, polygons_indices):
         """
-        Checks whether a reflection path is valid. It is valid if it satisfies 2 conditions:
+        Checks whether a reflection path is valid. It is valid if it satisfies 3 conditions:
         1. Each point is contained in the polygon it should be in
         2. No polygon obstructs the line path
-
+        3: Two consecutive points are not too close to each other #todo
         :return: True if reflection path is valid
         :rtype: bool
         """
+        min_distance_tol=0.005
         for i, index in enumerate(polygons_indices):
             if not self.polygons[index].contains_point(lines[i + 1, :], check_in_plane=True):
                 return False
@@ -255,6 +257,15 @@ class RayTracingProblem:
 
         for i, _ in enumerate(polygons_indices):
             if geom.polygons_obstruct_line_path(self.polygons, lines[i + 1:i + 3, :]):
+                return False
+        
+        # Check if the distance between consecutive points is greater than the minimum allowed distance
+        #This is to prevent weird interactions. If this condition is not enforced
+        #the angle between the normal to the reflecting surface and the incoming ray may be outside [0;90] degrees.
+        for i in range(len(lines) - 1):
+            distance = np.linalg.norm(lines[i] - lines[i + 1])
+            if distance < min_distance_tol:
+                print("Points too close, discarding")
                 return False
 
         return True

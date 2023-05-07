@@ -23,7 +23,8 @@ from raytracing.materials_properties import P_IN,\
                                 Z_0,\
                                 DF_PROPERTIES,\
                                 N_TREES,\
-                                TREE_SIZE
+                                TREE_SIZE,\
+                                ISOTROPIC_ANTENNA
 
 
 import raytracing.electromagnetism_utils as electromagnetism_utils
@@ -209,11 +210,10 @@ class ElectromagneticField:
     def radiation_pattern(theta,phi=0):
         #maximal when theta=0
         F = np.cos(theta/2)**(2*ALPHA)
-        norm=pi*np.power(2,(1-2*ALPHA),dtype=float)*sc.special.factorial(2*ALPHA)/(sc.special.factorial(ALPHA)**2)
+        #norm=pi*np.power(2,(1-2*ALPHA),dtype=float)*sc.special.factorial(2*ALPHA)/(sc.special.factorial(ALPHA)**2)
         #print(f"theta {theta*180/pi:.2f}\u00b0 rad pattern={F:.2f}")
-        return F#/norm
-    
-
+        return 1 if ISOTROPIC_ANTENNA else F
+        #return F#/norm
     
 
 class Reflection:
@@ -673,13 +673,13 @@ def my_field_computation(rtp,save_name="problem_fields"):
             E_los=ElectromagneticField.from_path(sol.world_path,sol.tx_antenna)
             E_los=ElectromagneticField.account_for_trees(E_los,sol.world_path,rtp.place)
             sol.field=E_los
-            if (sol.field>10).any():
-                print("----POTENTIAL ERROR-----\n"
-                      f"field: {sol.field}\n"
-                      f"path {sol.world_path}\n"
-                      f"tx antenna: {sol.tx_antenna.position}\n"
-                      f"len {sol.path_len:.2f}\n"
-                      "----END ERROR REPORT----")
+            # if (sol.field>10).any():
+            #     print("----POTENTIAL ERROR-----\n"
+            #           f"field: {sol.field}\n"
+            #           f"path {sol.world_path}\n"
+            #           f"tx antenna: {sol.tx_antenna.position}\n"
+            #           f"len {sol.path_len:.2f}\n"
+            #           "----END ERROR REPORT----")
             solved_list.append(sol)
         else:
             print(f'NO LOS for RX{receiver}')
