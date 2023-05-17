@@ -673,13 +673,6 @@ def my_field_computation(rtp,save_name="problem_fields"):
             E_los=ElectromagneticField.from_path(sol.world_path,sol.tx_antenna)
             E_los=ElectromagneticField.account_for_trees(E_los,sol.world_path,rtp.place)
             sol.field=E_los
-            # if (sol.field>10).any():
-            #     print("----POTENTIAL ERROR-----\n"
-            #           f"field: {sol.field}\n"
-            #           f"path {sol.world_path}\n"
-            #           f"tx antenna: {sol.tx_antenna.position}\n"
-            #           f"len {sol.path_len:.2f}\n"
-            #           "----END ERROR REPORT----")
             solved_list.append(sol)
         else:
             print(f'NO LOS for RX{receiver}')
@@ -763,10 +756,9 @@ def my_field_computation(rtp,save_name="problem_fields"):
    
 
     #compute everything
-    solution=[]
     df=SolvedField.create_sol_df()
     
-    #align TX antenna to a specific point and let it be
+    #if true: align TX antenna to a specific point and let it be
     #rx antenna is always aligned in the best possible way
     align_once=False
     if align_once:
@@ -785,7 +777,6 @@ def my_field_computation(rtp,save_name="problem_fields"):
             if align_once:
                 tx_antenna.align_antenna_to_point(align_point)
            
-
             this_solved_list=[] #list containing the fields for all the path between tx and this rx
             compute_LOS(receiver,rtp,this_solved_list,tx_antenna)
             compute_reflections(receiver, rtp,this_solved_list,tx_antenna)
@@ -802,8 +793,7 @@ def my_field_computation(rtp,save_name="problem_fields"):
                 #sol.show_antennas_alignement()
                 print(f"rx {receiver} path {sol.path_type}: RX angles theta {sol.rx_el*180/pi:.2f}\u00b0 phi {sol.rx_az*180/pi:.2f}\u00b0")
                 df=sol.add_to_df(df)
-            solution.append(this_solved_list) #list of all the solutions, useless
-         
+
         else:#no path between the receiver and the tx
             this_solved_list=[]
             sol=SolvedField(path=None)

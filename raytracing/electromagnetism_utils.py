@@ -23,13 +23,17 @@ from raytracing.materials_properties import P_IN,\
 def cdf(array):
     arr=np.sort(array)
     N=len(arr)
-    p=np.array(range(N))/float(N)
+    p=np.array(range(N))/float(N)#percentile rank of the corresponding element in the sorted array
     return arr,p #x,y
 
 
 def MSE(real,simu):
     mse = (np.linalg.norm(real-simu)**2)/len(real)
     return mse
+
+def RMSE(real,simu):
+    rmse = np.sqrt((np.linalg.norm(real-simu)**2)/len(real))
+    return rmse
 
 def angle_distance(alpha, beta):
     #ex: distance(0,300)=60  distance(-5,10)=15
@@ -96,29 +100,30 @@ def get_data_up_to_order(df,order):
     return df_filtered
 
 
+
 def get_power_db_each_receiver(df):
     """
     Compute the total power at each receiver by summing
     all the individual power contributions, then converting to dB
     """
-    receivers=df['rx_id'].unique()
-    power_db=np.zeros(len(receivers))
-    for i,receiver in enumerate(receivers):
-        rx_df=df.loc[df['rx_id'] == receiver]
-        power_db[i]=to_db(np.sum(rx_df["path_power"]))
+    grouped_df = df.groupby('rx_id')
+    power_sum = grouped_df["path_power"].sum().values
+    power_db = to_db(power_sum) 
+    # for receiver, group in grouped_df:
+    #     print(f"Receiver {receiver}:")
+    #     print(group)
     return power_db
 
-def get_receiver_coordinates(df,two_dimensionnal=False):
-    nreceivers=len(df['rx_id'].unique())
-    receivers_coord=[]
-    for receiver in range(nreceivers):
-        rx_df=df.loc[df['rx_id'] == receiver]#all data for this rx  
-        receivers_coord.append(rx_df["receiver"].values[0])
-        
-    if two_dimensionnal:
-        receivers_coord=[np.array([x,y]) for x, y, z in receivers_coord]
+
+def get_receiver_coordinates(df, two_dimensional=False):
+    """
+    Given the dataframe, return the coordinates of each receiver.
+    """
+    grouped_df = df.groupby('rx_id')
+    receivers_coord =np.array(grouped_df["receiver"].first().tolist())
+    if two_dimensional:
+        receivers_coord = receivers_coord[:, :2]
     return receivers_coord
-    
 
 
 def split_df(df,df_list=[]):
@@ -171,16 +176,15 @@ def vv_normalize(vv):
         return np.array([0,0,0])
     return vv/norm
 
+
 def to_db(field_power):
     """
-    converts given field power in watts to dB (normalised to INPUT_POWER)
+    Converts given field power in watts to dB (normalised to INPUT_POWER)
     """
-    #avoid computing log(0)
-    P=np.atleast_1d(field_power)
-    ind=np.where(P!=0)
-    db=np.ones(len(P))*np.NINF
-    for i in ind:
-        db[i]=10*np.log10(P[i]/P_IN)
+    P = np.atleast_1d(field_power)
+    db = np.full(P.shape, np.NINF)
+    ind = P != 0 #avoid computing log(0)
+    db[ind] = 10 * np.log10(P[ind] / P_IN)
     return db[0] if np.isscalar(field_power) else db
 
 def string_arr_to_ndarray(string_arr):
@@ -264,3 +268,6 @@ def load_df(df_path):
             df.at[i,'rx_angles']=string_arr_to_ndarray(df.at[i,'rx_angles'])
         
     return df
+
+
+    

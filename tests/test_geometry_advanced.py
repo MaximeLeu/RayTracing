@@ -324,7 +324,16 @@ def plot_building_faces(place,id):
                 plt.pause(1)
     fig.show()
 
-
+def plot_buildings(place):
+    fig = plt.figure("buildings")
+    fig.set_dpi(300)
+    ax = fig.add_subplot(projection='3d')
+    ax=plot_utils.ensure_axis_orthonormal(ax)
+    for i,polyhedron in enumerate(place.polyhedra):
+        ax=polyhedron.plot3d(ax=ax,ret=True)
+        print(f"building {i}")
+        plt.pause(1)
+    fig.show()
 
 
 

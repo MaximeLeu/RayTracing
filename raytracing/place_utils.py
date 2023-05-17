@@ -45,9 +45,9 @@ def plot_place(place,tx,show_normals=False,name=None):
     else:
         ax = place.plot3d(ax=ax)
     plt.legend(fontsize=15)
+    #plt.savefig(f"../results/plots/thePlace.png", format='png', dpi=300,bbox_inches='tight')
     plt.show(block=False)
     plt.pause(0.01)
-    #plt.savefig(f"../results/plots/thePlace.png", format='png', dpi=1000,bbox_inches='tight')
     return
 
 def create_small_place(npoints=3):
@@ -438,32 +438,7 @@ class Place_saint_jean():
             ground1.part='ground'
             grounds=[ground1]
             return grounds
-        
-        
-        # def create_grounds2():
-        #     #invalid geometry
-        #     square_pis=geom.Square.by_2_corner_points(np.array([[-160,65,0],[0,-140,27]]))
-        #     square_place=geom.Square.by_2_corner_points(np.array([[0,-140,27],[45,45,27]]))
-        #     square_escalier=geom.Square.by_2_corner_points(np.array([[45,45,27],[150,-150,40]]))
-        #     square_street=geom.OrientedPolygon(points=np.array([[45,45,27],[0,45,27],[0,150,24],[45,150,24]]))
             
-        #     square_place=square_place.rotate(axis=np.array([0,1,0]), angle_deg=180)
-        #     square_street=square_street.rotate(axis=np.array([1,0,0]), angle_deg=180)
-            
-        #     angle=np.radians(-45)
-        #     axis=np.array([0,0,1])
-        #     rotation = Rotation.from_rotvec(angle * axis)
-        #     rotation_matrix = rotation.as_matrix()
-        
-        #     grounds=[square_pis,square_place,square_escalier,square_street]
-        #     for ground in grounds:
-        #         #ground.rotate(axis=np.array([0,0,1]), angle_deg=40)
-        #         ground.properties=set_properties("road")
-        #         ground.part='ground'
-        #         ground.points=np.dot(ground.points,rotation_matrix.T)
-        #     return grounds
-            
-        #grounds=create_grounds2()
         grounds=create_grounds()
         buildings=rebuild_buildings_on_slanted_grounds(place,grounds)  
         #rebuild the place
@@ -673,7 +648,7 @@ class Place_saint_jean():
         gdf.loc[gdf['id']=="way/144256881", "height"] = 16
         
         gdf.loc[gdf['id']=="way/472952353", "height"] = 24
-        gdf.loc[gdf['id']=="way/224649053", "height"] = 25#48m centraal
+        gdf.loc[gdf['id']=="way/224649053", "height"] = 48#48m centraal
         
         # rue de dinant
         gdf.loc[gdf['id']=="way/257712250", "height"] = 18
@@ -711,7 +686,7 @@ class Place_saint_jean():
 
 if __name__ == '__main__':
     plt.close("all")
-    #Place_saint_jean.set_heights()
+    Place_saint_jean.set_heights()
     
     #place,tx,geometry=create_small_place(npoints=10)
     #place,tx,geometry=Place_du_levant.create_flat_levant(npoints=16)

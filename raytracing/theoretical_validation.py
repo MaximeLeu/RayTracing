@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 
 from raytracing.electromagnetism import ElectromagneticField,Antenna
-from raytracing.electromagnetism_utils import vv_normalize, to_db
+from raytracing.electromagnetism_utils import vv_normalize
 from raytracing.multithread_solve import multithread_solve_place
 
 
@@ -26,19 +26,6 @@ import raytracing.plot_utils as plot_utils
 import raytracing.electromagnetism_utils as electromagnetism_utils
 import raytracing.file_utils as file_utils
 
-
-def simplified_two_rays(L,ztx,zrx):
-    """
-    Simplified two rays model, only valid when the distance between tx and rx is large
-    """
-    #http://www.wirelesscommunication.nl/reference/chaptr03/pel/tworay.htm
-    #ans  = RX_GAIN*TX_GAIN*((LAMBDA/(4*np.pi*L))**2)*(2*np.sin(K*zrx*ztx/L))**2
-    E0=ElectromagneticField.radiation_pattern(theta=0,phi=0)
-    ans = RX_GAIN*TX_GAIN*(LAMBDA**2)/(4*pi)\
-        *1/(2*Z_0)*((E0/L)*2*np.sin(K*zrx*ztx/L))**2 
-    ans=ans*60 
-    ans =10*np.log10(ans)
-    return ans
 
 
 
@@ -154,18 +141,17 @@ class TwoRaysModel:
         tx_basis, rx_basis = [tx_x, tx_y, tx_z], [rx_x, rx_y, rx_z]
         
         tx_polarisation, rx_polarisation = tx_x, rx_x
-        #TwoRaysModel.plot_antenna_frame(tx_basis,tx,ax=None)
+        #TwoRaysModel.plot_antenna_frame(tx_basis,tx,ax=None) #unzoom the plot to see stuff
         
         #FIELD COMPUTATION-----------------------------
         #work relative to the world reference frame
-        E0=-1j/(4*pi)*138*tx_polarisation
-        #E0=-1j/(4*pi)*(K**2)/Z_0*tx_polarisation
-        Elos=E0*ElectromagneticField.radiation_pattern(0)*np.exp(-1j*K*dlos)/dlos
+        E0=-1j*K*Z_0/(4*pi)*tx_polarisation
+        Elos=E0*ElectromagneticField.radiation_pattern(theta=0)*np.exp(-1j*K*dlos)/dlos
         
         per_vv=vv_normalize(np.cross(d1_vv,d2_vv))
         par_vv=vv_normalize(np.cross(per_vv,d1_vv))
         
-        E0ref=E0*ElectromagneticField.radiation_pattern(theta_tx)
+        E0ref=E0*ElectromagneticField.radiation_pattern(theta=theta_tx)
         Eref=E0ref*np.exp(-1j*K*(d1+d2))/(d1+d2)*(gamma_par*np.dot(tx_polarisation,par_vv)*par_vv \
                                                +gamma_per*np.dot(tx_polarisation,per_vv)*per_vv)
 
@@ -180,7 +166,7 @@ class TwoRaysModel:
         ref_power=ref_power*polarisation_efficiency
         P_rx=los_power+ref_power
         P_rx=P_rx*TX_GAIN
-        db=to_db(P_rx)
+        db=electromagnetism_utils.to_db(P_rx)
         assert(np.linalg.norm(Eref)<np.linalg.norm(Elos))
         return db
     
@@ -193,21 +179,34 @@ class TwoRaysModel:
         """
         colors=['r','g','b']
         if ax is None:
-            fig=plt.figure()
-            fig.set_dpi(300)
-            ax=fig.add_subplot(1,1,1,projection='3d')   
+            fig, ax = plt.subplots(figsize=(16, 8), subplot_kw=dict(projection='3d'))
             ax=plot_utils.plot_world_frame(ax, colors)   
             ax=plot_utils.ensure_axis_orthonormal(ax)
-
         for i in range(3):
             plot_utils.plot_vec(ax,antenna_basis[i]*5,colors[i],origin=antenna_position)
         fig.show()
         return ax
 
 
+def simplified_two_rays(L,ztx,zrx):
+    """
+    Simplified two rays model, only valid when the distance between tx and rx is large
+    """
+    #http://www.wirelesscommunication.nl/reference/chaptr03/pel/tworay.htm
+    #ans  = RX_GAIN*TX_GAIN*((LAMBDA/(4*np.pi*L))**2)*(2*np.sin(K*zrx*ztx/L))**2
+    E0=ElectromagneticField.radiation_pattern(theta=0,phi=0)
+    ans = RX_GAIN*TX_GAIN*(LAMBDA**2)/(4*pi)\
+        *1/(Z_0)*((E0/L)*2*np.sin(K*zrx*ztx/L))**2
+    ans=ans
+    ans =10*np.log10(ans)
+    return ans
+
+#((LAMBDA/(4*pi*d))**2)*RX_GAIN*TX_GAIN*(ElectromagneticField.radiation_pattern(theta=0,phi=0))**2 
+
+
 def compare_models():
     """
-    Comparison between path loss, the two rays model, and the simplified two rays model
+    Comparison between path loss, the two rays model, and the simplified two ray model
     """
     ztx=30
     zrx=10
@@ -219,27 +218,23 @@ def compare_models():
 
     for ind,L in enumerate(dists):
         dlos=np.sqrt((ztx-zrx)**2+L**2)
-        pl[ind]=ElectromagneticField.path_loss(dlos)
+        pl[ind]=ElectromagneticField.path_loss(dlos)+55#offset
+        sol_simplified_two_rays[ind]=simplified_two_rays(L=L,ztx=ztx,zrx=zrx)+17+55#offset
         sol_two_rays_fields[ind]=TwoRaysModel.two_rays_fields(L=L,ztx=ztx,zrx=zrx)
-        sol_simplified_two_rays[ind]=simplified_two_rays(L=L,ztx=ztx,zrx=zrx)
 
 
-    fig=plt.figure()
-    fig.set_dpi(300)
-    ax=fig.add_subplot(1,1,1)
+    fig, ax = plt.subplots(figsize=(10, 6))
     ax.set_xscale('log')
-    ax.plot(dists,sol_two_rays_fields,'r',label='Two rays')
+    ax.plot(dists,sol_two_rays_fields,'r',label='Analytical two ray')
     ax.plot(dists,pl,'b',label="Friis")
-    ax.plot(dists,sol_simplified_two_rays,'y',label="Simplified two rays")
+    ax.plot(dists,sol_simplified_two_rays,'y',label="Simplified two ray")
     
-
-    ax.grid()
-    ax.set_title(f'Comparison between two rays model and Friis at {FREQUENCY/(1e9)} GHz')
-    ax.set_xlabel('distance between tx and rx bases (m)')
-    ax.set_ylabel(r'Received power ($p_{rx}/p_{tx}$)[dB]')
-    ax.legend()
+    ax.set(title=f'Comparison of analytical two ray model, Friis and simplified two ray, at {FREQUENCY/(1e9)} GHz',
+           xlabel='Distance between tx and rx bases (m)',
+           ylabel=r'Received power ($p_{rx}/p_{tx}$)[dB]')
+    ax.legend(),ax.grid()
+    plt.savefig("../results/plots/comparison_theory2rays_PL_ez2rays.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
-    plt.savefig("../results/plots/comparison_theory2rays_PL_ez2rays.eps", format='eps', dpi=1000,bbox_inches='tight')
     return ax
 
 
@@ -255,44 +250,38 @@ def compare_two_rays_and_simu(npoints,solved_em_path=None):
         #get the results from the simulator
         tx,solved_em_path,solved_rays_path=run_two_rays_simu(npoints,order=2)
     df=electromagnetism_utils.load_df(solved_em_path)
-    nreceivers=len(df['rx_id'].unique())
     
-    sol_two_rays_fields=np.zeros(nreceivers)
-    simu=np.zeros(nreceivers)
-    L=np.zeros(nreceivers)
+    nreceivers=len(df['rx_id'].unique())
+    sol_two_rays_fields, L= np.zeros(nreceivers),np.zeros(nreceivers)
 
+    rx_coords=electromagnetism_utils.get_receiver_coordinates(df)
+    simu=electromagnetism_utils.get_power_db_each_receiver(df)
+    
+    tx_base=np.append(tx[0][:2], 0)
     for receiver in range(nreceivers):
-        #acquire data for each receiver
-        rx_df=df.loc[df['rx_id'] == receiver]
-        rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]
-        simu[receiver]=to_db(np.sum(rx_df['path_power'].values))
-        rx_base, tx_base = np.append(rx_coord[:2], 0), np.append(tx[0][:2], 0)
+        rx_base = np.append(rx_coords[receiver][:2], 0)
         L[receiver]=np.linalg.norm(tx_base-rx_base)
-        sol_two_rays_fields[receiver]=TwoRaysModel.two_rays_fields(L=L[receiver],ztx=tx[0][2],zrx=rx_coord[2])
+        sol_two_rays_fields[receiver]=TwoRaysModel.two_rays_fields(L=L[receiver],ztx=tx[0][2],zrx=rx_coords[receiver][2])
 
     #plotting
-    fig=plt.figure()
-    fig.set_dpi(300)
-    ax=fig.add_subplot(1,1,1)
-
+    fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(L,sol_two_rays_fields,'-or',label='two rays')
     ax.plot(L,simu,':*g',label="simu")
 
-    ax.grid()
-    ax.set_title('comparison between two rays and simu')
-    ax.set_xlabel('distance between the bases of tx and rx (m)')
-    ax.set_ylabel(r'Received power ($p_{rx}/p_{tx}$)[dB]')
-    ax.legend()
+    ax.set(title='Comparison of analytical two ray model and raytracer',
+           xlabel="Distance between the bases of tx and rx (m)",
+           ylabel=r'Received power ($p_{rx}/p_{tx}$)[dB]')
+    ax.legend(),ax.grid()
+    plt.savefig("../results/plots/comparison_two_rays_simu.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
-    plt.savefig("../results/plots/comparison_two_rays_simu.eps", format='eps', dpi=1000,bbox_inches='tight')
-    print(f'TXgain*RXgain={np.sqrt(TX_GAIN*RX_GAIN):.2f}')
     return
 
 
 def draw_sloped_two_rays(L,ztx,zrx,slope):
     h=L*np.sin(slope)
     d=np.sqrt(L**2-h**2)
-
+    dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx=TwoRaysModel.two_rays_geometry_sloped(L,ztx,zrx,slope)
+    
     #ground
     x_ground=[0,d]
     y_ground=[0,-h]
@@ -307,8 +296,6 @@ def draw_sloped_two_rays(L,ztx,zrx,slope):
     x_los=[0,d]
     y_los=[ztx,-h+zrx]
     
-    dlos,dref,d1,d2,L1,L2,theta,theta_tx,theta_rx=TwoRaysModel.two_rays_geometry_sloped(L,ztx,zrx,slope)
-    
     #TX to G
     d1_x=[0,L1*np.cos(slope)]
     d1_y=[ztx,-L1*np.sin(slope)]
@@ -316,17 +303,16 @@ def draw_sloped_two_rays(L,ztx,zrx,slope):
     #G to RX
     d2_x=[L1*np.cos(slope),d]
     d2_y=[-L1*np.sin(slope),-h+zrx]
-    
-    plt.close("all")
-    plt.plot(x_ground,y_ground)
-    plt.plot(x_tx,y_tx)
-    plt.plot(x_rx,y_rx)
-    plt.plot(x_los,y_los)
-    plt.plot(d1_x,d1_y)
-    plt.plot(d2_x,d2_y)
-    plt.grid()
-    plt.title('Sloped two rays')
-    plt.show()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(x_ground,y_ground)
+    ax.plot(x_tx,y_tx)
+    ax.plot(x_rx,y_rx)
+    ax.plot(x_los,y_los)
+    ax.plot(d1_x,d1_y)
+    ax.plot(d2_x,d2_y)
+    ax.grid()
+    ax.title('Sloped two rays')
+    ax.show()
 
     print(f"Given L={L:.2f}m, alpha={slope*180/np.pi:.2f}\u00b0, ZTX={ztx:.2f}m and ZRX={zrx:.2f}m")
     print(f"d={d:.2f}m, h={h:.2f}m, d1={d1:.2f}m, d2={d2:.2f}m, L1={L1:.2f}m, L2={L2:.2f}m")
@@ -336,12 +322,13 @@ def draw_sloped_two_rays(L,ztx,zrx,slope):
 
 def compare_sloped_flat():
     """
-    Comparison between the sloped two rays model and the two rays model
+    Comparison between the analytical sloped two ray model and the analytical flat two rays model
     """
-    ztx=30
-    zrx=10
-    dists=np.arange(5*ztx*zrx,500*1e3,100) #distances between the bases of the antennas
-    slope=pi/10
+    ztx=10
+    zrx=2
+    dists=np.arange(20,100,0.5)
+    #dists=np.arange(5*ztx*zrx,500*1e3,100) #distances between the bases of the antennas
+    slope=pi/60
     
     sol_two_rays_fields_sloped=np.zeros(len(dists))
     sol_two_rays_fields=np.zeros(len(dists))
@@ -349,23 +336,28 @@ def compare_sloped_flat():
     for ind,L in enumerate(dists):
         sol_two_rays_fields[ind]=TwoRaysModel.two_rays_fields(L=L,ztx=ztx,zrx=zrx)
         sol_two_rays_fields_sloped[ind]=TwoRaysModel.two_rays_fields(L=L,ztx=ztx,zrx=zrx,slope=slope)
+        
+    mean_flat = np.mean(sol_two_rays_fields)
+    mean_sloped = np.mean(sol_two_rays_fields_sloped)
+    rmse=electromagnetism_utils.RMSE(sol_two_rays_fields,sol_two_rays_fields_sloped)
 
-
-    fig=plt.figure()
-    fig.set_dpi(300)
-    ax=fig.add_subplot(1,1,1)
-    ax.set_xscale('log')
-    ax.plot(dists,sol_two_rays_fields,'r',label='Two rays')
-    ax.plot(dists,sol_two_rays_fields_sloped,'y',label="sloped two rays")
-    
-
-    ax.grid()
-    ax.set_title(f'Comparison between two rays model and Friis at {FREQUENCY/(1e9)} GHz')
-    ax.set_xlabel('distance between tx and rx bases (m)')
-    ax.set_ylabel(r'Received power ($p_{rx}/p_{tx}$)[dB]')
-    ax.legend()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    #ax.set_xscale('log')
+    ax.plot(dists,sol_two_rays_fields,'-or',label=f'flat two ray model')#, mean={mean_flat:.2f})
+    ax.plot(dists,sol_two_rays_fields_sloped,'-ob',label=f"sloped two ray model")#, mean={mean_sloped:.2f})
+    ax.set(title=f'Comparison between the analytical two ray models {FREQUENCY/(1e9)} GHz',
+           xlabel="Distance between the bases of tx and rx (m)",
+           ylabel=r'Received power ($p_{rx}/p_{tx}$)[dB]')
+    ax.legend(),ax.grid()
+    plt.savefig("../results/plots/comparison_analytical2rays_flat_sloped.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
-    plt.savefig("../results/plots/comparison_theory2rays_PL_ez2rays.eps", format='eps', dpi=1000,bbox_inches='tight')
+    print(f"RMSE between flat and sloped: {rmse}")
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    diff=sol_two_rays_fields_sloped-sol_two_rays_fields
+    ax.plot(dists,np.sqrt(diff**2))
+    ax.grid()
+    plt.show()
     return ax
 
 
@@ -373,6 +365,7 @@ if __name__=='__main__':
     file_utils.chdir_to_file_dir(__file__)
     plt.close('all')
     #compare_models()
-    compare_two_rays_and_simu(npoints=3)
-    #compare_models()
-    #compare_sloped_flat()
+    #compare_two_rays_and_simu(npoints=30)
+    compare_sloped_flat()
+    
+    #draw_sloped_two_rays(L=20,ztx=3,zrx=10,slope=pi/9)

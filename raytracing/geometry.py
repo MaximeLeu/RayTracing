@@ -59,7 +59,7 @@ def point_on_line(P1, P2, dist):
     point_on_line = P1 + unit_dir_vec * dist
     return point_on_line
 
-#TODO duplicated in electromagnetism utils
+#TODO duplicated in electromagnetism utils, unused??
 @numba.njit(cache=True)
 def cartesian_to_spherical(points):
     x, y, z = points.T

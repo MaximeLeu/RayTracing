@@ -16,13 +16,14 @@ from scipy.constants import epsilon_0, pi,c
 #electrical conductivity=sigma
 #roughness describes the standard deviation of surface height in METERS
 
-#TODO: find correct relatives mu for each materials
+
 
 N_TREES=10 #how many trees to add to the place
 MIN_TREE_HEIGHT=10
 MAX_TREE_HEIGHT=20
 TREE_SIZE=2
 FREQUENCY=12.5*1e9 #in Hz
+#FREQUENCY=1e9
 #FREQUENCY=30*1e9
 
 LAMBDA=c/FREQUENCY
@@ -60,7 +61,7 @@ concrete={'material':"concrete",
  'epsilon':5.24,
  'mu':1,
  'sigma':0.0462*(FREQUENCY/1e9)**0.7822,
- 'roughness': 1e-5,
+ 'roughness': 1e-4,
  'frequency_range_GHz':"1-100",
  'source':ITU}
 
@@ -68,7 +69,7 @@ brick={'material':"brick",
  'epsilon':3.91,
  'mu':1,
  'sigma':0.0238*(FREQUENCY/1e9)**0.16,
- 'roughness': 1e-4,
+ 'roughness': 1e-3,
  'frequency_range_GHz':"1-40",
  'source':ITU}
 
@@ -84,7 +85,7 @@ glass={'material':"glass",
  'epsilon':6.31,
  'mu':1,
  'sigma':0.0036*(FREQUENCY/1e9)**1.3394,
- 'roughness': 1e-7,
+ 'roughness': 1e-6,
  'frequency_range_GHz':"0.1-100",
  'source':ITU}
 
@@ -92,7 +93,7 @@ metal={'material':"metal",
  'epsilon':1,
  'mu':1,
  'sigma':1e7,
- 'roughness': 1e-7,
+ 'roughness': 1e-6,
  'frequency_range_GHz':"1-100",
  'source':ITU}
 
@@ -100,7 +101,7 @@ medium_dry_ground={'material':"medium_dry_ground",
  'epsilon':15*(FREQUENCY/1e9)**(-0.1),
  'mu':1,
  'sigma':0.035*(FREQUENCY/1e9)**1.63,
- 'roughness': 1e-3,
+ 'roughness': 1e-2,
  'frequency_range_GHz':"1-10",
  'source':ITU}
 

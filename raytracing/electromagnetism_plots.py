@@ -190,14 +190,13 @@ def plot_rx_rays_distribution(df, receivers, save_name):
         scatter1, ax=[ax1, ax2], shrink=0.5, orientation='horizontal', pad=0.15)
     cbar.set_label('Power [dB]', fontsize=14)
 
+
     ax1.set(title="RX angles distribution",
             ylabel="theta (degrees)",
             xlabel='phi (degrees)')
-
     ax2.set(title="TX angles distribution",
             ylabel="theta (degrees)",
-            xlabel='phi (degrees)')
-    
+            xlabel='phi (degrees)')    
     ax1.grid(),ax2.grid()
     plt.savefig(
         f"../results/plots/rays_distribution_{save_name}.png", format='png', dpi=300, bbox_inches='tight')
@@ -432,6 +431,34 @@ def compute_RMS_angular_spreads(df):
     return RMS_az_spreads,RMS_el_spreads
 
 
+def dataframe_drop_NLOS(dataframe):
+    df=dataframe.copy()
+    df= df.dropna(subset=['tx_angles', 'rx_angles'])
+    receivers = df['rx_id'].unique()
+    for i, receiver in enumerate(receivers):
+        data = df.loc[df["rx_id"] == receiver].copy()
+        if "LOS" not in data["path_type"].unique():
+            # drop entire "data" dataframe from df.
+            df.drop(data.index, inplace=True)
+    return df
+    
+def compute_percent_coming_from_n_rays(df,n=1):
+    #For each receiver, compute the percentage of the received power coming
+    #from the n most powerful rays
+    #df = df.dropna(subset=['tx_angles', 'rx_angles'])
+    df=dataframe_drop_NLOS(df)
+    receivers = df['rx_id'].unique()
+    percents = np.zeros(len(receivers))
+    for i, receiver in enumerate(receivers):
+        data = df.loc[df["rx_id"] == receiver].copy()
+        total_power = data["path_power"].sum()
+        powers=np.sort(np.array(data["path_power"]))
+        if len(powers)>=n:
+            percents[i]=sum(powers[-n:])/total_power
+        else:
+            percents[i]=sum(powers)/total_power
+    return percents*100
+
 
 def compare_RMS_delay_spreads_pdf(dfs,names,save_name=None):
     dfs = [dfs] if not isinstance(dfs, list) else dfs
@@ -482,7 +509,7 @@ def compare_RMS_delay_spreads_cdf(dfs,names,save_name=None):
 def compare_RMS_angular_spreads_cdf(dfs, names, save_name=None):
     dfs = [dfs] if not isinstance(dfs, list) else dfs
     names = [names] if not isinstance(names, list) else names
-    fig, axes = plt.subplots(1, 2, figsize=(20, 6))
+    fig, axes = plt.subplots(1, 2, figsize=(20, 6),sharey=True)
     colors = ['b', 'r', 'g', 'm']
     for i, df in enumerate(dfs):
         az_spreads, el_spreads = compute_RMS_angular_spreads(df)
@@ -496,10 +523,10 @@ def compare_RMS_angular_spreads_cdf(dfs, names, save_name=None):
                 ylabel='Cumulative probability',
                 title="RMS azimuth spread cdf")
     axes[1].set(xlabel="RMS elevation spread (deg)",
-                ylabel='Cumulative probability',
                 title="RMS elevation spread cdf")
     axes[0].grid(),axes[1].grid() 
     axes[0].legend(loc='lower right'),axes[1].legend(loc="lower right")
+    fig.subplots_adjust(wspace=0.05)
     if save_name:
         plt.savefig(f"../results/plots/RMS_angular_spread_cdf_{save_name}.eps",
                     format='eps', dpi=300, bbox_inches='tight')
@@ -514,7 +541,7 @@ def compare_angular_windows_cdf(dfs,names, save_name=None):
     #percentage of receives where >70% power is received within a ...degrees radius.
     dfs = [dfs] if not isinstance(dfs, list) else dfs
     names = [names] if not isinstance(names, list) else names
-    fig, axes = plt.subplots(1, 2, figsize=(20, 6))
+    fig, axes = plt.subplots(1, 2, figsize=(20, 6),sharey=True)
     colors = ['b', 'r', 'g', 'm']
 
     for i, df in enumerate(dfs):
@@ -528,10 +555,10 @@ def compare_angular_windows_cdf(dfs,names, save_name=None):
            ylabel='Cumulative probability',
            title="Azimuth angular window CDF")
     axes[1].set(xlabel="Elevation angular window (deg)",
-            ylabel='Cumulative probability',
             title="Elevation angular window CDF")
     axes[0].grid(), axes[1].grid()
     axes[0].legend(loc='lower right'), axes[1].legend(loc="lower right")
+    fig.subplots_adjust(wspace=0.05)
     if save_name:
         plt.savefig(f"../results/plots/angular_windows_cdf_{save_name}.eps",
                 format='eps', dpi=300, bbox_inches='tight')
@@ -539,8 +566,57 @@ def compare_angular_windows_cdf(dfs,names, save_name=None):
         return
     plt.show()
     return
+        
 
+#for comparison of different antenna positions
+def compare_power_percent_coming_from_n_rays_multiple_df(dfs,names,save_name=None, nrays=1):
+    dfs = [dfs] if not isinstance(dfs, list) else dfs
+    names = [names] if not isinstance(names, list) else names
+    fig, ax = plt.subplots(figsize=(16, 6))
+    colors = ['b', 'r', 'g', 'm']
+    x_values = np.arange(0, 101, 1)
+    for i, df in enumerate(dfs):
+        percents = compute_percent_coming_from_n_rays(df, nrays)    
+        counts = np.sum(percents > x_values[:, np.newaxis], axis=1)
+        #percents > x_values[:, np.newaxis] comparison generates a boolean array of shape (len(x_values), len(percents))
+        y_values = (counts / len(percents)) * 100
+        ax.plot(x_values, y_values,'-o'+colors[i],label=names[i])
+        
+    ax.grid(), ax.legend(loc='lower left')
+    ax.set(xlabel="Percentage of the total power reaching the receiver",
+           ylabel='Percentage of receivers',
+           title=f'Proportion of RX where {nrays} rays exceed x% of the total received power')
+    if save_name:
+        plt.savefig(f"../results/plots/power_percent_{nrays}rays_{save_name}.eps",
+                format='eps', dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        return
+    plt.show()
+    return   
 
+#for comparison with different number of rays.
+def compare_power_percent_coming_from_n_rays(df,nrays,save_name=None):
+    nrays = [nrays] if not isinstance(nrays, list) else nrays
+    fig, ax = plt.subplots(figsize=(16, 6))
+    colors = ['b', 'r', 'g', 'm']
+    x_values = np.arange(0, 101, 1)
+    for i,n in enumerate(nrays):
+        percents = compute_percent_coming_from_n_rays(df, n)    
+        counts = np.sum(percents > x_values[:, np.newaxis], axis=1)
+        #percents > x_values[:, np.newaxis] comparison generates a boolean array of shape (len(x_values), len(percents))
+        y_values = (counts / len(percents)) * 100
+        ax.plot(x_values, y_values,'-'+colors[i],label=f"{n} rays")
+    ax.grid(), ax.legend(loc='lower left')
+    ax.set(xlabel="Percentage of the total power reaching the receiver",
+           ylabel='Percentage of receivers',
+           title=f'Proportion of RX where {nrays} rays exceed x% of the total received power')
+    if save_name:
+        plt.savefig(f"../results/plots/power_percent_rays_comp_{save_name}.eps",
+                format='eps', dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        return
+    plt.show()
+    return   
 
 if __name__ == '__main__':
     file_utils.chdir_to_file_dir(__file__)
@@ -558,15 +634,20 @@ if __name__ == '__main__':
     
     df1_path = "../results/plots/solved/data/slanted_place_saint_jean_tx_at_centraal_O2_12_160p_em_solved.csv"
     df1 = electromagnetism_utils.load_df(df1_path)
-    name1="on top of building"
+    name1="on_top_of_48m_building"
     
     df2_path = "../results/plots/solved/data/slanted_place_saint_jean_tx_in_middle_O2_12_160p_em_solved.csv"
     df2 = electromagnetism_utils.load_df(df2_path)
-    name2="at street level"
+    name2="in_the_intersection"
     dfs=[df1,df2]
     names=[name1,name2]
     
-    compare_RMS_delay_spreads_cdf(dfs,names)
+    #compare_RMS_delay_spreads_cdf(dfs,names)
+    
+    #compare_power_percent_coming_from_n_rays(dfs,names,nrays=1)
+    
+    compare_power_percent_coming_from_n_rays(df2,nrays=[1,2,3,4],save_name="tx_in_middle")
+    
     #compare_angular_windows_cdf(dfs,names)
     #compare_RMS_angular_spreads_cdf(dfs,names)
 

@@ -9,8 +9,6 @@ Created on Thu Feb  9 14:17:37 2023
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.constants import pi
-import scipy as sc
-from matplotlib.widgets import Slider
 
 # Angle Increment
 theta = np.linspace(0, pi, 100)
@@ -41,7 +39,7 @@ def plot_radiation_pattern():
     #Plot 3D pattern
     fig = plt.figure(figsize=(10,10))
     ax = fig.add_subplot(111, projection='3d')
-    h=ax.plot_surface(X,Y,Z, cmap='jet', edgecolors='black', linewidth=1.1)
+    ax.plot_surface(X,Y,Z, cmap='jet', edgecolors='black', linewidth=1.1)
     plt.title("3D Radiation pattern",fontsize=20)
     #fig.colorbar(h)
      
@@ -58,8 +56,8 @@ def plot_radiation_pattern():
     #ax.set_axis_off()
     ax.set_box_aspect([1,1,1])
     ax.view_init(20, -135)
+    plt.savefig("../results/plots/3Dradiation_pattern.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
-    plt.savefig(f"../results/plots/3Dradiation_pattern.eps", format='eps', dpi=1000,bbox_inches='tight')
     return
 
 
@@ -68,6 +66,8 @@ def plot_2D_radiation_pattern():
     #The elevation plane pattern is formed by slicing the 3D pattern
     #through an orthogonal plane (either the x-z plane or the y-zplane). 
     r1=f(theta,np.pi/2)
+    ratio=np.max(r1)
+    r1=r1/ratio
     if np.isscalar(r1):
         #if f only depends on phi it returns a single number therfore we multiply by ones for plotting
         r1=r1*np.ones_like(theta)
@@ -100,9 +100,9 @@ def plot_2D_radiation_pattern():
     ax2.set_rlabel_position(135)
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
-    
+    plt.savefig("../results/plots/2Dradiation_pattern.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
-    plt.savefig("../results/plots/2Dradiation_pattern.eps", format='eps', dpi=1000,bbox_inches='tight')
+   
 
 def find_interval(value, array):
     """

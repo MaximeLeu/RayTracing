@@ -48,25 +48,16 @@ def read_simu(df,tx):
     entrances,_,_,_=Place_du_levant.levant_find_crucial_coordinates(filename="../data/place_levant_edited.geojson")
     maxwell_entrance=entrances[0]
     
-    nreceivers=len(df['rx_id'].unique())
-    simu_y=np.zeros(nreceivers)
-    simu_x=np.zeros(nreceivers)
-    for receiver in range(nreceivers):
-        rx_df=df.loc[df['rx_id'] == receiver]#all data for this rx
-        simu_y[receiver]=electromagnetism_utils.to_db(np.sum(rx_df["path_power"].values))
-        rx_coord=rx_df["receiver"].values[0]
-        #neglecting slope
-        simu_x[receiver]=np.linalg.norm(maxwell_entrance[:-1] - rx_coord[:-1])
-    return simu_x, simu_y
+    powers=electromagnetism_utils.get_power_db_each_receiver(df)
+    rx_coords=np.array(electromagnetism_utils.get_receiver_coordinates(df))
+    simu_x = np.linalg.norm(maxwell_entrance[:-1] - rx_coords[:, :-1], axis=1) #neglecting slope
+    return simu_x, powers
 
 
-def get_path_loss(df,tx):
-    nreceivers=len(df['rx_id'].unique())
-    pl=np.zeros(nreceivers)
-    for receiver in range(nreceivers):
-        rx_coord=df.loc[df['rx_id'] == receiver]['receiver'].values[0]
-        d=np.linalg.norm(tx-rx_coord)
-        pl[receiver]=ElectromagneticField.path_loss(d)/2.6
+def get_path_loss(df, tx):
+    rx_coords = np.array(electromagnetism_utils.get_receiver_coordinates(df))
+    distances = np.linalg.norm(tx - rx_coords, axis=1)
+    pl = ElectromagneticField.path_loss(distances) / 2.6 #gain to match the measures
     return pl
     
 
@@ -97,24 +88,19 @@ def plot_levant_vs_measures(tx,solved_em_path):
     
     f_mes = sc.interpolate.interp1d(x1, y1,fill_value='extrapolate')
     simu_interp_meas=f_mes(simu_x)
-    simu_MSE=electromagnetism_utils.MSE(simu_y,simu_interp_meas)
+    simu_RMSE=electromagnetism_utils.RMSE(simu_y,simu_interp_meas)
     
     fig, ax = plt.subplots(figsize=(20, 8))
-    
-    ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/(1e9)} GHz',fontsize=20)
     #ax.plot(x,y,color='green', marker='o',label="february measures")
     ax.plot(x1,y1,color='red', marker='o',label="october measures")
-    ax.plot(simu_x,simu_y,color="orange",marker='o',label=f'simulation. MSE={simu_MSE:.2f}')
+    ax.plot(simu_x,simu_y,color="orange",marker='o',label=f'simulation. RMSE={simu_RMSE:.2f}')
     ax.plot(simu_x,pl,label='path loss')
-    
-    ax.grid()
-    ax.tick_params(axis='both', which='major', labelsize=20)
+
+    ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/(1e9)} GHz',fontsize=20)
     ax.set_xlabel('Distance to Maxwell building base [m]',fontsize=20)
     ax.set_ylabel('Received power [dB]',fontsize=20)
-    
-    #ax.set_xlim([30, 83]) #for october measures
-    
-    ax.legend(fontsize=20)
+    ax.tick_params(axis='both', which='major', labelsize=20)
+    ax.legend(fontsize=20,loc='lower left'), ax.grid()
     plt.savefig(f"../results/plots/levant/{geometry}_validation.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
     return
@@ -149,25 +135,20 @@ def plot_slanted_vs_flat(npoints,order):
     f_mes = sc.interpolate.interp1d(mes_x, mes_y,fill_value='extrapolate')
     flat_interp_meas=f_mes(flat_x)
     slanted_interp_meas=f_mes(slanted_x)
-    flat_MSE=electromagnetism_utils.MSE(flat_y,flat_interp_meas)
-    slanted_MSE=electromagnetism_utils.MSE(slanted_y,slanted_interp_meas)
+    flat_RMSE=electromagnetism_utils.RMSE(flat_y,flat_interp_meas)
+    slanted_RMSE=electromagnetism_utils.RMSE(slanted_y,slanted_interp_meas)
     
 
     fig, ax = plt.subplots(figsize=(20, 8))
-    ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/(1e9)} GHz for flat and slanted ground',fontsize=20)
-    
-    #ax.plot(x1,y1,color='red', marker='o',label="october measures")
-    ax.plot(flat_x,flat_y,color="blue",marker='o',label=f'flat ground. MSE={flat_MSE:.2f}')
-    ax.plot(slanted_x,slanted_y,color="orange",marker='o',label=f'slanted ground. MSE={slanted_MSE:.2f}')
+    ax.plot(flat_x,flat_y,color="blue",marker='o',label=f'flat ground. RMSE={flat_RMSE:.2f}')
+    ax.plot(slanted_x,slanted_y,color="orange",marker='o',label=f'slanted ground. RMSE={slanted_RMSE:.2f}')
     ax.plot(mes_x,mes_y,color='red', marker='o',label="october measures")
     
-    ax.grid()
-    ax.tick_params(axis='both', which='major', labelsize=20)
+    ax.set_title(f'Comparison between measurements and simulation at {FREQUENCY/(1e9)} GHz for flat and slanted ground',fontsize=20)
     ax.set_xlabel('Distance to Maxwell building base [m]',fontsize=20)
     ax.set_ylabel('Received power [dB]',fontsize=20)
-    ax.legend(fontsize=20)
-    
-    #ax.set_xlim([30, 83]) #for october measures
+    ax.tick_params(axis='both', which='major', labelsize=20)
+    ax.legend(fontsize=20,loc='lower left'),ax.grid()
     
     plt.savefig("../results/plots/levant/flat_vs_slanted.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
@@ -184,7 +165,7 @@ def plot_sensitivity_tx(movements,npoints,order,plot_name):
     normal_df=electromagnetism_utils.load_df(solved_em_path)
     normal_y=electromagnetism_utils.get_power_db_each_receiver(normal_df)    
 
-    mse=np.zeros(len(movements))
+    rmse=np.zeros(len(movements))
     fig, ax = plt.subplots(figsize=(20, 10))
     colors = cm.rainbow(np.linspace(0, 1, len(movements)))
     for idx, movement in enumerate(movements):
@@ -194,8 +175,8 @@ def plot_sensitivity_tx(movements,npoints,order,plot_name):
                                                                  order=order,save_name=f"{geometry}_{npoints}p_{plot_name}")
         moved_df = electromagnetism_utils.load_df(solved_em_path2)
         moved_y = electromagnetism_utils.get_power_db_each_receiver(moved_df)
-        mse[idx]=electromagnetism_utils.MSE(normal_y,moved_y)
-        ax.plot(range(npoints), moved_y,color=colors[idx], marker='o', label=f'tx+={movement}m MSE={mse[idx]:.2f}')
+        rmse[idx]=electromagnetism_utils.RMSE(normal_y,moved_y)
+        ax.plot(range(npoints), moved_y,color=colors[idx], marker='o', label=f'tx+={movement}m RMSE={rmse[idx]:.2f}')
         
     
     ax.plot(range(npoints),normal_y,color="black",marker='o',label='baseline')
@@ -203,11 +184,10 @@ def plot_sensitivity_tx(movements,npoints,order,plot_name):
         xticks=range(0,npoints),
         xlabel='Receiver #',
         ylabel='Received power [dB]')
-    ax.legend(fontsize=20)
-    ax.grid()
+    ax.legend(fontsize=20,loc='lower left'),ax.grid()
     plt.savefig(f"../results/plots/levant/{plot_name}.eps", format='eps', dpi=300,bbox_inches='tight')
     plt.show()
-    print(f"MSE for each movement: {mse}")
+    print(f"RMSE for each movement: {rmse}")
     return
     
     
@@ -219,16 +199,7 @@ def plot_sensitivity_tx(movements,npoints,order,plot_name):
 if __name__ == '__main__':
     # file_utils.chdir_to_file_dir(__file__)
     # plt.close('all')
-    
-    tx,solved_em_path,solved_rays_path=run_levant_simu(npoints=16*5,order=2,flat=False)
-    plot_levant_vs_measures(tx[0],solved_em_path)
-    #electromagnetism_plots.plot_order_importance(solved_em_path)
-    #electromagnetism_plots.EM_fields_plots(solved_em_path,name="slanted_final")
-    
-    # problem=ray_tracing.RayTracingProblem.from_json(solved_rays_path)
-    # problem.plot_specific_receiver(30)
 
-    
     def run_levant_sensitivity():
         x_movements=[np.array([-0.3,0,0]),
                      np.array([-0.2,0,0]),
@@ -254,11 +225,24 @@ if __name__ == '__main__':
                      np.array([0,0,0.3])
                      ]
         #close the created plot to start computing of the next one.
-        plot_sensitivity_tx(x_movements,npoints=16*1,order=2,plot_name="levant_sensitivity_x")
-        plot_sensitivity_tx(y_movements,npoints=16*1,order=2,plot_name="levant_sensitivity_y")
+        #plot_sensitivity_tx(x_movements,npoints=16*1,order=2,plot_name="levant_sensitivity_x")
+        #plot_sensitivity_tx(y_movements,npoints=16*1,order=2,plot_name="levant_sensitivity_y")
         plot_sensitivity_tx(z_movements,npoints=16*1,order=2,plot_name="levant_sensitivity_z")
         return
-    #plot_slanted_vs_flat(npoints=16*5,order=2)
+    
+    def make_all_plots():
+        #make sure TX gain=1 and RX gain=0.5
+        #make sure antennas are not isotropic
+        tx,solved_em_path,solved_rays_path=run_levant_simu(npoints=16*1,order=2,flat=False) 
+        plot_levant_vs_measures(tx[0],solved_em_path)
+        #electromagnetism_plots.plot_order_importance(solved_em_path)
+        #electromagnetism_plots.EM_fields_plots(solved_em_path,name="slanted_final")
+        # problem=ray_tracing.RayTracingProblem.from_json(solved_rays_path)
+        # problem.plot_specific_receiver(30)
+        #plot_slanted_vs_flat(npoints=16*5,order=2)    
+        
+        
+    make_all_plots()    
     #run_levant_sensitivity()
     
    
