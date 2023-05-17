@@ -64,3 +64,15 @@ raytracing/claude_30.eps
 raytracing/claude_30.svg
 
 data/*.json
+
+data/place_levant_edited_preprocessed.geojson
+
+data/place_saint_jean/place_saint_jean_preprocessed.geojson
+
+data/place_saint_jean/place_saint_jean.json
+
+data/small_preprocessed.geojson
+
+*.json
+
+data/place_saint_jean/photos/
