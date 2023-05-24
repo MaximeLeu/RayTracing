@@ -80,6 +80,7 @@ class RayTracingProblem:
             
     
     @staticmethod
+    #TODO: load correctly
     def from_json(filename):  
         data=file_utils.json_load(filename, cls=geom.OrientedGeometryDecoder)
         place=geom.OrientedPlace.from_json(data=data["place"])
@@ -143,7 +144,7 @@ class RayTracingProblem:
     
 
     def __eq__(self, other):
-        #TODO: improve loading
+        #TODO: improve loading such that this works
         if not isinstance(other, RayTracingProblem):
             return False
     
