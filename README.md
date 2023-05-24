@@ -79,16 +79,16 @@ The documentation of this project is generated using *Sphinx*. More information 
 
 
 ## Known issues
-
-1. If you renamed one of the project folders, you may encounter an error because old *cached data* (e.g. from Numba)
+1. If the code does not end and the processors are not under load, it is probably because the code was launched in an IPython environment. IPython has trouble with the multiprocessing implementation. Try running the code from the console directly, or restart your kernel before each launch in an IPython environment.
+2. If you renamed one of the project folders, you may encounter an error because old *cached data* (e.g. from Numba)
 does not match new paths. To solve this, delete all the `__pycache__` folders.
-2. If you encounter this error `no arguments in initialization list` and that you are running on Windows,
+3. If you encounter this error `no arguments in initialization list` and that you are running on Windows,
 please try the solutions mentioned [here](https://github.com/pyproj4/pyproj/issues/134#issuecomment-458813395).
-3. If you encounter this error:
+4. If you encounter this error:
 ```
 A GDAL API version must be specified. Provide a path to gdal-config using a GDAL_CONFIG environment variable or use a GDAL_VERSION environment variable.
     ----------------------------------------
 ERROR: Command errored out with exit status 1: python setup.py egg_info Check the logs for full command output.)
 ```
 then gdal has trouble getting installed. Try `pip3 install gdal`. If an error occurs saying you need Microsoft Visual C++ 14.0, then install it from [here](https://visualstudio.microsoft.com/visual-cpp-build-tools/).
-4. If the code does not end and the processors are not under load, it is probably because the code was launched in an IPython environment. IPython has trouble with the multiprocessing implementation. Try running the code from the console directly, or restart your kernel before each launch in an IPython environment.
+
