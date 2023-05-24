@@ -143,6 +143,7 @@ class RayTracingProblem:
     
 
     def __eq__(self, other):
+        #TODO: improve loading
         if not isinstance(other, RayTracingProblem):
             return False
     
@@ -259,6 +260,7 @@ class RayTracingProblem:
             if geom.polygons_obstruct_line_path(self.polygons, lines[i + 1:i + 3, :]):
                 return False
         
+        #TODO: find a more rigorous way to do this
         # Check if the distance between consecutive points is greater than the minimum allowed distance
         #This is to prevent weird interactions. If this condition is not enforced
         #the angle between the normal to the reflecting surface and the incoming ray may be outside [0;90] degrees.
@@ -528,12 +530,3 @@ class RayTracingProblem:
         plot_utils.add_points_to_3d_ax(ax, path, color='r')
         self.place.center_3d_plot(ax)
         plt.show()
-        
-
-
-# def plot_path(ax,path):
-#     add_points_to_3d_ax(ax=ax, points=np.array([path[0]]), label="TX")
-#     add_points_to_3d_ax(ax=ax, points=np.array([path[-1]]), label="RX")
-#     for i in range(len(path)-1):
-#         ax.plot([path[i][0],path[i+1][0]],[path[i][1],path[i+1][1]],[path[i][2],path[i+1][2]])
-#     return ax

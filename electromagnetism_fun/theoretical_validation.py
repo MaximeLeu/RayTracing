@@ -15,16 +15,15 @@ from scipy.constants import pi
 import matplotlib.pyplot as plt
 
 
-from raytracing.electromagnetism import ElectromagneticField,Antenna
-from raytracing.electromagnetism_utils import vv_normalize
-from raytracing.multithread_solve import multithread_solve_place
+from electromagnetism_fun.electromagnetism import ElectromagneticField,Antenna
+from electromagnetism_fun.electromagnetism_utils import vv_normalize
+from electromagnetism_fun.multithread_solve import multithread_solve_place
+from electromagnetism_fun.materials_properties import FREQUENCY,DF_PROPERTIES,LAMBDA,K,Z_0,TX_GAIN,RX_GAIN, P_IN
+import electromagnetism_fun.place_utils as place_utils
+import electromagnetism_fun.electromagnetism_utils as electromagnetism_utils
 
-
-from raytracing.materials_properties import FREQUENCY,DF_PROPERTIES,LAMBDA,K,Z_0,TX_GAIN,RX_GAIN, P_IN
-import raytracing.place_utils as place_utils
-import raytracing.plot_utils as plot_utils
-import raytracing.electromagnetism_utils as electromagnetism_utils
 import raytracing.file_utils as file_utils
+import raytracing.plot_utils as plot_utils
 
 
 
@@ -201,7 +200,6 @@ def simplified_two_rays(L,ztx,zrx):
     ans =10*np.log10(ans)
     return ans
 
-#((LAMBDA/(4*pi*d))**2)*RX_GAIN*TX_GAIN*(ElectromagneticField.radiation_pattern(theta=0,phi=0))**2 
 
 
 def compare_models():
@@ -337,14 +335,13 @@ def compare_sloped_flat():
         sol_two_rays_fields[ind]=TwoRaysModel.two_rays_fields(L=L,ztx=ztx,zrx=zrx)
         sol_two_rays_fields_sloped[ind]=TwoRaysModel.two_rays_fields(L=L,ztx=ztx,zrx=zrx,slope=slope)
         
-    mean_flat = np.mean(sol_two_rays_fields)
-    mean_sloped = np.mean(sol_two_rays_fields_sloped)
+
     rmse=electromagnetism_utils.RMSE(sol_two_rays_fields,sol_two_rays_fields_sloped)
 
     fig, ax = plt.subplots(figsize=(10, 6))
     #ax.set_xscale('log')
-    ax.plot(dists,sol_two_rays_fields,'-or',label=f'flat two ray model')#, mean={mean_flat:.2f})
-    ax.plot(dists,sol_two_rays_fields_sloped,'-ob',label=f"sloped two ray model")#, mean={mean_sloped:.2f})
+    ax.plot(dists,sol_two_rays_fields,'-or',label='flat two ray model')
+    ax.plot(dists,sol_two_rays_fields_sloped,'-ob',label="sloped two ray model")
     ax.set(title=f'Comparison between the analytical two ray models {FREQUENCY/(1e9)} GHz',
            xlabel="Distance between the bases of tx and rx (m)",
            ylabel=r'Received power ($p_{rx}/p_{tx}$)[dB]')

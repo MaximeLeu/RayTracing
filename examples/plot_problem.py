@@ -101,9 +101,9 @@ if __name__ == '__main__':
 
 
 
-    from raytracing.electromagnetism import compute_field_from_solution
-
-    compute_field_from_solution(problem, '../data/electromagnetism.json')
+    from electromagnetism_fun.electromagnetism import my_field_computation
+    #TODO load problem from file. Not yet implemented
+    my_field_computation(problem, '../data/electromagnetism.json')
 
     plt.show()
 

@@ -7,7 +7,7 @@ Created on Fri Mar 24 00:38:07 2023
 """
 import numpy as np
 from raytracing.ray_tracing import RayTracingProblem
-from raytracing.place_utils import create_small_place,create_flat_levant
+from electromagnetism_fun.place_utils import create_small_place
 
 import raytracing.file_utils as file_utils
 
@@ -19,13 +19,7 @@ def test_save_load_raytracingProblem():
     problem.solve(max_order=2,receivers_indexs=idx)
     
     problem.to_json(filename="saved_raytracing_problem.json")
-    
     loaded_problem=RayTracingProblem.from_json(filename='saved_raytracing_problem.json')
-
-    assert(problem==loaded_problem),"problems are not equal"
-    print("")
-    print("")
-    print("TEST SUCCESS")
     return problem,loaded_problem
     
     
@@ -33,7 +27,8 @@ def test_save_load_raytracingProblem():
 if __name__ == '__main__':
     file_utils.chdir_to_file_dir(__file__)
     problem,loaded_problem=test_save_load_raytracingProblem()
-    
+    assert(problem==loaded_problem),"problems are not equal"
+    print("TEST SUCCESS")
 
     
     

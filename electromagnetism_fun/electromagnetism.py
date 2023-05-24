@@ -10,8 +10,8 @@ import scipy as sc
 from scipy.constants import c, mu_0, epsilon_0, pi
 
 #self written imports
-import raytracing.geometry as geom
-from raytracing.materials_properties import P_IN,\
+
+from electromagnetism_fun.materials_properties import P_IN,\
                                 RADIATION_EFFICIENCY,\
                                 RADIATION_POWER,\
                                 ALPHA,\
@@ -26,11 +26,12 @@ from raytracing.materials_properties import P_IN,\
                                 TREE_SIZE,\
                                 ISOTROPIC_ANTENNA
 
+import electromagnetism_fun.place_utils as place_utils
+import electromagnetism_fun.electromagnetism_utils as electromagnetism_utils
+from electromagnetism_utils import vv_normalize,cot
 
-import raytracing.electromagnetism_utils as electromagnetism_utils
-from raytracing.electromagnetism_utils import vv_normalize,cot
 
-import raytracing.place_utils as place_utils
+import raytracing.geometry as geom
 import raytracing.plot_utils as plot_utils
 import raytracing.file_utils as file_utils
 
@@ -208,10 +209,8 @@ class ElectromagneticField:
 
     @staticmethod
     def radiation_pattern(theta,phi=0):
-        #maximal when theta=0
         F = np.cos(theta/2)**(2*ALPHA)
         #norm=pi*np.power(2,(1-2*ALPHA),dtype=float)*sc.special.factorial(2*ALPHA)/(sc.special.factorial(ALPHA)**2)
-        #print(f"theta {theta*180/pi:.2f}\u00b0 rad pattern={F:.2f}")
         return 1 if ISOTROPIC_ANTENNA else F
         #return F#/norm
     
@@ -335,10 +334,6 @@ class Reflection:
             the_path=paths[ind]
             _,Si,_,Sr=geom.normalize_path(the_path) #norms of incident and ref vectors
             R,e_per,ei_par,er_par=Reflection.dyadic_ref_coeff(the_path,the_reflection_polygon)
-
-            #TODO check that the decomposition is correct
-            #a=np.dot(E_r,e_per)*e_per+np.dot(E_r,ei_par)*ei_par
-            #assert np.allclose(a,E_r), f" REF: decomposition failed: {a}, field: {E_r}"
 
             E_r=ElectromagneticField.account_for_trees(E_r,np.array([the_path[0],the_path[1]]),rtp.place) #account for TX-->ref # incident field at the point of reflection.
             
@@ -807,8 +802,6 @@ def my_field_computation(rtp,save_name="problem_fields"):
     return df
 
 
-if __name__ == "__main__":
-    file_utils.chdir_to_file_dir(__file__)
 
 
 

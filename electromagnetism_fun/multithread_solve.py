@@ -13,13 +13,12 @@ import time
 from pathos.multiprocessing import ProcessingPool as Pool
 import matplotlib.pyplot as plt
 
-
 #self written imports
-from raytracing.ray_tracing import RayTracingProblem
-from raytracing.electromagnetism import my_field_computation
-from raytracing.electromagnetism_plots import EM_fields_plots
+from electromagnetism_fun.electromagnetism import my_field_computation
+from electromagnetism_fun.electromagnetism_plots import EM_fields_plots
+import electromagnetism_fun.place_utils as place_utils
 
-import raytracing.place_utils as place_utils
+from raytracing.ray_tracing import RayTracingProblem
 import raytracing.file_utils as file_utils
 
 
@@ -102,7 +101,6 @@ def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3,save_name=None):
     print("TOTAL TIME: ")
     print_elapsed_time(start_time_rt,end_time_em)
     
-
     # print("Plotting EM plots:")
     # start_time_plt = time.time()
     # #plot full problem
@@ -110,8 +108,6 @@ def multithread_solve_place(place,tx,geometry,N_CPU=16,order=3,save_name=None):
     # end_time_plt = time.time()
     # print("Finished EM plotting")
     # print_elapsed_time(start_time_plt,end_time_plt)
-    
-    
     
     return solved_em_path,solved_rays_path
     

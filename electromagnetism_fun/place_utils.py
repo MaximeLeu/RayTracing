@@ -16,7 +16,7 @@ import json
 from pathlib import Path
 #self written imports
 import raytracing.geometry as geom
-from raytracing.materials_properties import set_properties, LAMBDA
+from electromagnetism_fun.materials_properties import set_properties, LAMBDA
 from scipy.spatial.transform import Rotation
 
 from shapely.geometry import LineString, MultiPolygon, Polygon,Point
@@ -69,7 +69,7 @@ def create_small_place(npoints=3):
         place.add_set_of_points(rx)
         rx =rx+np.array([0,-4,0])
     #save
-    place.to_json(filename=f"../data/{geometry}.json")
+    #place.to_json(filename=f"../data/{geometry}.json")
     return place,tx,geometry
 
 
@@ -99,7 +99,7 @@ def create_dummy_place():
     rx = np.array([65., 12.,init_elevation+ 5.]).reshape(-1, 3)
     place.add_set_of_points(rx)
     #save
-    place.to_json(filename=f"../data/{geometry}.json")
+    #place.to_json(filename=f"../data/{geometry}.json")
     return place, tx, geometry
 
 
@@ -119,7 +119,7 @@ def create_two_rays_place(npoints=20):
         rx =rx0+np.array([receiver*step,0,0])
         place.add_set_of_points(rx)
     #save
-    place.to_json(filename=f"../data/{geometry}.json")
+    #place.to_json(filename=f"../data/{geometry}.json")
     return place, tx, geometry
 
 
@@ -232,7 +232,7 @@ class Place_du_levant():
         #place.polyhedra.extend(tree_crowns) #when added here tree crowns are blocking rays.
 
         tx=add_tx_rx(place, maxwell_entrance, levant_bottom, npoints)
-        place.to_json(filename=f"../data/{geometry}.json")
+        #place.to_json(filename=f"../data/{geometry}.json")
         return place,tx,geometry
 
     @staticmethod
@@ -309,7 +309,7 @@ class Place_du_levant():
             return place, tx
 
         place, tx=add_tx_rx(place, maxwell_entrance, levant_bottom, npoints)
-        place.to_json(filename=f"../data/{geometry}.json")
+        #place.to_json(filename=f"../data/{geometry}.json")
         
         #build stairs
         # stairs_polyhedron=place.polyhedra[4]
@@ -411,10 +411,9 @@ class Place_saint_jean():
             tx=np.array([72,40,2])#near big mama
             #tx=np.array([-93,80,2])#near conservatoire
         
-        
         #place.surface=place.surface.translate(np.array([0,0,100])) #to check easily if ground normals are well set
         tx=tx.reshape(-1,3)
-        place.to_json(filename=f"../data/place_saint_jean/{geometry}.json")
+        #place.to_json(filename=f"../data/place_saint_jean/{geometry}.json")
         return place,tx,geometry
     
     @staticmethod
@@ -479,7 +478,7 @@ class Place_saint_jean():
         else:
             tx=add_tx(tx,place.polyhedra[29].get_top_face()) #31 centraal=place.polyhedra[29]
         
-        place.to_json(filename=f"../data/place_saint_jean/{geometry}.json")
+        #place.to_json(filename=f"../data/place_saint_jean/{geometry}.json")
         return place,tx,geometry
     
     @staticmethod
@@ -588,19 +587,6 @@ class Place_saint_jean():
         
         street_polygon=shapely.geometry.Polygon(street_points)
         return street_polygon
-    
-    
-    # @staticmethod
-    # def create_shapely_rectangle(bottom_left,top_right):
-    #     #create a shapely rectangle given two corners:
-    #     rectangle= shapely.geometry.box(*bottom_left, *top_right)
-    #     return rectangle
-    
-    # @staticmethod
-    # def get_largest_polygon(multipolygon):
-    #     #returns the largest polygon of a multipolygon
-    #     polygons_by_area = sorted(multipolygon.geoms, key=lambda polygon: polygon.area, reverse=True)
-    #     return polygons_by_area[0]
     
     @staticmethod
     def set_heights(filename='../data/place_saint_jean/place_saint_jean.geojson'):

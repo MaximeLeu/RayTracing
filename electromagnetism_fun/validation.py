@@ -13,17 +13,15 @@ import matplotlib.cm as cm
 import scipy as sc
 
 #self written imports
-from raytracing.multithread_solve import multithread_solve_place
-from raytracing.materials_properties import FREQUENCY,K
-
-from raytracing.electromagnetism import ElectromagneticField
-from electromagnetism_plots import read_csv
-
-import raytracing.ray_tracing as ray_tracing
-import raytracing.electromagnetism_plots as electromagnetism_plots
-import raytracing.place_utils as place_utils
+from electromagnetism_fun.multithread_solve import multithread_solve_place
+from electromagnetism_fun.materials_properties import FREQUENCY
+from electromagnetism_fun.electromagnetism import ElectromagneticField
+import electromagnetism_fun.electromagnetism_plots as electromagnetism_plots
+import electromagnetism_fun.electromagnetism_utils as electromagnetism_utils
+import electromagnetism_fun.place_utils as place_utils
 from place_utils import Place_du_levant
-import raytracing.electromagnetism_utils as electromagnetism_utils
+import raytracing.ray_tracing as ray_tracing
+
 
 plt.rcParams.update({'font.size': 20})
 
@@ -37,7 +35,7 @@ def get_corresponding_measures(month):
         raise ValueError(f"No measures for frequency {FREQUENCY}GHz")
     if month not in files[FREQUENCY]:
         raise ValueError(f"No measures for month {month}")
-    return read_csv(files[FREQUENCY][month])
+    return electromagnetism_plots.read_csv(files[FREQUENCY][month])
 
 
 def read_simu(df,tx):

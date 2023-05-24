@@ -10,7 +10,7 @@ from raytracing.electromagnetism import compute_field_from_solution
 import timeit
 import sys
 
-
+#TODO: not adapted to the new implementation yet.
 def f(r):
     # 1. Load data
 

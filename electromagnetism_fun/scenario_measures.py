@@ -15,17 +15,16 @@ from scipy.interpolate import griddata
 import shapely
 import time
 import geopandas as gpd
-#self written imports
-from raytracing.multithread_solve import multithread_solve_place
-import raytracing.ray_tracing as ray_tracing
-import raytracing.geometry as geom
-import raytracing.electromagnetism_plots as electromagnetism_plots
-import raytracing.materials_properties as material_properties
 
-import raytracing.place_utils as place_utils
+#self written imports
+import electromagnetism_fun.electromagnetism_utils as electromagnetism_utils
+import electromagnetism_fun.electromagnetism_plots as electromagnetism_plots
+import electromagnetism_fun.materials_properties as material_properties
+from electromagnetism_fun.multithread_solve import multithread_solve_place
+import electromagnetism_fun.place_utils as place_utils
 from place_utils import Place_saint_jean
+
 import raytracing.plot_utils as plot_utils
-import raytracing.electromagnetism_utils as electromagnetism_utils
 import raytracing.file_utils as file_utils
 plt.rcParams.update({'font.size': 20})
 

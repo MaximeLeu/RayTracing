@@ -16,8 +16,6 @@ from scipy.constants import epsilon_0, pi,c
 #electrical conductivity=sigma
 #roughness describes the standard deviation of surface height in METERS
 
-
-
 N_TREES=10 #how many trees to add to the place
 MIN_TREE_HEIGHT=10
 MAX_TREE_HEIGHT=20
@@ -41,10 +39,7 @@ ALPHA=10#increase alpha to make the antenna more directive.
 
 #TX_GAIN,RX_GAIN=1,0.5 #for levant validation
 TX_GAIN,RX_GAIN=1,1
-
-
 ITU="ITU-R P.2040-2"
-
 
 
 #Surface roughness values are expressed in meters
@@ -146,12 +141,6 @@ def set_properties(building_type):
             print(f"Properties for the type {building_type} have not been specified, using concrete")
             properties=create_dict("concrete")
     return properties
-
-
-
-#to include into latex
-#pd.set_option("display.precision", 3)
-#print(DF_PROPERTIES.to_latex(index=False))
 
 
 

@@ -1,4 +1,7 @@
 # Ray Tracing
+This project is the subject of a thesis and an article:
+ - The article, detailing the ray tracing method, called min path tracing is available [here](https://doi.org/10.48550/arXiv.2301.06399)
+ - The thesis, detailing the electromagnetism computations, will be available on [UCLouvain's dial.mem](https://dial.uclouvain.be/memoire/ucl/fr/search/site) under the name "Modeling complex objects within ray tracing simulations applied to beyond 5G communications", written by Maxime Leurquin
 
 This project's main objective is to provide intuitive tools in order to compute ray tracing in cities. It takes into account multiple orders of reflections and/or refraction for a given signal path. When possible, analytical solutions are provided, but numerical solutions are also used in order to reduce the complexity of the software.
 
@@ -8,7 +11,8 @@ This project's main objective is to provide intuitive tools in order to compute 
 ```
 Radar coverage
 │   README.md
-└───raytracing - code
+└───raytracing - Code to compute the paths the rays take.
+└───electromagnetism_fun - Code to compute the electromagnetic field propagated by the rays.
 └───examples - visual examples
 └───docs - documentation sources and builds
     │   README.MD
@@ -19,7 +23,7 @@ Radar coverage
 
 ### On Linux or MacOS machines
 1. Clone this repo
-2. Install Python 3.6 (or higher)
+2. Install Python 3.10 (or higher)
 3. Setup a virtual env. [with pip](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) (recommended but not mandatory)
 4. Install required packages: 
 ```
@@ -65,9 +69,8 @@ pytest
 
 - [] provide more tests
 - [] document all functions
-- [] add material information (reflection coefficient, etc.)
-- [] validate power calculation
-- [] validate diffraction E.M. calculation
+- [] Improve ray tracing performance
+- [] Load RayTracingProblem from file
 - [] use Numba's ahead of time compiler to remove overhead time for each compilation, [see here](https://numba.pydata.org/numba-doc/dev/user/pycc.html)
 
 ## Documentation
@@ -88,3 +91,4 @@ A GDAL API version must be specified. Provide a path to gdal-config using a GDAL
 ERROR: Command errored out with exit status 1: python setup.py egg_info Check the logs for full command output.)
 ```
 then gdal has trouble getting installed. Try `pip3 install gdal`. If an error occurs saying you need Microsoft Visual C++ 14.0, then install it from [here](https://visualstudio.microsoft.com/visual-cpp-build-tools/).
+4. If the code does not end and the processors are not under load, it is probably because the code was launched in an IPython environment. IPython has trouble with the multiprocessing implementation. Try running the code from the console directly, or restart your kernel before each launch in an IPython environment.

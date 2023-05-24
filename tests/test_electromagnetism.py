@@ -9,15 +9,15 @@ Created on Tue Mar 28 11:02:07 2023
 import numpy as np
 import matplotlib.pyplot as plt
 
-import raytracing.electromagnetism as electromagnetism
-import raytracing.electromagnetism_utils as electromagnetism_utils
+import electromagnetism_fun.electromagnetism as electromagnetism
+import electromagnetism_fun.electromagnetism_utils as electromagnetism_utils
 
-from raytracing.electromagnetism import ElectromagneticField,Antenna,Reflection,Diffraction
+from electromagnetism_fun.electromagnetism import ElectromagneticField,Antenna,Reflection,Diffraction
 
-from raytracing.materials_properties import FREQUENCY
+from electromagnetism_fun.materials_properties import FREQUENCY
 
-import raytracing.multithread_solve as multithread_solve
-import raytracing.place_utils as place_utils
+import electromagnetism_fun.multithread_solve as multithread_solve
+import electromagnetism_fun.place_utils as place_utils
 import raytracing.plot_utils as plot_utils
 import raytracing.file_utils as file_utils
 

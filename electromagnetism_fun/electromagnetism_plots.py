@@ -3,7 +3,7 @@
 """
 Created on Sun Mar 26 13:29:01 2023
 
-@author: max
+@author: Maxime Leurquin
 """
 import csv
 import numpy as np
@@ -14,7 +14,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 
 
-import raytracing.electromagnetism_utils as electromagnetism_utils
+import electromagnetism_fun.electromagnetism_utils as electromagnetism_utils
 import raytracing.file_utils as file_utils
 import raytracing.plot_utils as plot_utils
 
@@ -130,7 +130,7 @@ def EM_fields_plots(df_path, name="unnamed_plot"):
 
         fig.savefig(
             f"../results/plots/EM_plots_{name}{k}.pdf", dpi=150, bbox_inches='tight')
-        print("saved figure in /results/plots/")
+        print(f"saved figure in /results/plots/{name}")
         plt.close(fig)
     return
 

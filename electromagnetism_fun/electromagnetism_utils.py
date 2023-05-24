@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 
-from raytracing.materials_properties import P_IN,\
+from electromagnetism_fun.materials_properties import P_IN,\
                                 RADIATION_EFFICIENCY,\
                                 RADIATION_POWER,\
                                 ALPHA,\
@@ -197,7 +197,6 @@ def string_arr_to_ndarray(string_arr):
     """
     if not isinstance(string_arr, np.ndarray):
         string_arr=np.fromstring(string_arr[1:-1],sep=',')
-        #assert len(string_arr)==3, f"strange array shape: {string_arr}"     
     return string_arr
 
 def string_complex_arr_to_ndarray(string):

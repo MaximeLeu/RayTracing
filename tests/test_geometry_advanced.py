@@ -12,13 +12,13 @@ from shapely.geometry import Polygon as shPolygon
 
 import raytracing.ray_tracing as ray_tracing
 from raytracing.ray_tracing import RayTracingProblem
-
 import raytracing.geometry as geom
-from raytracing.materials_properties import set_properties
+
+from electromagnetism_fun.materials_properties import set_properties
 
 import raytracing.file_utils as file_utils
 import raytracing.plot_utils as plot_utils
-import raytracing.place_utils as place_utils
+import electromagnetism_fun.place_utils as place_utils
 
 def test_all_save_load():
     

@@ -22,8 +22,7 @@ import json
 from pathlib import Path
 import random
 
-
-from raytracing.materials_properties import set_properties, MIN_TREE_HEIGHT,MAX_TREE_HEIGHT
+from electromagnetism_fun.materials_properties import set_properties, MIN_TREE_HEIGHT,MAX_TREE_HEIGHT
 import raytracing.array_utils as array_utils
 import raytracing.plot_utils as plot_utils
 import raytracing.file_utils as file_utils
